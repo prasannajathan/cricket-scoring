@@ -10,14 +10,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import type { RootState } from '@/store/store';
+import type { RootState } from '@/store';
 import {
   setPlayersPerTeam,
   setNoBallReball,
   setNoBallRun,
   setWideBallReball,
   setWideBallRun,
-} from '@/store/matchSlice';
+} from '@/store/scoreboardSlice';
 
 export default function AdvancedSettingsScreen() {
   const dispatch = useDispatch();

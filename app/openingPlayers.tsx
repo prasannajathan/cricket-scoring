@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -10,25 +10,29 @@ import {
 
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'expo-router';
-import type { RootState } from '@/store/store';
+import type { RootState } from '@/store';
 import {
   setOpeningStriker,
   setOpeningNonStriker,
-  setOpeningBowler
-} from '@/store/matchSlice';
+  setOpeningBowler,
+} from '@/store/scoreboardSlice';
 
 export default function OpeningPlayersScreen() {
     const router = useRouter();
   const dispatch = useDispatch();
 
-  // Pull existing opener names from Redux (if they exist)
-  const { 
-    openingStriker, 
-    openingNonStriker, 
-    openingBowler 
-  } = useSelector((state: RootState) => state.match);
+  const scoreboard = useSelector((state: RootState) => state.scoreboard);
+  const { teamA, teamB } = scoreboard;
 
-  const handleStartMatch = () => {
+  // Figure out which team is batting / bowling
+  const battingTeamKey = teamA.batting ? 'teamA' : 'teamB';
+  const bowlingTeamKey = teamA.batting ? 'teamB' : 'teamA';
+
+  // Access the current values from the scoreboard
+  const battingTeam = scoreboard[battingTeamKey];
+  const bowlingTeam = scoreboard[bowlingTeamKey];
+
+  const handleStartScoring = () => {
     // You could navigate to a scoring screen or somewhere else
     router.push('/scoring');
   };
@@ -40,34 +44,40 @@ export default function OpeningPlayersScreen() {
       <Text style={styles.title}>Select Opening players</Text>
 
       {/* Striker */}
-      <Text style={styles.label}>Striker</Text>
+      <Text style={styles.label}>Striker({battingTeam.teamName})</Text>
       <TextInput
         style={styles.textInput}
-        placeholder="Player name"
-        value={openingStriker}
-        onChangeText={val => dispatch(setOpeningStriker(val))}
+        placeholder="e.g. Virat Kohli"
+        value={battingTeam.openingStriker ?? ''}
+        onChangeText={(val) => 
+          dispatch(setOpeningStriker({ team: battingTeamKey, name: val }))
+        }
       />
 
       {/* Non-striker */}
-      <Text style={styles.label}>Non-striker</Text>
+      <Text style={styles.label}>Non-striker ({battingTeam.teamName})</Text>
       <TextInput
         style={styles.textInput}
-        placeholder="Player name"
-        value={openingNonStriker}
-        onChangeText={val => dispatch(setOpeningNonStriker(val))}
+        placeholder="e.g. Rohit Sharma"
+        value={battingTeam.openingNonStriker ?? ''}
+        onChangeText={(val) => 
+          dispatch(setOpeningNonStriker({ team: battingTeamKey, name: val }))
+        }
       />
 
       {/* Opening bowler */}
-      <Text style={styles.label}>Opening bowler</Text>
+      <Text style={styles.label}>Opening bowler ({bowlingTeam.teamName})</Text>
       <TextInput
         style={styles.textInput}
-        placeholder="Player name"
-        value={openingBowler}
-        onChangeText={val => dispatch(setOpeningBowler(val))}
+        placeholder="e.g. Jasprit Bumrah"
+        value={bowlingTeam.openingBowler ?? ''}
+        onChangeText={(val) => 
+          dispatch(setOpeningBowler({ team: bowlingTeamKey, name: val }))
+        }
       />
 
       {/* Start Match Button */}
-      <TouchableOpacity style={styles.startButton} onPress={handleStartMatch}>
+      <TouchableOpacity style={styles.startButton} onPress={handleStartScoring}>
         <Text style={styles.startButtonText}>Start match</Text>
       </TouchableOpacity>
     </ScrollView>

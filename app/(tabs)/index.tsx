@@ -1,40 +1,34 @@
 import React from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  ScrollView 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  ScrollView
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
 
-import type { RootState } from '@/store/store'; // adjust path if needed
-import { 
-  setHostTeam, 
-  setVisitorTeam,
+import type { RootState } from '@/store';
+import {
+  setTeamName,
   setTossWinner,
-  setBatOrBowl,
-  setOvers,
-} from '@/store/matchSlice';
+  setTossChoice,
+  setTotalOvers,
+} from '@/store/scoreboardSlice';
 
 export default function NewMatchScreen() {
   const router = useRouter();
-  // Get values from Redux store
-  const { hostTeam, visitorTeam, tossWinner, batOrBowl, overs } = useSelector(
-    (state: RootState) => state.match
-  ) as {
-    hostTeam: string;
-    visitorTeam: string;
-    tossWinner: string;
-    batOrBowl: string;
-    overs: string;
-  };
-  const navigation = useNavigation();
-
   const dispatch = useDispatch();
+  // Get values from Redux store
+  const {
+    teamA,
+    teamB,
+    tossWinner,
+    tossChoice,
+    totalOvers,
+  } = useSelector((state: RootState) => state.scoreboard);
 
   // Example button handlers
   const handleAdvancedSettings = () => {
@@ -43,10 +37,7 @@ export default function NewMatchScreen() {
   };
 
   const handleStartMatch = () => {
-    // Now your match data is in Redux; you can do anything:
-    // e.g., navigation to scoring screen
-    // navigation.navigate('Scoring');
-    // navigation.navigate('OpeningPlayers' as never);
+    // Navigate to the next screen (e.g. pick opening players)
     router.push('/openingPlayers');
   };
 
@@ -55,19 +46,26 @@ export default function NewMatchScreen() {
       {/* Title */}
       <Text style={styles.screenTitle}>Teams</Text>
 
-      {/* Host & Visitor Inputs */}
+      {/* TEAM A & TEAM B Inputs */}
       <View style={styles.inputCard}>
+        <Text style={styles.label}>Team A Name</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="Host Team"
-          value={hostTeam}
-          onChangeText={(value) => dispatch(setHostTeam(value))}
+          placeholder="Team A Name"
+          value={teamA.teamName}
+          onChangeText={(value) => 
+            dispatch(setTeamName({ team: 'teamA', name: value }))
+          }
         />
+
+        <Text style={styles.label}>Team B Name</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="Visitor Team"
-          value={visitorTeam}
-          onChangeText={(value) => dispatch(setVisitorTeam(value))}
+          placeholder="Team B Name"
+          value={teamB.teamName}
+          onChangeText={(value) => 
+            dispatch(setTeamName({ team: 'teamB', name: value }))
+          }
         />
       </View>
 
@@ -76,28 +74,28 @@ export default function NewMatchScreen() {
       <View style={styles.radioGroup}>
         <TouchableOpacity
           style={styles.radioOption}
-          onPress={() => dispatch(setTossWinner('host'))}
+          onPress={() => dispatch(setTossWinner('teamA'))}
         >
           <View
             style={[
               styles.radioCircle,
-              tossWinner === 'host' && styles.radioSelected,
+              tossWinner === 'teamA' && styles.radioSelected,
             ]}
           />
-          <Text style={styles.radioLabel}>Host Team</Text>
+          <Text style={styles.radioLabel}>Team A</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.radioOption}
-          onPress={() => dispatch(setTossWinner('visitor'))}
+          onPress={() => dispatch(setTossWinner('teamB'))}
         >
           <View
             style={[
               styles.radioCircle,
-              tossWinner === 'visitor' && styles.radioSelected,
+              tossWinner === 'teamB' && styles.radioSelected,
             ]}
           />
-          <Text style={styles.radioLabel}>Visitor Team</Text>
+          <Text style={styles.radioLabel}>Team B</Text>
         </TouchableOpacity>
       </View>
 
@@ -106,12 +104,12 @@ export default function NewMatchScreen() {
       <View style={styles.radioGroup}>
         <TouchableOpacity
           style={styles.radioOption}
-          onPress={() => dispatch(setBatOrBowl('bat'))}
+          onPress={() => dispatch(setTossChoice('bat'))}
         >
           <View
             style={[
               styles.radioCircle,
-              batOrBowl === 'bat' && styles.radioSelected,
+              tossChoice === 'bat' && styles.radioSelected,
             ]}
           />
           <Text style={styles.radioLabel}>Bat</Text>
@@ -119,12 +117,12 @@ export default function NewMatchScreen() {
 
         <TouchableOpacity
           style={styles.radioOption}
-          onPress={() => dispatch(setBatOrBowl('bowl'))}
+          onPress={() => dispatch(setTossChoice('bowl'))}
         >
           <View
             style={[
               styles.radioCircle,
-              batOrBowl === 'bowl' && styles.radioSelected,
+              tossChoice === 'bowl' && styles.radioSelected,
             ]}
           />
           <Text style={styles.radioLabel}>Bowl</Text>
@@ -136,9 +134,11 @@ export default function NewMatchScreen() {
       <TextInput
         style={styles.textInput}
         keyboardType="number-pad"
-        placeholder="16"
-        value={overs}
-        onChangeText={(value) => dispatch(setOvers(value))}
+        placeholder="20"
+        value={String(totalOvers)}
+        onChangeText={(value) => 
+          dispatch(setTotalOvers(parseInt(value, 10) || 0))
+        }
       />
 
       {/* Buttons */}
@@ -188,6 +188,10 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
+  },
+  label: {
+    fontWeight: '600',
+    marginTop: 4,
   },
   textInput: {
     backgroundColor: '#FFFFFF',

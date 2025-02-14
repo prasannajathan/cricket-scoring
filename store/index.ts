@@ -1,14 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
-import matchSlice from '@/store/matchSlice';
+import scoreboardReducer from '@/store/scoreboardSlice';
 
 const store = configureStore({
   reducer: {
-    match: matchSlice,
+    scoreboard: scoreboardReducer,
   },
 });
 
 export default store;
 
-// We will use these types for TypeScript convenience
+// Infer the `RootState` and `AppDispatch` from the store
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
