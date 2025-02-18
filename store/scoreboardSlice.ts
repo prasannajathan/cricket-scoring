@@ -1,10 +1,18 @@
 // store/scoreboardSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Team, ScoreboardState, Cricketer, ScoreBallPayload, DeliveryEvent } from '@/types';
+import { Team, ScoreboardState, Cricketer, ScoreBallPayload, DeliveryEvent, PartnershipRecord } from '@/types';
+
+interface ExtendedTeam extends Team {
+    activePartnership?: PartnershipRecord | null;
+    lastOverBowlerId?: string;
+}
+interface ExtendedScoreboardState extends Omit<ScoreboardState, 'teamA' | 'teamB'> {
+    teamA: ExtendedTeam;
+    teamB: ExtendedTeam;
+}
 
 // --- Initial State ---
-
-const initialTeamState: Team = {
+const initialTeamState: ExtendedTeam = {
     teamName: '',
     players: [],
     tossWinner: false,
@@ -31,9 +39,19 @@ const initialTeamState: Team = {
     isDeclared: false,
     isAllOut: false,
     isCompleted: false,
+
+    activePartnership: null,
+    lastOverBowlerId: undefined,
 };
 
-const initialState: ScoreboardState = {
+interface ScoreboardSnapshot extends ScoreboardState { }
+
+const initialState: ExtendedScoreboardState & {
+    matchOver: boolean;
+    matchResult?: string;
+    // For a full undo system:
+    deliveryHistorySnapshots?: ScoreboardSnapshot[];
+} = {
     teamA: {
         // Host Team
         ...initialTeamState,
@@ -44,9 +62,9 @@ const initialState: ScoreboardState = {
         ...initialTeamState,
         teamName: 'Team B',
     },
-    tossWinner: null,
-    tossChoice: null,
-    totalOvers: 20,
+    tossWinner: 'teamA', // null
+    tossChoice: 'bat', // null
+    totalOvers: 1, // 20
     currentInning: 1,
     targetScore: undefined,
 
@@ -54,6 +72,8 @@ const initialState: ScoreboardState = {
     deliveryHistory: [],
     matchResult: undefined,
     matchOver: false,
+
+    deliveryHistorySnapshots: [],
 };
 
 export const scoreboardSlice = createSlice({
@@ -106,25 +126,12 @@ export const scoreboardSlice = createSlice({
         },
         // ---------- OPENING PLAYERS SCREEN ---------
         // OpeningPlayersScreen
-        setOpeningStriker: (
-            state,
-            action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>
-        ) => {
-            state[action.payload.team].openingStriker = action.payload.name;
+        setCurrentStriker: (state, action: PayloadAction<{ team: 'teamA' | 'teamB'; playerId: string }>) => {
+            state[action.payload.team].currentStrikerId = action.payload.playerId;
         },
-        setOpeningNonStriker: (
-            state,
-            action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>
-        ) => {
-            state[action.payload.team].openingNonStriker = action.payload.name;
+        setCurrentNonStriker: (state, action: PayloadAction<{ team: 'teamA' | 'teamB'; playerId: string }>) => {
+            state[action.payload.team].currentNonStrikerId = action.payload.playerId;
         },
-        setOpeningBowler: (
-            state,
-            action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>
-        ) => {
-            state[action.payload.team].openingBowler = action.payload.name;
-        },
-
         // --------------- ADD / EDIT PLAYERS ---------------
         // Scoring
         addPlayer: (
@@ -132,6 +139,7 @@ export const scoreboardSlice = createSlice({
             action: PayloadAction<{ team: 'teamA' | 'teamB'; player: Cricketer }>
         ) => {
             const { team, player } = action.payload;
+            // TODO: 11 to add conditionally from state.totalPlayers
             if (state[team].players.length < 11) {
                 state[team].players.push(player);
             }
@@ -150,17 +158,24 @@ export const scoreboardSlice = createSlice({
         // ------------- SCORE A BALL -------------
         // Main scoring action
         scoreBall: (state, action: PayloadAction<ScoreBallPayload>) => {
-            if (state.matchOver) {
-                return; // once match is over, do not process further balls
-            }
-            const { runs, extraType, wicket, outBatsmanId, wicketType } = action.payload;
-            const battingTeam = state.teamA.batting ? state.teamA : state.teamB;
-            const bowlingTeam = state.teamA.batting ? state.teamB : state.teamA;
+            // 0) Create a deep snapshot for a robust undo
+            const snapshot = JSON.parse(JSON.stringify(state));
+            state.deliveryHistorySnapshots.push(snapshot);
 
-            // 1. Total runs calculation
+            if (state.matchOver) return;
+
+            const battingTeam = state.teamA.batting ? state.teamA : state.teamB as ExtendedTeam;
+            const bowlingTeam = state.teamA.batting ? state.teamB : state.teamA as ExtendedTeam;
+
+            // Bowler constraint: if bowler is same as lastOverBowlerId, error
+            if (bowlingTeam.currentBowlerId && bowlingTeam.lastOverBowlerId === bowlingTeam.currentBowlerId) {
+                // In real code, you might handle it gracefully instead of throw
+                throw new Error('Same bowler cannot bowl consecutive overs!');
+            }
+
+            const { runs, extraType, wicket, outBatsmanId, wicketType } = action.payload;
             let totalRuns = runs;
             let legalDelivery = true;
-
             if (extraType === 'wide' || extraType === 'no-ball') {
                 totalRuns += 1;
                 battingTeam.extras += 1;
@@ -171,12 +186,19 @@ export const scoreboardSlice = createSlice({
             battingTeam.totalRuns += totalRuns;
 
             // 2. Over / Ball counting
+            // Over counting & switch strike after over
             if (legalDelivery) {
                 battingTeam.ballInCurrentOver += 1;
                 if (battingTeam.ballInCurrentOver >= 6) {
                     battingTeam.completedOvers += 1;
                     battingTeam.ballInCurrentOver = 0;
-                    // end of over -> could rotate strike if last ball wasn't wide/no-ball
+                    // store who bowled that over
+                    bowlingTeam.lastOverBowlerId = bowlingTeam.currentBowlerId;
+
+                    // switch strike for new over
+                    const tmp = battingTeam.currentStrikerId;
+                    battingTeam.currentStrikerId = battingTeam.currentNonStrikerId;
+                    battingTeam.currentNonStrikerId = tmp;
                 }
             }
 
@@ -199,26 +221,27 @@ export const scoreboardSlice = createSlice({
             }
 
             // 4. Wicket logic
+            // Wicket
             if (wicket && legalDelivery) {
                 battingTeam.wickets += 1;
                 if (outBatsmanId) {
                     const outBatsman = battingTeam.players.find((pl) => pl.id === outBatsmanId);
                     if (outBatsman) outBatsman.isOut = true;
-                } else if (striker) {
-                    striker.isOut = true;
+                } else {
+                    // assume striker if not specified
                 }
-
-                // End partnership
-                battingTeam.partnerships.push(battingTeam.currentPartnership);
-                battingTeam.currentPartnership = 0;
-
-                // (You might pick a new batsman in the UI, etc.)
+                // finalize current partnership
+                battingTeam.activePartnership!.endOver = battingTeam.completedOvers;
+                battingTeam.partnerships.push(battingTeam.activePartnership!.runs);
+                // or push a full object if you want
+                battingTeam.activePartnership = null;
             }
 
             // 5. Bowler stats
             const bowler = bowlingTeam.players.find(
                 (p) => p.id === bowlingTeam.currentBowlerId
             );
+            // add runs to bowler's runsConceded, not bowler.runs
             if (bowler) {
                 bowler.runsConceded += totalRuns;
                 if (wicket && legalDelivery) bowler.wickets += 1;
@@ -239,10 +262,25 @@ export const scoreboardSlice = createSlice({
             }
 
             // 6. Partnership
-            const isOffBat = !extraType || extraType === 'no-ball';
-            if (isOffBat) battingTeam.currentPartnership += runs;
+            if (!battingTeam.activePartnership) {
+                // start new if needed
+                const p1 = battingTeam.currentStrikerId;
+                const p2 = battingTeam.currentNonStrikerId;
+                battingTeam.activePartnership = {
+                    runs: 0,
+                    batsman1Id: p1 || '',
+                    batsman2Id: p2 || '',
+                    startOver: battingTeam.completedOvers,
+                    ballsFaced: 0,
+                };
+            }
+            if (!extraType || extraType === 'no-ball') {
+                battingTeam.activePartnership!.runs += runs;
+                battingTeam.activePartnership!.ballsFaced += 1;
+            }
 
             // 7. Strike Rotation on odd run
+            const isOffBat = !extraType || extraType === 'no-ball';
             if (legalDelivery && runs % 2 === 1 && isOffBat) {
                 // swap
                 const tmp = battingTeam.currentStrikerId;
@@ -298,16 +336,34 @@ export const scoreboardSlice = createSlice({
 
         // Undo
         undoLastBall: (state) => {
-            if (!state.deliveryHistory.length) return;
-            // TODO: fully revert scoreboard stats from last ball
-            state.deliveryHistory.pop();
+            if (!state.deliveryHistorySnapshots.length) return;
+            const prev = state.deliveryHistorySnapshots.pop();
+            if (prev) {
+                // Possibly remove or reset the snapshots on 'prev' to avoid recursion:
+                prev.deliveryHistorySnapshots = [];
+                return prev as typeof state;
+            }
         },
 
-        setBowler: (
-            state,
-            action: PayloadAction<{ team: 'teamA' | 'teamB'; bowlerId: string }>
-        ) => {
-            state[action.payload.team].currentBowlerId = action.payload.bowlerId;
+        setBowler: (state, action: PayloadAction<{ team: 'teamA' | 'teamB'; bowlerId: string }>) => {
+            const { team, bowlerId } = action.payload;
+            const t = state[team] as ExtendedTeam;
+
+            // 1. No consecutive overs:
+            if (t.lastOverBowlerId === bowlerId) {
+                throw new Error('This bowler cannot bowl consecutive overs');
+            }
+
+            // 2. Max overs per bowler (for T20 = 4, for ODI = 10, etc.)
+            const bowler = t.players.find((p) => p.id === bowlerId);
+            if (!bowler) throw new Error('Bowler not found');
+            const maxOversAllowed = (state.totalOvers === 20) ? 4 : 10; // example
+            if (bowler.overs >= maxOversAllowed) {
+                throw new Error('This bowler has already bowled the maximum overs allowed');
+            }
+
+            // If checks pass, set him as currentBowler
+            t.currentBowlerId = bowlerId;
         },
 
         retireBatsman: (
@@ -384,9 +440,8 @@ export const {
     setTossWinner,
     setTossChoice,
     setTotalOvers,
-    setOpeningStriker,
-    setOpeningNonStriker,
-    setOpeningBowler,
+    setCurrentStriker,
+    setCurrentNonStriker,
     addPlayer,
     editPlayerName,
     scoreBall,

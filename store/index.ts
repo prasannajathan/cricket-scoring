@@ -5,6 +5,12 @@ const store = configureStore({
   reducer: {
     scoreboard: scoreboardReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      // disable or tweak the checks that cause slowdown
+      immutableCheck: false,
+      serializableCheck: false,
+    }),
 });
 
 export default store;

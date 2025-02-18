@@ -1,5 +1,5 @@
 // app/ScoringScreen.tsx 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
     View,
     Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Picker } from '@react-native-picker/picker';
+import { useRouter } from 'expo-router';
 
 import { RootState } from '@/store';
 import {
@@ -24,12 +25,16 @@ import {
     endInnings,
     setBowler,
 } from '@/store/scoreboardSlice';
+import { Cricketer } from '@/types';
+
 import BatsmanRow from '@/components/BatsmanRow';
 import BowlerRow from '@/components/BowlerRow';
+
 import { computeCRR } from '@/utils';
 type WicketType = 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
 
 export default function ScoringScreen() {
+    const router = useRouter();
     const dispatch = useDispatch();
     const {
         teamA,
@@ -40,6 +45,9 @@ export default function ScoringScreen() {
         matchResult,
         matchOver,
     } = useSelector((state: RootState) => state.scoreboard);
+
+    const MemoizedBatsmanRow = memo(BatsmanRow);
+    const MemoizedBowlerRow = memo(BowlerRow);
 
     // Determine which team is batting & bowling
     const battingTeam = teamA.batting ? teamA : teamB;
@@ -85,6 +93,7 @@ export default function ScoringScreen() {
             (battingTeam.wickets >= 10 && !matchOver)
         ) {
             dispatch(endInnings());
+            router.push('/openingPlayers?innings=2');
         }
     }, [
         battingTeam.completedOvers,
@@ -106,6 +115,10 @@ export default function ScoringScreen() {
 
     // Score a ball
     const handleScore = (runValue: number) => {
+        if (!bowlingTeam.currentBowlerId) {
+            alert('Please select a bowler first!');
+            return;
+        }
         if (!canScore) return;
 
         let extraType: 'wide' | 'no-ball' | 'bye' | 'leg-bye' | undefined;
@@ -153,18 +166,17 @@ export default function ScoringScreen() {
                 <Text style={{ fontSize: 16, color: 'red', marginBottom: 6 }}>{matchResult}</Text>
             )}
             {/* Score display */}
-            <Text style={styles.heading}>
-                {battingTeam.teamName} {battingTeam.totalRuns} - {battingTeam.wickets} (
-                {battingTeam.completedOvers}.{battingTeam.ballInCurrentOver} overs) | Inning: {currentInning}
-            </Text>
-
-            {/* Finish innings */}
-            <Button title="Finish Innings" onPress={handleFinishInningsManually} />
-
-            {/* CRR */}
-            <Text style={styles.subHeading}>
-                CRR: {computeCRR(battingTeam.totalRuns, battingTeam.completedOvers, battingTeam.ballInCurrentOver)}
-            </Text>
+            <View style={styles.scoreHeader}>
+                <Text style={styles.scoreText}>
+                    {battingTeam.teamName} {battingTeam.totalRuns} - {battingTeam.wickets}
+                </Text>
+                <Text style={styles.oversText}>
+                    ({battingTeam.completedOvers}.{battingTeam.ballInCurrentOver} overs) | Inning: {currentInning}
+                </Text>
+                <Text style={styles.crrLabel}>
+                    CRR: {computeCRR(battingTeam.totalRuns, battingTeam.completedOvers, battingTeam.ballInCurrentOver)}
+                </Text>
+            </View>
 
             {/* Batsmen */}
             <Text style={styles.label}>Batsmen on Crease:</Text>
@@ -173,7 +185,7 @@ export default function ScoringScreen() {
                 .slice(0, 2)
                 .map((p) => (
                     <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <BatsmanRow player={p} />
+                        <MemoizedBatsmanRow key={p.id} player={p} />
                         <TouchableOpacity
                             style={styles.retireBtn}
                             onPress={() => dispatch(retireBatsman({ team: teamA.batting ? 'teamA' : 'teamB', batsmanId: p.id }))}
@@ -186,7 +198,7 @@ export default function ScoringScreen() {
             {/* Bowler */}
             <Text style={styles.label}>Current Bowler:</Text>
             {bowlingTeam.currentBowlerId ? (
-                <BowlerRow
+                <MemoizedBowlerRow
                     bowler={bowlingTeam.players.find((pl) => pl.id === bowlingTeam.currentBowlerId)!}
                 />
             ) : (
@@ -197,6 +209,8 @@ export default function ScoringScreen() {
             <Text style={styles.label}>Extras</Text>
             <View style={styles.extrasRow}>
                 <Switch
+                    trackColor={{ false: "#767577", true: "#4CAF50" }}
+                    thumbColor={wide ? "#81b0ff" : "#f4f3f4"}
                     value={wide}
                     onValueChange={(v) => {
                         setWide(v);
@@ -245,6 +259,25 @@ export default function ScoringScreen() {
                 />
                 <Text>Leg Byes</Text>
             </View>
+            {/* <View style={styles.extraTypeContainer}>
+                {['wide', 'noBall', 'bye', 'legBye'].map((type) => (
+                    <TouchableOpacity
+                        key={type}
+                        style={[
+                            styles.extraTypeButton,
+                            (wide && type === 'wide') ||
+                                (noBall && type === 'noBall') ||
+                                (bye && type === 'bye') ||
+                                (legBye && type === 'legBye')
+                                ? styles.selectedExtra
+                                : null
+                        ]}
+                        onPress={() => handleExtraSelect(type)}
+                    >
+                        <Text style={styles.extraTypeText}>{type}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View> */}
 
             {/* Wicket toggle */}
             <View style={styles.extrasRow}>
@@ -373,11 +406,19 @@ export default function ScoringScreen() {
                 onClose={() => setShowAdvancedModal(false)}
                 onConfirm={(num) => handleScore(num)}
             />
+
+            {/* Finish innings */}
+            <Button title="Finish Innings" onPress={handleFinishInningsManually} />
         </ScrollView>
     );
 }
 
 // Next Batsman
+interface Player extends Cricketer {
+    id: string;
+    name: string;
+    isOut: boolean;
+}
 function NextBatsmanModal({
     visible,
     onClose,
@@ -387,7 +428,7 @@ function NextBatsmanModal({
 }: {
     visible: boolean;
     onClose: () => void;
-    players: any[];
+    players: Player[];
     onSelect: (id: string) => void;
     onConfirm: () => void;
 }) {
@@ -577,18 +618,39 @@ function AdvancedScoringModal({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f4f4f4',
+        backgroundColor: '#fff',
         padding: 10,
     },
     heading: {
         fontSize: 20,
         fontWeight: 'bold',
+        color: '#1B5E20',
         marginVertical: 5,
     },
     subHeading: {
         fontSize: 14,
         marginVertical: 2,
     },
+    scoreHeader: {
+        backgroundColor: '#2E7D32',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 10,
+      },
+      scoreText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#fff',
+      },
+      oversText: {
+        fontSize: 16,
+        color: '#fff',
+      },
+      crrLabel: {
+        fontSize: 14,
+        color: '#fff',
+        marginTop: 4,
+      },
     label: {
         fontSize: 16,
         marginTop: 10,
@@ -615,10 +677,15 @@ const styles = StyleSheet.create({
     runButton: {
         width: 40,
         height: 40,
-        borderWidth: 1,
+        borderRadius: 20,
+        backgroundColor: '#4CAF50',
         justifyContent: 'center',
         alignItems: 'center',
         margin: 5,
+    },
+    runButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
     },
     actionRow: {
         flexDirection: 'row',

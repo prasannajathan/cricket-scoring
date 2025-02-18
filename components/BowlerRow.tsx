@@ -1,3 +1,4 @@
+// components/BowlerRow.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Cricketer } from '../types';
@@ -7,15 +8,16 @@ interface BowlerRowProps {
 }
 
 const BowlerRow: React.FC<BowlerRowProps> = ({ bowler }) => {
+  const totalBallsBowled = bowler.overs * 6 + bowler.ballsThisOver;
+  const oversString = `${Math.floor(totalBallsBowled / 6)}.${totalBallsBowled % 6}`;
+
   return (
     <View style={styles.rowContainer}>
       <Text style={styles.name}>{bowler.name}</Text>
-      <Text style={styles.stat}>Overs: {bowler.balls / 6}</Text>
-      {/* Adjust how you track bowler overs/runs/wickets if separate from Player */}
-      <Text style={styles.stat}>Runs: {bowler.runs}</Text>
-      <Text style={styles.stat}>Wkts: {bowler.sixes}</Text>
-      {/* Example placeholders, adapt to actual bowler structure */}
-      <Text style={styles.stat}>Eco: {bowler.strikeRate}</Text>
+      <Text style={styles.stat}>O: {oversString}</Text>
+      <Text style={styles.stat}>R: {bowler.runsConceded}</Text>
+      <Text style={styles.stat}>W: {bowler.wickets}</Text>
+      <Text style={styles.stat}>Eco: {bowler.economy}</Text>
     </View>
   );
 };

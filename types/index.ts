@@ -44,6 +44,15 @@ export interface ScoreBallPayload {
     wicketType?: 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
 }
 
+export interface PartnershipRecord {
+    runs: number;
+    batsman1Id: string;
+    batsman2Id: string;
+    startOver: number;
+    endOver?: number;
+    ballsFaced?: number;
+}
+
 export interface Team {
     teamName: string;
     players: Cricketer[];
@@ -66,6 +75,7 @@ export interface Team {
     openingStriker?: string;
     openingNonStriker?: string;
     openingBowler?: string;
+    lastOverBowlerId?: string;
 
     currentPartnership: number;
     partnerships: number[];
