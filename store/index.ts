@@ -8,8 +8,8 @@ const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       // disable or tweak the checks that cause slowdown
-      immutableCheck: false,
-      serializableCheck: false,
+      // immutableCheck: false,
+      // serializableCheck: false,
     }),
 });
 

@@ -60,66 +60,70 @@ export default function OpeningPlayersScreen() {
 
   // Filter the existing players for the new batting side.
   // We might want only those who "bowled or fielded" last innings, or we can just show them all.
-  const existingBattingPlayers = battingTeam.players; 
+  const existingBattingPlayers = battingTeam.players;
   const existingBowlingPlayers = bowlingTeam.players;
 
+  const validatePlayerSelection = (selectedId: string, newName: string): boolean => {
+    return !selectedId && !newName.trim();
+  };
+
   const handleStartScoring = () => {
-// Validate we have either selected an existing player or typed a new name for each role
-if (!selectedStrikerId && !newStrikerName.trim()) {
-  Alert.alert('Error', 'Pick or create a new Striker');
-  return;
-}
-if (!selectedNonStrikerId && !newNonStrikerName.trim()) {
-  Alert.alert('Error', 'Pick or create a new Non-Striker');
-  return;
-}
-if (!selectedBowlerId && !newBowlerName.trim()) {
-  Alert.alert('Error', 'Pick or create a new Bowler');
-  return;
-}
-    // const strikerId = Date.now().toString() + '_striker';
-     // 1. STRIKER
-     let strikerId = selectedStrikerId;
-     if (!strikerId && newStrikerName.trim()) {
-       // create new
-       strikerId = Date.now().toString() + '_striker';
-       dispatch(addPlayer({
-         team: battingTeamKey,
-         player: createCricketer(strikerId, newStrikerName.trim())
-       }));
-     }
-     if (strikerId) {
-       dispatch(setCurrentStriker({ team: battingTeamKey, playerId: strikerId }));
-     }
- 
-     // 2. NON-STRIKER
-     let nonStrikerId = selectedNonStrikerId;
-     if (!nonStrikerId && newNonStrikerName.trim()) {
-       nonStrikerId = Date.now().toString() + '_nonStriker';
-       dispatch(addPlayer({
-         team: battingTeamKey,
-         player: createCricketer(nonStrikerId, newNonStrikerName.trim())
-       }));
-     }
-     if (nonStrikerId) {
-       dispatch(setCurrentNonStriker({ team: battingTeamKey, playerId: nonStrikerId }));
-     }
- 
-     // 3. BOWLER
-     let bowlerId = selectedBowlerId;
-     if (!bowlerId && newBowlerName.trim()) {
-       bowlerId = Date.now().toString() + '_bowler';
-       dispatch(addPlayer({
-         team: bowlingTeamKey,
-         player: createCricketer(bowlerId, newBowlerName.trim())
-       }));
-     }
-     if (bowlerId) {
-       dispatch(setBowler({ team: bowlingTeamKey, bowlerId }));
-     }
- 
-     // Now we can push to scoring
-     router.push('/scoring');
+    // Validate we have either selected an existing player or typed a new name for each role
+    if (validatePlayerSelection(selectedStrikerId, newStrikerName)) {
+      Alert.alert('Error', 'Pick or create a new Striker');
+      return;
+    }
+    if (validatePlayerSelection(selectedNonStrikerId, newNonStrikerName)) {
+      Alert.alert('Error', 'Pick or create a new Non-Striker');
+      return;
+    }
+    if (validatePlayerSelection(selectedBowlerId, newBowlerName)) {
+      Alert.alert('Error', 'Pick or create a new Bowler');
+      return;
+    }
+
+    // 1. STRIKER
+    let strikerId = selectedStrikerId;
+    if (!strikerId && newStrikerName.trim()) {
+      // create new
+      strikerId = Date.now().toString() + '_striker';
+      dispatch(addPlayer({
+        team: battingTeamKey,
+        player: createCricketer(strikerId, newStrikerName.trim())
+      }));
+    }
+    if (strikerId) {
+      dispatch(setCurrentStriker({ team: battingTeamKey, playerId: strikerId }));
+    }
+
+    // 2. NON-STRIKER
+    let nonStrikerId = selectedNonStrikerId;
+    if (!nonStrikerId && newNonStrikerName.trim()) {
+      nonStrikerId = Date.now().toString() + '_nonStriker';
+      dispatch(addPlayer({
+        team: battingTeamKey,
+        player: createCricketer(nonStrikerId, newNonStrikerName.trim())
+      }));
+    }
+    if (nonStrikerId) {
+      dispatch(setCurrentNonStriker({ team: battingTeamKey, playerId: nonStrikerId }));
+    }
+
+    // 3. BOWLER
+    let bowlerId = selectedBowlerId;
+    if (!bowlerId && newBowlerName.trim()) {
+      bowlerId = Date.now().toString() + '_bowler';
+      dispatch(addPlayer({
+        team: bowlingTeamKey,
+        player: createCricketer(bowlerId, newBowlerName.trim())
+      }));
+    }
+    if (bowlerId) {
+      dispatch(setBowler({ team: bowlingTeamKey, bowlerId }));
+    }
+
+    // Now we can push to scoring
+    router.push('/scoring');
   }
 
   return (
