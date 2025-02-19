@@ -87,6 +87,7 @@ export interface Team {
 }
 
 export interface ScoreboardState {
+    id: string;
     teamA: Team;
     teamB: Team;
 

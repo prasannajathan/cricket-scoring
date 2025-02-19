@@ -58,6 +58,7 @@ const initialState: ExtendedScoreboardState & {
     matchResult?: string;
     deliveryHistorySnapshots?: ScoreboardSnapshot[];
 } = {
+    id: Date.now().toString(),
     teamA: {
         ...initialTeamState,
         teamName: 'Team A',

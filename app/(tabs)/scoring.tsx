@@ -10,10 +10,11 @@ import {
     Modal,
     Pressable,
     Button,
+    SafeAreaView,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Picker } from '@react-native-picker/picker';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import { RootState } from '@/store';
 import {
@@ -26,6 +27,7 @@ import {
     setBowler,
 } from '@/store/scoreboardSlice';
 import { Cricketer } from '@/types';
+import { saveMatch } from '@/utils/saveMatchStorage'
 
 import BatsmanRow from '@/components/BatsmanRow';
 import BowlerRow from '@/components/BowlerRow';
@@ -35,6 +37,7 @@ type WicketType = 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicke
 
 export default function ScoringScreen() {
     const router = useRouter();
+    const { matchId } = useLocalSearchParams();
     const dispatch = useDispatch();
     const {
         teamA,
@@ -103,6 +106,14 @@ export default function ScoringScreen() {
         dispatch,
     ]);
 
+    const scoreboard = useSelector((state: RootState) => state.scoreboard);
+
+    useEffect(() => {
+        if (matchId) {
+            saveMatch({ ...scoreboard, id: matchId as string });
+        }
+    }, [scoreboard, matchId]);
+
     // If user picks a new batsman, we can set that as the "currentStrikerId" if the striker was out
     const handleConfirmNextBatsman = () => {
         if (nextBatsmanId) {
@@ -117,6 +128,7 @@ export default function ScoringScreen() {
     const handleScore = (runValue: number) => {
         if (!bowlingTeam.currentBowlerId) {
             alert('Please select a bowler first!');
+            router.push('/openingPlayers');
             return;
         }
         if (!canScore) return;
@@ -160,256 +172,258 @@ export default function ScoringScreen() {
     };
 
     return (
-        <ScrollView style={styles.container}>
-            {/* Match result? */}
-            {matchResult && (
-                <Text style={{ fontSize: 16, color: 'red', marginBottom: 6 }}>{matchResult}</Text>
-            )}
-            {/* Score display */}
-            <View style={styles.scoreHeader}>
-                <Text style={styles.scoreText}>
-                    {battingTeam.teamName} {battingTeam.totalRuns} - {battingTeam.wickets}
-                </Text>
-                <Text style={styles.oversText}>
-                    ({battingTeam.completedOvers}.{battingTeam.ballInCurrentOver} overs) | Inning: {currentInning}
-                </Text>
-                <Text style={styles.crrLabel}>
-                    CRR: {computeCRR(battingTeam.totalRuns, battingTeam.completedOvers, battingTeam.ballInCurrentOver)}
-                </Text>
-            </View>
-
-            {/* Batsmen */}
-            <Text style={styles.label}>Batsmen on Crease:</Text>
-            {battingTeam.players
-                .filter((p) => !p.isOut)
-                .slice(0, 2)
-                .map((p) => (
-                    <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <MemoizedBatsmanRow key={p.id} player={p} />
-                        <TouchableOpacity
-                            style={styles.retireBtn}
-                            onPress={() => dispatch(retireBatsman({ team: teamA.batting ? 'teamA' : 'teamB', batsmanId: p.id }))}
-                        >
-                            <Text style={{ color: 'red' }}>Retire</Text>
-                        </TouchableOpacity>
-                    </View>
-                ))}
-
-            {/* Bowler */}
-            <Text style={styles.label}>Current Bowler:</Text>
-            {bowlingTeam.currentBowlerId ? (
-                <MemoizedBowlerRow
-                    bowler={bowlingTeam.players.find((pl) => pl.id === bowlingTeam.currentBowlerId)!}
-                />
-            ) : (
-                <Text>No current bowler selected</Text>
-            )}
-
-            {/* Toggle extras */}
-            <Text style={styles.label}>Extras</Text>
-            <View style={styles.extrasRow}>
-                <Switch
-                    trackColor={{ false: "#767577", true: "#4CAF50" }}
-                    thumbColor={wide ? "#81b0ff" : "#f4f3f4"}
-                    value={wide}
-                    onValueChange={(v) => {
-                        setWide(v);
-                        if (v) {
-                            setNoBall(false);
-                            setBye(false);
-                            setLegBye(false);
-                        }
-                    }}
-                />
-                <Text>Wide</Text>
-                <Switch
-                    value={noBall}
-                    onValueChange={(v) => {
-                        setNoBall(v);
-                        if (v) {
-                            setWide(false);
-                            setBye(false);
-                            setLegBye(false);
-                        }
-                    }}
-                />
-                <Text>No Ball</Text>
-                <Switch
-                    value={bye}
-                    onValueChange={(v) => {
-                        setBye(v);
-                        if (v) {
-                            setWide(false);
-                            setNoBall(false);
-                            setLegBye(false);
-                        }
-                    }}
-                />
-                <Text>Byes</Text>
-                <Switch
-                    value={legBye}
-                    onValueChange={(v) => {
-                        setLegBye(v);
-                        if (v) {
-                            setWide(false);
-                            setNoBall(false);
-                            setBye(false);
-                        }
-                    }}
-                />
-                <Text>Leg Byes</Text>
-            </View>
-            {/* <View style={styles.extraTypeContainer}>
-                {['wide', 'noBall', 'bye', 'legBye'].map((type) => (
-                    <TouchableOpacity
-                        key={type}
-                        style={[
-                            styles.extraTypeButton,
-                            (wide && type === 'wide') ||
-                                (noBall && type === 'noBall') ||
-                                (bye && type === 'bye') ||
-                                (legBye && type === 'legBye')
-                                ? styles.selectedExtra
-                                : null
-                        ]}
-                        onPress={() => handleExtraSelect(type)}
-                    >
-                        <Text style={styles.extraTypeText}>{type}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View> */}
-
-            {/* Wicket toggle */}
-            <View style={styles.extrasRow}>
-                <Switch value={wicket} onValueChange={setWicket} />
-                <Text>Wicket?</Text>
-            </View>
-
-            {/* If wicket is toggled, let user pick wicket type & out batsman */}
-            {wicket && (
-                <View style={styles.wicketBox}>
-                    <Text style={styles.label}>Select Wicket Type</Text>
-                    <Picker
-                        selectedValue={wicketType}
-                        style={{ height: 40, width: 180 }}
-                        onValueChange={(itemValue) => setWicketType(itemValue as WicketType)}
-                    >
-                        <Picker.Item label="Bowled" value="bowled" />
-                        <Picker.Item label="Caught" value="caught" />
-                        <Picker.Item label="Run out" value="runout" />
-                        <Picker.Item label="LBW" value="lbw" />
-                        <Picker.Item label="Stumped" value="stumped" />
-                        <Picker.Item label="Hit Wicket" value="hitWicket" />
-                        <Picker.Item label="Retired" value="retired" />
-                        <Picker.Item label="Other" value="other" />
-                    </Picker>
-
-                    <Text style={styles.label}>Which Batsman is Out?</Text>
-                    <Picker
-                        selectedValue={outBatsmanId}
-                        style={{ height: 40, width: 180 }}
-                        onValueChange={(val) => setOutBatsmanId(val)}
-                    >
-                        <Picker.Item label="(Assume Striker)" value={undefined} />
-                        {battingTeam.players
-                            .filter((p) => !p.isOut)
-                            .map((pl) => (
-                                <Picker.Item label={pl.name} value={pl.id} key={pl.id} />
-                            ))}
-                    </Picker>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <ScrollView style={styles.container}>
+                {/* Match result? */}
+                {matchResult && (
+                    <Text style={{ fontSize: 16, color: 'red', marginBottom: 6 }}>{matchResult}</Text>
+                )}
+                {/* Score display */}
+                <View style={styles.scoreHeader}>
+                    <Text style={styles.scoreText}>
+                        {battingTeam.teamName} {battingTeam.totalRuns} - {battingTeam.wickets}
+                    </Text>
+                    <Text style={styles.oversText}>
+                        ({battingTeam.completedOvers}.{battingTeam.ballInCurrentOver} overs) | Inning: {currentInning}
+                    </Text>
+                    <Text style={styles.crrLabel}>
+                        CRR: {computeCRR(battingTeam.totalRuns, battingTeam.completedOvers, battingTeam.ballInCurrentOver)}
+                    </Text>
                 </View>
-            )}
 
-            {/* Score Buttons */}
-            <Text style={styles.label}>Scoring:</Text>
-            <View style={styles.runRow}>
-                {[0, 1, 2, 3, 4, 5, 6].map((run) => (
-                    <TouchableOpacity key={run} onPress={() => handleScore(run)} disabled={!canScore}>
+                {/* Batsmen */}
+                <Text style={styles.label}>Batsmen on Crease:</Text>
+                {battingTeam.players
+                    .filter((p) => !p.isOut)
+                    .slice(0, 2)
+                    .map((p) => (
+                        <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <MemoizedBatsmanRow key={p.id} player={p} />
+                            <TouchableOpacity
+                                style={styles.retireBtn}
+                                onPress={() => dispatch(retireBatsman({ team: teamA.batting ? 'teamA' : 'teamB', batsmanId: p.id }))}
+                            >
+                                <Text style={{ color: 'red' }}>Retire</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ))}
+
+                {/* Bowler */}
+                <Text style={styles.label}>Current Bowler:</Text>
+                {bowlingTeam.currentBowlerId ? (
+                    <MemoizedBowlerRow
+                        bowler={bowlingTeam.players.find((pl) => pl.id === bowlingTeam.currentBowlerId)!}
+                    />
+                ) : (
+                    <Text>No current bowler selected</Text>
+                )}
+
+                {/* Toggle extras */}
+                <Text style={styles.label}>Extras</Text>
+                <View style={styles.extrasRow}>
+                    <Switch
+                        trackColor={{ false: "#767577", true: "#4CAF50" }}
+                        thumbColor={wide ? "#81b0ff" : "#f4f3f4"}
+                        value={wide}
+                        onValueChange={(v) => {
+                            setWide(v);
+                            if (v) {
+                                setNoBall(false);
+                                setBye(false);
+                                setLegBye(false);
+                            }
+                        }}
+                    />
+                    <Text>Wide</Text>
+                    <Switch
+                        value={noBall}
+                        onValueChange={(v) => {
+                            setNoBall(v);
+                            if (v) {
+                                setWide(false);
+                                setBye(false);
+                                setLegBye(false);
+                            }
+                        }}
+                    />
+                    <Text>No Ball</Text>
+                    <Switch
+                        value={bye}
+                        onValueChange={(v) => {
+                            setBye(v);
+                            if (v) {
+                                setWide(false);
+                                setNoBall(false);
+                                setLegBye(false);
+                            }
+                        }}
+                    />
+                    <Text>Byes</Text>
+                    <Switch
+                        value={legBye}
+                        onValueChange={(v) => {
+                            setLegBye(v);
+                            if (v) {
+                                setWide(false);
+                                setNoBall(false);
+                                setBye(false);
+                            }
+                        }}
+                    />
+                    <Text>Leg Byes</Text>
+                </View>
+                {/* <View style={styles.extraTypeContainer}>
+                    {['wide', 'noBall', 'bye', 'legBye'].map((type) => (
+                        <TouchableOpacity
+                            key={type}
+                            style={[
+                                styles.extraTypeButton,
+                                (wide && type === 'wide') ||
+                                    (noBall && type === 'noBall') ||
+                                    (bye && type === 'bye') ||
+                                    (legBye && type === 'legBye')
+                                    ? styles.selectedExtra
+                                    : null
+                            ]}
+                            onPress={() => handleExtraSelect(type)}
+                        >
+                            <Text style={styles.extraTypeText}>{type}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </View> */}
+
+                {/* Wicket toggle */}
+                <View style={styles.extrasRow}>
+                    <Switch value={wicket} onValueChange={setWicket} />
+                    <Text>Wicket?</Text>
+                </View>
+
+                {/* If wicket is toggled, let user pick wicket type & out batsman */}
+                {wicket && (
+                    <View style={styles.wicketBox}>
+                        <Text style={styles.label}>Select Wicket Type</Text>
+                        <Picker
+                            selectedValue={wicketType}
+                            style={{ height: 40, width: 180 }}
+                            onValueChange={(itemValue) => setWicketType(itemValue as WicketType)}
+                        >
+                            <Picker.Item label="Bowled" value="bowled" />
+                            <Picker.Item label="Caught" value="caught" />
+                            <Picker.Item label="Run out" value="runout" />
+                            <Picker.Item label="LBW" value="lbw" />
+                            <Picker.Item label="Stumped" value="stumped" />
+                            <Picker.Item label="Hit Wicket" value="hitWicket" />
+                            <Picker.Item label="Retired" value="retired" />
+                            <Picker.Item label="Other" value="other" />
+                        </Picker>
+
+                        <Text style={styles.label}>Which Batsman is Out?</Text>
+                        <Picker
+                            selectedValue={outBatsmanId}
+                            style={{ height: 40, width: 180 }}
+                            onValueChange={(val) => setOutBatsmanId(val)}
+                        >
+                            <Picker.Item label="(Assume Striker)" value={undefined} />
+                            {battingTeam.players
+                                .filter((p) => !p.isOut)
+                                .map((pl) => (
+                                    <Picker.Item label={pl.name} value={pl.id} key={pl.id} />
+                                ))}
+                        </Picker>
+                    </View>
+                )}
+
+                {/* Score Buttons */}
+                <Text style={styles.label}>Scoring:</Text>
+                <View style={styles.runRow}>
+                    {[0, 1, 2, 3, 4, 5, 6].map((run) => (
+                        <TouchableOpacity key={run} onPress={() => handleScore(run)} disabled={!canScore}>
+                            <View style={styles.runButton}>
+                                <Text>{run}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
+                    {/* advanced scoring */}
+                    <TouchableOpacity onPress={() => setShowAdvancedModal(true)} disabled={!canScore}>
                         <View style={styles.runButton}>
-                            <Text>{run}</Text>
+                            <Text>...</Text>
                         </View>
                     </TouchableOpacity>
-                ))}
-                {/* advanced scoring */}
-                <TouchableOpacity onPress={() => setShowAdvancedModal(true)} disabled={!canScore}>
-                    <View style={styles.runButton}>
-                        <Text>...</Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
+                </View>
 
-            {/* Partnerships & Extras Buttons */}
-            <View style={styles.actionRow}>
-                <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => setShowPartnershipModal(true)}
-                    disabled={!canScore}
-                >
-                    <Text>Partnerships</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => setShowExtrasModal(true)}
-                    disabled={!canScore}
-                >
-                    <Text>Extras</Text>
-                </TouchableOpacity>
-            </View>
+                {/* Partnerships & Extras Buttons */}
+                <View style={styles.actionRow}>
+                    <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => setShowPartnershipModal(true)}
+                        disabled={!canScore}
+                    >
+                        <Text>Partnerships</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() => setShowExtrasModal(true)}
+                        disabled={!canScore}
+                    >
+                        <Text>Extras</Text>
+                    </TouchableOpacity>
+                </View>
 
-            {/* Additional actions */}
-            <View style={styles.actionRow}>
-                <TouchableOpacity
-                    style={[styles.actionBtn, { marginRight: 10 }]}
-                    onPress={() => dispatch(undoLastBall())}
-                    disabled={!canScore}
-                >
-                    <Text>Undo</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => dispatch(swapBatsman())} disabled={!canScore}>
-                    <Text>Swap Batsman</Text>
-                </TouchableOpacity>
-            </View>
+                {/* Additional actions */}
+                <View style={styles.actionRow}>
+                    <TouchableOpacity
+                        style={[styles.actionBtn, { marginRight: 10 }]}
+                        onPress={() => dispatch(undoLastBall())}
+                        disabled={!canScore}
+                    >
+                        <Text>Undo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => dispatch(swapBatsman())} disabled={!canScore}>
+                        <Text>Swap Batsman</Text>
+                    </TouchableOpacity>
+                </View>
 
-            {/* Current Partnership */}
-            <Text style={{ marginTop: 10 }}>
-                Current Partnership: {battingTeam.currentPartnership}
-            </Text>
+                {/* Current Partnership */}
+                <Text style={{ marginTop: 10 }}>
+                    Current Partnership: {battingTeam.currentPartnership}
+                </Text>
 
-            {/* Next Batsman Modal (if a wicket fell) */}
-            <NextBatsmanModal
-                visible={showNextBatsmanModal}
-                onClose={() => setShowNextBatsmanModal(false)}
-                players={battingTeam.players}
-                onSelect={(id) => setNextBatsmanId(id)}
-                onConfirm={handleConfirmNextBatsman}
-            />
+                {/* Next Batsman Modal (if a wicket fell) */}
+                <NextBatsmanModal
+                    visible={showNextBatsmanModal}
+                    onClose={() => setShowNextBatsmanModal(false)}
+                    players={battingTeam.players}
+                    onSelect={(id) => setNextBatsmanId(id)}
+                    onConfirm={handleConfirmNextBatsman}
+                />
 
-            {/* Partnerships Modal */}
-            <PartnershipModal
-                visible={showPartnershipModal}
-                onClose={() => setShowPartnershipModal(false)}
-                battingTeam={battingTeam}
-            />
+                {/* Partnerships Modal */}
+                <PartnershipModal
+                    visible={showPartnershipModal}
+                    onClose={() => setShowPartnershipModal(false)}
+                    battingTeam={battingTeam}
+                />
 
-            {/* Extras Modal */}
-            <ExtrasModal
-                visible={showExtrasModal}
-                onClose={() => setShowExtrasModal(false)}
-                onAddPenalty={(num) => {
-                    dispatch(addExtraRuns({ team: teamA.batting ? 'teamA' : 'teamB', runs: num }));
-                }}
-            />
+                {/* Extras Modal */}
+                <ExtrasModal
+                    visible={showExtrasModal}
+                    onClose={() => setShowExtrasModal(false)}
+                    onAddPenalty={(num) => {
+                        dispatch(addExtraRuns({ team: teamA.batting ? 'teamA' : 'teamB', runs: num }));
+                    }}
+                />
 
-            {/* Advanced Scoring Modal */}
-            <AdvancedScoringModal
-                visible={showAdvancedModal}
-                onClose={() => setShowAdvancedModal(false)}
-                onConfirm={(num) => handleScore(num)}
-            />
+                {/* Advanced Scoring Modal */}
+                <AdvancedScoringModal
+                    visible={showAdvancedModal}
+                    onClose={() => setShowAdvancedModal(false)}
+                    onConfirm={(num) => handleScore(num)}
+                />
 
-            {/* Finish innings */}
-            <Button title="Finish Innings" onPress={handleFinishInningsManually} />
-        </ScrollView>
+                {/* Finish innings */}
+                <Button title="Finish Innings" onPress={handleFinishInningsManually} />
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
@@ -636,21 +650,21 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 8,
         marginBottom: 10,
-      },
-      scoreText: {
+    },
+    scoreText: {
         fontSize: 24,
         fontWeight: 'bold',
         color: '#fff',
-      },
-      oversText: {
+    },
+    oversText: {
         fontSize: 16,
         color: '#fff',
-      },
-      crrLabel: {
+    },
+    crrLabel: {
         fontSize: 14,
         color: '#fff',
         marginTop: 4,
-      },
+    },
     label: {
         fontSize: 16,
         marginTop: 10,

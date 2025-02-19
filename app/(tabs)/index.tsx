@@ -44,6 +44,13 @@ export default function NewMatchScreen() {
 
   return (
     <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.logo}>[LOGO HERE]</Text>
+        <TouchableOpacity>
+          <Text style={styles.settings}>[Settings]</Text>
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.title}>Set up your new match</Text>
       {/* Title */}
       <Text style={styles.screenTitle}>Teams</Text>
 
@@ -158,7 +165,7 @@ export default function NewMatchScreen() {
           onPress={handleStartMatch}
         >
           <Text style={[styles.buttonText, styles.filledButtonText]}>
-            Start match
+            Next
           </Text>
         </TouchableOpacity>
       </View>
@@ -174,6 +181,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
   },
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  logo: { fontSize: 20, fontWeight: 'bold' },
+  settings: { fontSize: 16 },
+  title: { fontSize: 18, marginBottom: 24 },
   screenTitle: {
     fontSize: 20,
     fontWeight: 'bold',
