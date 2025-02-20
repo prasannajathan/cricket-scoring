@@ -1,28 +1,30 @@
 // utils/matchStorage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ScoreboardState } from '@/types'; // or wherever your types are
+import { SavedMatch } from '@/types/matchTypes';
 
-const STORAGE_KEY = 'CRICKET_MATCHES';
+const MATCHES_KEY = 'CRICKET_MATCHES';
 
-export async function saveMatch(match: ScoreboardState) {
+export async function loadMatches(): Promise<SavedMatch[]> {
   try {
-    // 1. Get existing matches
-    const data = await AsyncStorage.getItem(STORAGE_KEY);
-    const matches = data ? JSON.parse(data) : [];
+    const json = await AsyncStorage.getItem(MATCHES_KEY);
+    return json ? (JSON.parse(json) as SavedMatch[]) : [];
+  } catch (err) {
+    console.warn('Failed to load matches:', err);
+    return [];
+  }
+}
 
-    // 2. Check if this match already exists
-    const existingIndex = matches.findIndex((m: ScoreboardState) => m.id === match.id);
-
-    // 3. Update or insert
+export async function saveMatch(match: SavedMatch): Promise<void> {
+  try {
+    const matches = await loadMatches();
+    const existingIndex = matches.findIndex((m) => m.id === match.id);
     if (existingIndex !== -1) {
       matches[existingIndex] = match;
     } else {
       matches.push(match);
     }
-
-    // 4. Save back
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(matches));
-  } catch (error) {
-    console.error('Error saving match:', error);
+    await AsyncStorage.setItem(MATCHES_KEY, JSON.stringify(matches));
+  } catch (err) {
+    console.warn('Failed to save match:', err);
   }
 }

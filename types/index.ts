@@ -54,6 +54,7 @@ export interface PartnershipRecord {
 }
 
 export interface Team {
+    id: string;
     teamName: string;
     players: Cricketer[];
 
@@ -101,4 +102,6 @@ export interface ScoreboardState {
     deliveryHistory: DeliveryEvent[];
     matchResult?: string;
     matchOver: boolean;
+    deliveriesInning1: DeliveryEvent[];
+    deliveriesInning2: DeliveryEvent[];
 }

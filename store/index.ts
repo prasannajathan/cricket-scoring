@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import scoreboardReducer from '@/store/scoreboardSlice';
+import { scoreboardMiddleware } from '@/store/scoreboardMiddleware';
 
 const store = configureStore({
   reducer: {
@@ -10,7 +11,7 @@ const store = configureStore({
       // disable or tweak the checks that cause slowdown
       // immutableCheck: false,
       // serializableCheck: false,
-    }),
+    }).concat(scoreboardMiddleware),
 });
 
 export default store;

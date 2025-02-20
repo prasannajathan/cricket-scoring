@@ -6,7 +6,7 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  ScrollView
+  ScrollView, SafeAreaView
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
@@ -43,6 +43,7 @@ export default function NewMatchScreen() {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.logo}>[LOGO HERE]</Text>
@@ -170,6 +171,7 @@ export default function NewMatchScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 

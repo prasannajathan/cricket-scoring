@@ -1,7 +1,7 @@
 // components/BatsmanRow.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Cricketer } from '../types';
+import { Cricketer } from '@/types';
 
 interface BatsmanRowProps {
   player: Cricketer;
@@ -31,12 +31,6 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     borderRadius: 4,
   },
-  name: {
-    fontWeight: 'bold',
-    width: '25%',
-  },
-  stat: {
-    width: '15%',
-    textAlign: 'center',
-  },
+  name: { fontWeight: 'bold', width: '25%' },
+  stat: { width: '15%', textAlign: 'center' },
 });

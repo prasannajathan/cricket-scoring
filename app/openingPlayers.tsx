@@ -1,5 +1,5 @@
 // openingPlayers.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,12 @@ import {
   StyleSheet,
   Alert
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+// import { Picker } from '@react-native-picker/picker';
 import { useSelector, useDispatch } from 'react-redux';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+// Install react-native-get-random-values Import it before uuid:
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 import type { RootState } from '@/store';
 import { createCricketer } from '@/utils';
@@ -25,6 +28,7 @@ import {
 export default function OpeningPlayersScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const scoreboard = useSelector((state: RootState) => state.scoreboard);
   // "innings" param from the query, e.g. ?innings=2
   const { innings = '1' } = useLocalSearchParams();
@@ -63,6 +67,14 @@ export default function OpeningPlayersScreen() {
   const existingBattingPlayers = battingTeam.players;
   const existingBowlingPlayers = bowlingTeam.players;
 
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: 'Select Opening Players',
+      headerBackTitle: 'Back',
+    });
+  }, [navigation]);
+
   const validatePlayerSelection = (selectedId: string, newName: string): boolean => {
     return !selectedId && !newName.trim();
   };
@@ -86,7 +98,7 @@ export default function OpeningPlayersScreen() {
     let strikerId = selectedStrikerId;
     if (!strikerId && newStrikerName.trim()) {
       // create new
-      strikerId = Date.now().toString() + '_striker';
+      strikerId = uuidv4();
       dispatch(addPlayer({
         team: battingTeamKey,
         player: createCricketer(strikerId, newStrikerName.trim())
@@ -99,7 +111,7 @@ export default function OpeningPlayersScreen() {
     // 2. NON-STRIKER
     let nonStrikerId = selectedNonStrikerId;
     if (!nonStrikerId && newNonStrikerName.trim()) {
-      nonStrikerId = Date.now().toString() + '_nonStriker';
+      nonStrikerId = uuidv4();
       dispatch(addPlayer({
         team: battingTeamKey,
         player: createCricketer(nonStrikerId, newNonStrikerName.trim())
@@ -112,7 +124,7 @@ export default function OpeningPlayersScreen() {
     // 3. BOWLER
     let bowlerId = selectedBowlerId;
     if (!bowlerId && newBowlerName.trim()) {
-      bowlerId = Date.now().toString() + '_bowler';
+      bowlerId = uuidv4();
       dispatch(addPlayer({
         team: bowlingTeamKey,
         player: createCricketer(bowlerId, newBowlerName.trim())
@@ -137,7 +149,7 @@ export default function OpeningPlayersScreen() {
       {/* Striker */}
       <Text style={styles.label}>Striker({battingTeam.teamName})</Text>
       {/* Picker for existing players */}
-      <Picker
+      {/* <Picker
         selectedValue={selectedStrikerId}
         onValueChange={(val) => setSelectedStrikerId(val)}
       >
@@ -145,7 +157,7 @@ export default function OpeningPlayersScreen() {
         {existingBattingPlayers.map((p) => (
           <Picker.Item label={p.name} value={p.id} key={p.id} />
         ))}
-      </Picker>
+      </Picker> */}
       {/* Or new name input */}
       <TextInput
         style={styles.textInput}
@@ -156,7 +168,7 @@ export default function OpeningPlayersScreen() {
 
       {/* Non-striker */}
       <Text style={styles.label}>Non-Striker ({battingTeam.teamName})</Text>
-      <Picker
+      {/* <Picker
         selectedValue={selectedNonStrikerId}
         onValueChange={(val) => setSelectedNonStrikerId(val)}
       >
@@ -164,7 +176,7 @@ export default function OpeningPlayersScreen() {
         {existingBattingPlayers.map((p) => (
           <Picker.Item label={p.name} value={p.id} key={p.id} />
         ))}
-      </Picker>
+      </Picker> */}
       <TextInput
         style={styles.textInput}
         placeholder="Add new Non-Striker name"
@@ -174,7 +186,7 @@ export default function OpeningPlayersScreen() {
 
       {/* Opening bowler */}
       <Text style={styles.label}>Opening Bowler ({bowlingTeam.teamName})</Text>
-      <Picker
+      {/* <Picker
         selectedValue={selectedBowlerId}
         onValueChange={(val) => setSelectedBowlerId(val)}
       >
@@ -182,7 +194,7 @@ export default function OpeningPlayersScreen() {
         {existingBowlingPlayers.map((p) => (
           <Picker.Item label={p.name} value={p.id} key={p.id} />
         ))}
-      </Picker>
+      </Picker> */}
       <TextInput
         style={styles.textInput}
         placeholder="Add new Bowler name"

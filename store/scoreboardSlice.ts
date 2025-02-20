@@ -1,5 +1,7 @@
 // store/scoreboardSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 import {
     Team,
     ScoreboardState,
@@ -22,6 +24,7 @@ interface ExtendedScoreboardState extends Omit<ScoreboardState, 'teamA' | 'teamB
 interface ScoreboardSnapshot extends ScoreboardState { }
 
 const initialTeamState: ExtendedTeam = {
+    id: uuidv4() + '_team',
     teamName: '',
     players: [],
     tossWinner: false,
@@ -51,6 +54,8 @@ const initialTeamState: ExtendedTeam = {
 
     activePartnership: null,
     lastOverBowlerId: undefined,
+
+
 };
 
 const initialState: ExtendedScoreboardState & {
@@ -58,7 +63,7 @@ const initialState: ExtendedScoreboardState & {
     matchResult?: string;
     deliveryHistorySnapshots?: ScoreboardSnapshot[];
 } = {
-    id: Date.now().toString(),
+    id: uuidv4() + '_match',
     teamA: {
         ...initialTeamState,
         teamName: 'Team A',
@@ -77,6 +82,8 @@ const initialState: ExtendedScoreboardState & {
     matchResult: undefined,
     matchOver: false,
     deliveryHistorySnapshots: [],
+    deliveriesInning1: [],
+    deliveriesInning2: [],
 };
 
 export const scoreboardSlice = createSlice({
@@ -157,21 +164,24 @@ export const scoreboardSlice = createSlice({
         },
 
         // ------------- SCORE A BALL -------------
+        // -- Score a Ball --
         scoreBall: (state, action: PayloadAction<ScoreBallPayload>) => {
-            // 0) Create a deep snapshot for a robust undo
+            // 1. Snapshots for Undo
             const snapshot = JSON.parse(JSON.stringify(state));
             state.deliveryHistorySnapshots?.push(snapshot);
 
             if (state.matchOver) return;
 
-            const battingTeam = state.teamA.batting ? state.teamA : (state.teamB as ExtendedTeam);
-            const bowlingTeam = state.teamA.batting ? state.teamB : (state.teamA as ExtendedTeam);
+            // 2. Decide who is batting/bowling
+            const battingTeam = state.teamA.batting ? state.teamA : state.teamB;
+            const bowlingTeam = state.teamA.batting ? state.teamB : state.teamA;
 
-            // Bowler constraint
+            // 3. Bowler constraint
             if (bowlingTeam.currentBowlerId && bowlingTeam.lastOverBowlerId === bowlingTeam.currentBowlerId) {
                 throw new Error('Same bowler cannot bowl consecutive overs!');
             }
 
+            // 4. Tally runs, extras
             const { runs, extraType, wicket, outBatsmanId, wicketType } = action.payload;
             let totalRuns = runs;
             let legalDelivery = true;
@@ -184,20 +194,22 @@ export const scoreboardSlice = createSlice({
             }
             battingTeam.totalRuns += totalRuns;
 
-            // 2. Over / Ball counting
+            // 5. Over/Ball counting
             if (legalDelivery) {
                 battingTeam.ballInCurrentOver += 1;
                 if (battingTeam.ballInCurrentOver >= 6) {
                     battingTeam.completedOvers += 1;
                     battingTeam.ballInCurrentOver = 0;
                     bowlingTeam.lastOverBowlerId = bowlingTeam.currentBowlerId;
+
+                    // Swap strike at over’s end
                     const tmp = battingTeam.currentStrikerId;
                     battingTeam.currentStrikerId = battingTeam.currentNonStrikerId;
                     battingTeam.currentNonStrikerId = tmp;
                 }
             }
 
-            // 3. Batsman stats
+            // 6. Batsman stats
             const striker = battingTeam.players.find((p) => p.id === battingTeam.currentStrikerId);
             if (striker) {
                 if (legalDelivery) {
@@ -213,23 +225,27 @@ export const scoreboardSlice = createSlice({
                 }
             }
 
-            // 4. Wicket
+            // 7. Wicket
             if (wicket && legalDelivery) {
                 battingTeam.wickets += 1;
                 if (outBatsmanId) {
                     const outBatsman = battingTeam.players.find((pl) => pl.id === outBatsmanId);
                     if (outBatsman) outBatsman.isOut = true;
                 }
-                battingTeam.activePartnership!.endOver = battingTeam.completedOvers;
-                battingTeam.partnerships.push(battingTeam.activePartnership!.runs);
-                battingTeam.activePartnership = null;
+                // End partnership
+                if (battingTeam.activePartnership) {
+                    battingTeam.activePartnership.endOver = battingTeam.completedOvers;
+                    battingTeam.partnerships.push(battingTeam.activePartnership.runs);
+                    battingTeam.activePartnership = null;
+                }
             }
 
-            // 5. Bowler stats
+            // 8. Bowler stats
             const bowler = bowlingTeam.players.find((p) => p.id === bowlingTeam.currentBowlerId);
             if (bowler) {
                 bowler.runsConceded += totalRuns;
                 if (wicket && legalDelivery) bowler.wickets += 1;
+
                 if (legalDelivery) {
                     bowler.ballsThisOver += 1;
                     if (bowler.ballsThisOver >= 6) {
@@ -243,7 +259,7 @@ export const scoreboardSlice = createSlice({
                     : 0;
             }
 
-            // 6. Partnership
+            // 9. Partnership
             if (!battingTeam.activePartnership) {
                 const p1 = battingTeam.currentStrikerId;
                 const p2 = battingTeam.currentNonStrikerId;
@@ -256,11 +272,11 @@ export const scoreboardSlice = createSlice({
                 };
             }
             if (!extraType || extraType === 'no-ball') {
-                battingTeam.activePartnership!.runs += runs;
-                battingTeam.activePartnership.ballsFaced += 1;
+                battingTeam.activePartnership.runs += runs;
+                battingTeam.activePartnership.ballsFaced! += 1;
             }
 
-            // 7. Strike Rotation
+            // 10. Strike rotation on odd run
             const isOffBat = !extraType || extraType === 'no-ball';
             if (legalDelivery && runs % 2 === 1 && isOffBat) {
                 const tmp = battingTeam.currentStrikerId;
@@ -268,7 +284,7 @@ export const scoreboardSlice = createSlice({
                 battingTeam.currentNonStrikerId = tmp;
             }
 
-            // 8. Check chase
+            // 11. Check chase
             if (state.currentInning === 2 && state.targetScore && !state.matchOver) {
                 if (battingTeam.totalRuns >= state.targetScore) {
                     state.matchResult = `${battingTeam.teamName} wins by ${10 - battingTeam.wickets} wickets`;
@@ -276,7 +292,7 @@ export const scoreboardSlice = createSlice({
                 }
             }
 
-            // 9. Record delivery
+            // 12. Record the delivery
             const deliveryRecord: DeliveryEvent = {
                 runs: totalRuns,
                 batsmanRuns: runs,
@@ -285,8 +301,11 @@ export const scoreboardSlice = createSlice({
                 outBatsmanId,
                 wicketType,
             };
-            battingTeam.deliveries.push(deliveryRecord);
-            state.deliveryHistory.push(deliveryRecord);
+            if (state.currentInning === 1) {
+                state.deliveriesInning1.push(deliveryRecord);
+            } else {
+                state.deliveriesInning2.push(deliveryRecord);
+            }
         },
 
         incrementOvers: (state) => {
@@ -313,7 +332,6 @@ export const scoreboardSlice = createSlice({
             const prev = state.deliveryHistorySnapshots.pop();
             if (prev) {
                 // Remove any stored history snapshots from the previous state to avoid nesting
-                prev.deliveryHistorySnapshots = [];
                 return prev as typeof state;
             }
         },
@@ -355,24 +373,39 @@ export const scoreboardSlice = createSlice({
 
         endInnings: (state) => {
             if (state.matchOver) return;
+
             if (state.currentInning === 1) {
+                // Switch to second innings
                 state.currentInning = 2;
-                const battingTeam = state.teamA.batting ? state.teamA : state.teamB;
-                const firstInningsRuns = battingTeam.totalRuns;
+                const firstInningsTeam = state.teamA.batting ? state.teamA : state.teamB;
+                const firstInningsRuns = firstInningsTeam.totalRuns;
                 state.targetScore = firstInningsRuns + 1;
-                battingTeam.batting = false;
-                battingTeam.bowling = false;
-                const otherTeam = battingTeam === state.teamA ? state.teamB : state.teamA;
-                otherTeam.batting = true;
-                otherTeam.bowling = false;
+
+                // Switch roles
+                firstInningsTeam.batting = false;
+                firstInningsTeam.bowling = false;
+                const secondInningsTeam = firstInningsTeam === state.teamA ? state.teamB : state.teamA;
+                secondInningsTeam.batting = true;
+                secondInningsTeam.bowling = false;
+
+                // Reset second innings scoreboard
+                secondInningsTeam.totalRuns = 0;
+                secondInningsTeam.wickets = 0;
+                secondInningsTeam.completedOvers = 0;
+                secondInningsTeam.ballInCurrentOver = 0;
+                secondInningsTeam.activePartnership = null;
+                secondInningsTeam.partnerships = [];
+                state.deliveriesInning2 = [];
             } else {
+                // End the match
                 state.matchOver = true;
                 if (!state.matchResult) {
                     const battingTeam = state.teamA.batting ? state.teamA : state.teamB;
                     const otherTeam = battingTeam === state.teamA ? state.teamB : state.teamA;
                     if (state.targetScore && battingTeam.totalRuns >= state.targetScore) {
-                        state.matchResult = `${battingTeam.teamName} wins by ${10 - battingTeam.wickets
-                            } wickets`;
+                        state.matchResult = `${battingTeam.teamName} wins by ${
+                            10 - battingTeam.wickets
+                        } wickets`;
                     } else {
                         if (state.targetScore && battingTeam.totalRuns === state.targetScore - 1) {
                             state.matchResult = 'Tie or super over scenario';

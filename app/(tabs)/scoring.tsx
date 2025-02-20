@@ -1,4 +1,4 @@
-// app/ScoringScreen.tsx 
+// app/scoring.tsx 
 import React, { useState, useEffect, memo } from 'react';
 import {
     View,
@@ -39,6 +39,7 @@ export default function ScoringScreen() {
     const router = useRouter();
     const { matchId } = useLocalSearchParams();
     const dispatch = useDispatch();
+    const scoreboard = useSelector((state: RootState) => state.scoreboard);
     const {
         teamA,
         teamB,
@@ -47,7 +48,7 @@ export default function ScoringScreen() {
         targetScore,
         matchResult,
         matchOver,
-    } = useSelector((state: RootState) => state.scoreboard);
+    } = scoreboard;
 
     const MemoizedBatsmanRow = memo(BatsmanRow);
     const MemoizedBowlerRow = memo(BowlerRow);
@@ -67,16 +68,11 @@ export default function ScoringScreen() {
     const [wicketType, setWicketType] = useState<WicketType>('bowled');
     const [outBatsmanId, setOutBatsmanId] = useState<string | undefined>(undefined);
 
-    // Partnerships modal
+    // Partnerships + Extras modals
     const [showPartnershipModal, setShowPartnershipModal] = useState(false);
-    // PARTNERSHIP
-    const currentPartnership = battingTeam.currentPartnership || 0; // ----
-
-    // Extras modal (penalties)
     const [showExtrasModal, setShowExtrasModal] = useState(false);
     // TODO: Add penalty runs to state
     const [penaltyRuns, setPenaltyRuns] = useState(0);
-
     // Advanced scoring modal
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
 
@@ -84,33 +80,42 @@ export default function ScoringScreen() {
     const [showNextBatsmanModal, setShowNextBatsmanModal] = useState(false);
     const [nextBatsmanId, setNextBatsmanId] = useState<string>('');
 
-    // If user tries to score but match is over
+    // read partnership 
+    const currentPartnership = battingTeam.currentPartnership || 0;
     const canScore = !matchOver;
-    // Check if first/second innings is done
+
+    // useEffect to auto-end innings
     useEffect(() => {
         if (matchOver) return;
-
-        // In a T20 scenario: if we exceed totalOvers or 10 wickets => endInnings
-        if (
-            (battingTeam.completedOvers >= totalOvers) ||
-            (battingTeam.wickets >= 10 && !matchOver)
-        ) {
-            dispatch(endInnings());
-            router.push('/openingPlayers?innings=2');
+        if (currentInning === 1) {
+            // if overs or 10 wickets => end the first innings
+            if (battingTeam.completedOvers >= totalOvers || battingTeam.wickets >= 10) {
+                dispatch(endInnings());
+                router.push('/openingPlayers?innings=2');
+            }
+        } else if (currentInning === 2) {
+            // If we want to auto-end second innings
+            if (battingTeam.completedOvers >= totalOvers || battingTeam.wickets >= 10) {
+                dispatch(endInnings());
+                router.push('/scorecard');
+            }
         }
     }, [
         battingTeam.completedOvers,
         battingTeam.wickets,
         totalOvers,
         matchOver,
-        dispatch,
+        currentInning,
+        dispatch
     ]);
-
-    const scoreboard = useSelector((state: RootState) => state.scoreboard);
 
     useEffect(() => {
         if (matchId) {
-            saveMatch({ ...scoreboard, id: matchId as string });
+            saveMatch({
+                ...scoreboard, id: matchId as string,
+                name: '',
+                completed: false
+            });
         }
     }, [scoreboard, matchId]);
 
@@ -161,13 +166,6 @@ export default function ScoringScreen() {
         // If a wicket happened, open "next batsman" modal if not all out
         if (wicket && battingTeam.wickets < 10) {
             setShowNextBatsmanModal(true);
-        }
-    };
-
-    // Manually finish innings
-    const handleFinishInningsManually = () => {
-        if (!matchOver) {
-            dispatch(endInnings());
         }
     };
 
@@ -420,8 +418,6 @@ export default function ScoringScreen() {
                     onConfirm={(num) => handleScore(num)}
                 />
 
-                {/* Finish innings */}
-                <Button title="Finish Innings" onPress={handleFinishInningsManually} />
             </ScrollView>
         </SafeAreaView>
     );
