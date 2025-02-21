@@ -1,6 +1,6 @@
 // utils/matchStorage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SavedMatch } from '@/types/matchTypes';
+import { SavedMatch } from '@/store/cricket/types';
 
 const MATCHES_KEY = 'CRICKET_MATCHES';
 

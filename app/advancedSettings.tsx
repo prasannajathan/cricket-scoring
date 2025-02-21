@@ -17,7 +17,7 @@ import {
   setNoBallRun,
   setWideBallReball,
   setWideBallRun,
-} from '@/store/scoreboardSlice';
+} from '@/store/cricket/scoreboardSlice';
 
 export default function AdvancedSettingsScreen() {
   const dispatch = useDispatch();

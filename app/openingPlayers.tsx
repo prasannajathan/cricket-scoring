@@ -20,11 +20,12 @@ import type { RootState } from '@/store';
 import { createCricketer } from '@/utils';
 import {
   addPlayer,
-  setBowler,
   setCurrentStriker,
   setCurrentNonStriker,
+  setBowler,
+  initializeInnings,
   updateInningsPlayers
-} from '@/store/scoreboardSlice';
+} from '@/store/cricket/scoreboardSlice';
 
 export default function OpeningPlayersScreen() {
   const router = useRouter();

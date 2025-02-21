@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
+// Install react-native-get-random-values Import it before uuid:
+import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { RootState } from '@/store';
@@ -19,7 +21,8 @@ import {
   setTossWinner,
   setTossChoice,
   setTotalOvers,
-} from '@/store/scoreboardSlice';
+  initializeInnings
+} from '@/store/cricket/scoreboardSlice.ts';
 
 export default function NewMatchScreen() {
   const router = useRouter();
@@ -173,7 +176,7 @@ export default function NewMatchScreen() {
         placeholder="20"
         value={String(totalOvers)}
         onChangeText={(value) => 
-          dispatch(setTotalOvers(parseInt(value, 10) || 0))
+          dispatch(setTotalOvers(parseInt(value, 10) || 1))
         }
       />
 

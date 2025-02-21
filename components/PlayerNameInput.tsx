@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TextInput, StyleSheet } from 'react-native';
 import { useDispatch } from 'react-redux';
-import { editPlayerName } from '../store/scoreboardSlice';
+import { editPlayerName } from '@/store/cricket/scoreboardSlice';
 
 interface Props {
   team: 'teamA' | 'teamB';

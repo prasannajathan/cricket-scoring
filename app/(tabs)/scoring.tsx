@@ -21,16 +21,16 @@ import { RootState } from '@/store';
 import {
     scoreBall,
     undoLastBall,
-    swapBatsman,
+    swapBatsmen,
     retireBatsman,
     addExtraRuns,
     endInnings,
     setBowler,
     setMatchResult,
     setMatchOver,
-    clearMatchResult  // Add this import
-} from '@/store/scoreboardSlice';
-import { Cricketer } from '@/types';
+    clearMatchResult
+} from '@/store/cricket/scoreboardSlice';
+import { Cricketer } from '@/store/cricket/types';
 import { saveMatch } from '@/utils/saveMatchStorage'
 
 import BatsmanRow from '@/components/BatsmanRow';
@@ -129,7 +129,6 @@ export default function ScoringScreen() {
         currentInnings.completedOvers,
         currentInnings.totalRuns,
         battingTeam.wickets,
-        totalOvers,
         targetScore,
         matchOver,
         currentInning,
@@ -442,7 +441,7 @@ export default function ScoringScreen() {
                     >
                         <Text>Undo</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => dispatch(swapBatsman())} disabled={!canScore}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={() => dispatch(swapBatsmen())} disabled={!canScore}>
                         <Text>Swap Batsman</Text>
                     </TouchableOpacity>
                 </View>

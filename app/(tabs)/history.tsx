@@ -4,9 +4,9 @@ import { StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useRouter } from 'expo-router';
 import { loadMatches } from '@/utils/saveMatchStorage';
-import { SavedMatch } from '@/types/matchTypes';
+import { SavedMatch } from '@/store/cricket/types';
 import { useDispatch } from 'react-redux';
-import { resetGame } from '@/store/scoreboardSlice';
+import { resetGame } from '@/store/cricket/scoreboardSlice';
 
 export default function HistoryScreen() {
   const [savedMatches, setSavedMatches] = useState<SavedMatch[]>([]);

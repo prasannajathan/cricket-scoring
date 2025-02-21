@@ -1,7 +1,7 @@
 // components/BatsmanRow.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Cricketer } from '@/types';
+import { Cricketer } from '@/store/cricket/types';
 
 interface BatsmanRowProps {
   player: Cricketer;
