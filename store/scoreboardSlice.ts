@@ -213,11 +213,37 @@ export const scoreboardSlice = createSlice({
             const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
             const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
 
-            // Rest of the scoreBall logic using currentInnings instead of battingTeam for innings-specific data
             const { runs, extraType, wicket, outBatsmanId, wicketType } = action.payload;
             let totalRuns = runs;
             let legalDelivery = true;
 
+            // Update batsman stats
+            if (!extraType || extraType === 'no-ball') {
+                const striker = battingTeam.players.find(p => p.id === currentInnings.currentStrikerId);
+                if (striker) {
+                    striker.runs += runs;
+                    striker.balls += 1;
+                    if (runs === 4) striker.fours += 1;
+                    if (runs === 6) striker.sixes += 1;
+                    striker.strikeRate = (striker.runs / striker.balls) * 100;
+                }
+            }
+
+            // Update bowler stats
+            const bowler = bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId);
+            if (bowler) {
+                bowler.runsConceded += totalRuns;
+                if (legalDelivery) {
+                    bowler.ballsThisOver += 1;
+                    const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
+                    bowler.economy = (bowler.runsConceded / (totalBalls / 6));
+                }
+                if (wicket && !['runout', 'retired'].includes(wicketType || '')) {
+                    bowler.wickets += 1;
+                }
+            }
+
+            // Handle extras
             if (extraType === 'wide' || extraType === 'no-ball') {
                 totalRuns += 1;
                 currentInnings.extras += 1;
@@ -225,19 +251,66 @@ export const scoreboardSlice = createSlice({
             } else if (extraType === 'bye' || extraType === 'leg-bye') {
                 currentInnings.extras += runs;
             }
+
+            // Update innings total
             currentInnings.totalRuns += totalRuns;
 
-            // Update ball counting in innings
+            // Update ball count and check for over completion
             if (legalDelivery) {
                 currentInnings.ballInCurrentOver += 1;
                 if (currentInnings.ballInCurrentOver >= 6) {
                     currentInnings.completedOvers += 1;
                     currentInnings.ballInCurrentOver = 0;
                     currentInnings.lastOverBowlerId = currentInnings.currentBowlerId;
+
+                    // Update bowler stats for completed over
+                    if (bowler) {
+                        bowler.overs += 1;
+                        bowler.ballsThisOver = 0;
+                    }
+
+                    // Check if innings is complete
+                    if (state.currentInning === 1 && currentInnings.completedOvers >= state.totalOvers) {
+                        currentInnings.isCompleted = true;
+                        state.currentInning = 2;
+                        state.targetScore = currentInnings.totalRuns + 1;
+
+                        // Switch team roles
+                        state.teamA.isBatting = state.teamA.id === state.innings2.battingTeamId;
+                        state.teamA.isBowling = !state.teamA.isBatting;
+                        state.teamB.isBatting = !state.teamA.isBatting;
+                        state.teamB.isBowling = !state.teamB.isBatting;
+
+                        return; // Exit after completing innings
+                    }
                 }
             }
 
-            // ... rest of the logic updating player stats and partnerships
+            // Record delivery
+            currentInnings.deliveries.push({
+                runs,
+                batsmanRuns: extraType === 'bye' || extraType === 'leg-bye' ? 0 : runs,
+                extraType,
+                wicket: wicket || false,
+                outBatsmanId,
+                wicketType
+            });
+
+            // Handle wicket
+            if (wicket) {
+                currentInnings.wickets += 1;
+                const outBatsman = battingTeam.players.find(p => p.id === (outBatsmanId || currentInnings.currentStrikerId));
+                if (outBatsman) {
+                    outBatsman.isOut = true;
+                }
+            }
+
+            // Auto swap batsmen at end of over or on odd runs
+            if (currentInnings.ballInCurrentOver === 0 || (runs % 2 === 1 && legalDelivery)) {
+                const temp = currentInnings.currentStrikerId;
+                currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
+                currentInnings.currentNonStrikerId = temp;
+            }
         },
 
         incrementOvers: (state) => {
@@ -331,6 +404,30 @@ export const scoreboardSlice = createSlice({
                 state.teamB.isBatting = !state.teamA.isBatting;
                 state.teamB.isBowling = !state.teamB.isBatting;
 
+                // Reset all batting players for second innings
+                const nextBattingTeam = state[state.innings2.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+                nextBattingTeam.players = nextBattingTeam.players.map(player => ({
+                    ...player,
+                    runs: 0,
+                    balls: 0,
+                    fours: 0,
+                    sixes: 0,
+                    strikeRate: 0,
+                    isOut: false
+                }));
+
+                // Reset all bowling players for second innings
+                const nextBowlingTeam = state[state.innings2.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+                nextBowlingTeam.players = nextBowlingTeam.players.map(player => ({
+                    ...player,
+                    overs: 0,
+                    ballsThisOver: 0,
+                    runsConceded: 0,
+                    wickets: 0,
+                    economy: 0,
+                    maidens: 0
+                }));
+
                 // Clear match status
                 state.matchResult = undefined;
                 state.matchOver = false;
@@ -421,6 +518,31 @@ export const scoreboardSlice = createSlice({
             battingTeam.currentStrikerId = currentStrikerId;
             battingTeam.currentNonStrikerId = currentNonStrikerId;
             bowlingTeam.currentBowlerId = currentBowlerId;
+        },
+
+        loadSavedMatch: (state, action: PayloadAction<SavedMatch>) => {
+            // Load all saved match data into state
+            return {
+                ...state,
+                ...action.payload,
+                // Ensure we keep the proper references
+                teamA: {
+                    ...action.payload.teamA,
+                    players: [...action.payload.teamA.players]
+                },
+                teamB: {
+                    ...action.payload.teamB,
+                    players: [...action.payload.teamB.players]
+                },
+                innings1: {
+                    ...action.payload.innings1,
+                    deliveries: [...action.payload.innings1.deliveries]
+                },
+                innings2: {
+                    ...action.payload.innings2,
+                    deliveries: [...action.payload.innings2.deliveries]
+                }
+            };
         }
     }
 });
@@ -448,7 +570,8 @@ export const {
     resetGame,
     setMatchResult,
     setMatchOver,
-    updateInningsPlayers // Add this
+    updateInningsPlayers, // Add this
+    loadSavedMatch // Add this
 } = scoreboardSlice.actions;
 
 export default scoreboardSlice.reducer;

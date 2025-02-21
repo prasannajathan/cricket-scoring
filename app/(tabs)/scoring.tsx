@@ -36,7 +36,7 @@ import { saveMatch } from '@/utils/saveMatchStorage'
 import BatsmanRow from '@/components/BatsmanRow';
 import BowlerRow from '@/components/BowlerRow';
 
-import { computeCRR } from '@/utils';
+import { computeCRR, computeRRR } from '@/utils';
 type WicketType = 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
 
 export default function ScoringScreen() {
@@ -93,37 +93,42 @@ export default function ScoringScreen() {
     useEffect(() => {
         if (matchOver) return;
         
-        if (currentInning === 1) {
-            if (battingTeam.completedOvers >= totalOvers || battingTeam.wickets >= 10) {
+        const isInningsComplete = 
+            battingTeam.wickets >= 10 || 
+            currentInnings.completedOvers >= totalOvers ||
+            (currentInning === 2 && targetScore && currentInnings.totalRuns >= targetScore);
+
+        if (isInningsComplete) {
+            if (currentInning === 1) {
+                // First innings completed
                 dispatch(clearMatchResult());
                 dispatch(endInnings());
                 router.push({
                     pathname: '/openingPlayers',
                     params: { innings: '2' }
                 });
-            }
-        } else if (currentInning === 2 && targetScore) {
-            const isInningsComplete = 
-                battingTeam.wickets >= 10 || 
-                battingTeam.completedOvers >= totalOvers ||
-                battingTeam.totalRuns >= targetScore;
-
-            if (isInningsComplete) {
-                // Only calculate result if innings is actually complete
-                const runsShort = targetScore - battingTeam.totalRuns;
-                if (battingTeam.totalRuns >= targetScore) {
-                    dispatch(setMatchResult(`${battingTeam.teamName} wins by ${10 - battingTeam.wickets} wickets`));
+            } else if (currentInning === 2) {
+                // Second innings completed
+                const runsShort = targetScore ? targetScore - currentInnings.totalRuns : 0;
+                if (currentInnings.totalRuns >= (targetScore || 0)) {
+                    // Chasing team wins
+                    dispatch(setMatchResult(
+                        `${battingTeam.teamName} wins by ${10 - currentInnings.wickets} wickets`
+                    ));
                 } else {
-                    dispatch(setMatchResult(`${bowlingTeam.teamName} wins by ${runsShort} runs`));
+                    // Defending team wins
+                    dispatch(setMatchResult(
+                        `${bowlingTeam.teamName} wins by ${runsShort} runs`
+                    ));
                 }
                 dispatch(setMatchOver(true));
-                router.push('/scorecard');
+                // router.push('/scorecard');
             }
         }
     }, [
-        battingTeam.completedOvers,
-        battingTeam.wickets, 
-        battingTeam.totalRuns,
+        currentInnings.completedOvers,
+        currentInnings.totalRuns,
+        battingTeam.wickets,
         totalOvers,
         targetScore,
         matchOver,
@@ -170,21 +175,39 @@ export default function ScoringScreen() {
         }
         if (!canScore) return;
 
+        // Check if this score would win the match in second innings
+        if (currentInning === 2 && targetScore) {
+            const projectedScore = currentInnings.totalRuns + runValue;
+            if (projectedScore >= targetScore) {
+                // This will win the match
+                dispatch(scoreBall({
+                    runs: runValue,
+                    extraType: undefined,
+                    wicket: false
+                }));
+                dispatch(setMatchResult(
+                    `${battingTeam.teamName} wins by ${10 - currentInnings.wickets} wickets`
+                ));
+                dispatch(setMatchOver(true));
+                router.push('/scorecard');
+                return;
+            }
+        }
+
+        // Normal scoring continues
         let extraType: 'wide' | 'no-ball' | 'bye' | 'leg-bye' | undefined;
         if (wide) extraType = 'wide';
         else if (noBall) extraType = 'no-ball';
         else if (bye) extraType = 'bye';
         else if (legBye) extraType = 'leg-bye';
 
-        dispatch(
-            scoreBall({
-                runs: runValue,
-                extraType,
-                wicket,
-                wicketType: wicket ? wicketType : undefined,
-                outBatsmanId: wicket ? outBatsmanId : undefined,
-            })
-        );
+        dispatch(scoreBall({
+            runs: runValue,
+            extraType,
+            wicket,
+            wicketType: wicket ? wicketType : undefined,
+            outBatsmanId: wicket ? outBatsmanId : undefined,
+        }));
 
         // reset toggles
         setWide(false);
@@ -211,47 +234,53 @@ export default function ScoringScreen() {
                 {/* Score display */}
                 <View style={styles.scoreHeader}>
                     <Text style={styles.scoreText}>
-                        {battingTeam.teamName} {currentInnings.totalRuns}/{currentInnings.wickets}
+                        {`${battingTeam.teamName} ${currentInnings.totalRuns}/${currentInnings.wickets}`}
                     </Text>
                     <Text style={styles.oversText}>
-                        ({currentInnings.completedOvers}.{currentInnings.ballInCurrentOver} overs)
+                        {`(${currentInnings.completedOvers}.${currentInnings.ballInCurrentOver} overs)`}
                         {currentInning === 2 && targetScore && (
                             <Text> Target: {targetScore}</Text>
                         )}
                     </Text>
                     <Text style={styles.crrLabel}>
-                        CRR: {computeCRR(currentInnings.totalRuns, currentInnings.completedOvers, currentInnings.ballInCurrentOver)}
+                        {`CRR: ${computeCRR(currentInnings.totalRuns, currentInnings.completedOvers, currentInnings.ballInCurrentOver)}`}
                         {currentInning === 2 && targetScore && (
-                            <Text> | Required RR: {computeRRR(
+                            <Text>{` | Required RR: ${computeRRR(
                                 targetScore - currentInnings.totalRuns,
                                 totalOvers - currentInnings.completedOvers - (currentInnings.ballInCurrentOver / 6)
-                            )}</Text>
+                            )}`}</Text>
                         )}
                     </Text>
                 </View>
 
                 {/* Batsmen */}
                 <Text style={styles.label}>Batsmen:</Text>
-                {battingTeam.players
-                    .filter(p => p.id === currentInnings.currentStrikerId || p.id === currentInnings.currentNonStrikerId)
-                    .map((p) => (
-                        <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <MemoizedBatsmanRow player={p} />
-                            <Text style={{ marginLeft: 8 }}>
-                                {p.id === currentInnings.currentStrikerId ? '*' : ''}
-                            </Text>
-                        </View>
-                    ))}
+                <View>
+                    {battingTeam.players
+                        .filter(p => p.id === currentInnings.currentStrikerId || p.id === currentInnings.currentNonStrikerId)
+                        .map((p) => (
+                            <View key={p.id} style={styles.playerRow}>
+                                <MemoizedBatsmanRow 
+                                    player={p} 
+                                    isStriker={p.id === currentInnings.currentStrikerId}
+                                />
+                            </View>
+                        ))}
+                </View>
 
                 {/* Bowler */}
                 <Text style={styles.label}>Current Bowler:</Text>
-                {currentInnings.currentBowlerId ? (
-                    <MemoizedBowlerRow
-                        bowler={bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId)!}
-                    />
-                ) : (
-                    <Text>No bowler selected</Text>
-                )}
+                <View>
+                    {currentInnings.currentBowlerId && bowlingTeam.players ? (
+                        <View style={styles.playerRow}>
+                            <MemoizedBowlerRow
+                                bowler={bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId)!}
+                            />
+                        </View>
+                    ) : (
+                        <Text style={styles.noDataText}>No bowler selected</Text>
+                    )}
+                </View>
 
                 {/* Toggle extras */}
                 <Text style={styles.label}>Extras</Text>
@@ -776,4 +805,24 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         borderRadius: 6,
     },
+    noDataText: {
+        fontSize: 14,
+        color: '#666',
+        fontStyle: 'italic',
+        padding: 8
+    },
+    playerRow: {
+        marginVertical: 4,
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.22,
+        shadowRadius: 2.22,
+        elevation: 3,
+    }
 });

@@ -4,7 +4,7 @@ import { SavedMatch } from '@/types/matchTypes';
 
 const MATCHES_KEY = 'CRICKET_MATCHES';
 
-AsyncStorage.clear();
+// AsyncStorage.clear();
 
 export async function loadMatches(): Promise<SavedMatch[]> {
   try {
