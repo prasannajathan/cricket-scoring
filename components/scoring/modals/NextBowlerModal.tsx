@@ -1,6 +1,9 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Team } from '@/types';
+import { getMatchRules } from '@/constants/scoring';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
 
 interface NextBowlerModalProps {
     visible: boolean;
@@ -19,8 +22,25 @@ export default function NextBowlerModal({
     lastOverBowlerId,
     onSelectBowler
 }: NextBowlerModalProps) {
+    const state = useSelector((state: RootState) => state.scoreboard);
+    const rules = getMatchRules(state);
+
     const canBowl = (bowlerId: string) => {
-        return bowlerId !== lastOverBowlerId && bowlerId !== currentBowlerId;
+        const bowler = bowlingTeam.players.find(p => p.id === bowlerId);
+        if (!bowler) return false;
+
+        return bowlerId !== lastOverBowlerId && 
+               bowler.overs < rules.MAX_OVERS_PER_BOWLER;
+    };
+
+    const getBowlerStatus = (player: any) => {
+        if (player.id === lastOverBowlerId) {
+            return 'Bowled last over';
+        }
+        if (player.overs >= rules.MAX_OVERS_PER_BOWLER) {
+            return 'Quota complete';
+        }
+        return `${player.overs}-${player.runsConceded}-${player.wickets}`;
     };
 
     return (
@@ -44,12 +64,15 @@ export default function NextBowlerModal({
                                 }}
                                 disabled={!canBowl(player.id)}
                             >
-                                <Text style={styles.bowlerName}>{player.name}</Text>
-                                {player.overs > 0 && (
-                                    <Text style={styles.bowlerStats}>
-                                        {`${player.overs}-${player.runsConceded}-${player.wickets}`}
+                                <View>
+                                    <Text style={styles.bowlerName}>{player.name}</Text>
+                                    <Text style={[
+                                        styles.bowlerStatus,
+                                        !canBowl(player.id) && styles.disabledText
+                                    ]}>
+                                        {getBowlerStatus(player)}
                                     </Text>
-                                )}
+                                </View>
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -90,7 +113,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 12,
+        padding: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#E0E0E0',
     },
@@ -116,5 +139,13 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: '500',
+    },
+    bowlerStatus: {
+        fontSize: 12,
+        color: '#666',
+        marginTop: 4,
+    },
+    disabledText: {
+        color: '#999',
     }
 });

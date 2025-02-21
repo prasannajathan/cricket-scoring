@@ -1,10 +1,9 @@
-// store/scoreboardMiddleware.ts
 import { 
     scoreBall, 
     endInnings, 
     resetGame 
 } from '@/store/cricket/scoreboardSlice';
-import { saveMatch } from '@/utils/saveMatchStorage';
+import { saveMatch } from '@/utils/matchStorage';
 import { RootState } from '@/store';
 
 export const scoreboardMiddleware = (store: any) => (next: any) => (action: any) => {

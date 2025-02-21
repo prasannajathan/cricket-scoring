@@ -5,6 +5,8 @@ import { SuperOverState } from '@/store/cricket/types';
 const MATCH_STORAGE_KEY = '@cricket_scoring:matches';
 const CURRENT_MATCH_KEY = '@cricket_scoring:current_match';
 
+AsyncStorage.clear();
+
 export interface SavedMatch extends MatchState {
     id: string;
     date: string;

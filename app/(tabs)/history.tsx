@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useRouter } from 'expo-router';
-import { loadMatches } from '@/utils/saveMatchStorage';
+import { getSavedMatches } from '@/utils/matchStorage';
 import { SavedMatch } from '@/store/cricket/types';
 import { useDispatch } from 'react-redux';
 import { resetGame } from '@/store/cricket/scoreboardSlice';
