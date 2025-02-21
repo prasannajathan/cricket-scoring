@@ -25,12 +25,12 @@ import AdvancedScoringModal from '@/components/scoring/modals/AdvancedScoringMod
 import NextBowlerModal from '@/components/scoring/modals/NextBowlerModal';
 
 // Import actions
-import { 
-    scoreBall, 
-    undoLastBall, 
+import {
+    scoreBall,
+    undoLastBall,
     swapBatsmen,
     setBowler,
-    addExtraRuns 
+    addExtraRuns
 } from '@/store/cricket/scoreboardSlice';
 
 export default function ScoringScreen() {
@@ -80,11 +80,11 @@ export default function ScoringScreen() {
 
         dispatch(scoreBall({
             runs,
-            extraType: wide ? 'wide' : 
-                     noBall ? 'no-ball' : 
-                     bye ? 'bye' : 
-                     legBye ? 'leg-bye' : 
-                     undefined,
+            extraType: wide ? 'wide' :
+                noBall ? 'no-ball' :
+                    bye ? 'bye' :
+                        legBye ? 'leg-bye' :
+                            undefined,
             wicket: wicket,
             wicketType: wicket ? wicketType : undefined,
             outBatsmanId: wicket ? outBatsmanId : undefined
@@ -103,31 +103,31 @@ export default function ScoringScreen() {
     // Check for innings completion
     useEffect(() => {
         if (currentInnings?.isCompleted) {
-            router.push('/innings-complete');
+            router.push('/scorecard');
         }
     }, [currentInnings?.isCompleted]);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
             <ScrollView style={styles.container}>
-                <ScoreHeader 
-                    battingTeam={battingTeam} 
+                <ScoreHeader
+                    battingTeam={battingTeam}
                     currentInnings={currentInnings}
                     currentInning={currentInning}
                     targetScore={targetScore}
                 />
-                
-                <BatsmenDisplay 
-                    battingTeam={battingTeam} 
-                    currentInnings={currentInnings} 
+
+                <BatsmenDisplay
+                    battingTeam={battingTeam}
+                    currentInnings={currentInnings}
                 />
-                
-                <BowlerDisplay 
-                    bowlingTeam={bowlingTeam} 
-                    currentInnings={currentInnings} 
+
+                <BowlerDisplay
+                    bowlingTeam={bowlingTeam}
+                    currentInnings={currentInnings}
                 />
-                
-                <ExtrasToggle 
+
+                <ExtrasToggle
                     wide={wide}
                     noBall={noBall}
                     bye={bye}
@@ -137,9 +137,9 @@ export default function ScoringScreen() {
                     setBye={setBye}
                     setLegBye={setLegBye}
                 />
-                
+
                 {wicket && (
-                    <WicketPanel 
+                    <WicketPanel
                         wicketType={wicketType}
                         setWicketType={setWicketType}
                         outBatsmanId={outBatsmanId}
@@ -147,24 +147,24 @@ export default function ScoringScreen() {
                         battingTeam={battingTeam}
                     />
                 )}
-                
-                <ScoringButtons 
+
+                <ScoringButtons
                     onScore={handleScore}
                     canScore={canScore}
                     onAdvancedScore={() => setShowAdvancedModal(true)}
                 />
-                
-                <ActionButtons 
+
+                <ActionButtons
                     canScore={canScore}
                     onUndo={() => dispatch(undoLastBall())}
                     onSwap={() => dispatch(swapBatsmen())}
                     onPartnership={() => setShowPartnershipModal(true)}
                     onExtras={() => setShowExtrasModal(true)}
                 />
-                
-                {/* ... modals ... */}
+
             </ScrollView>
 
+            {/* ... modals ... */}
             <PartnershipModal
                 visible={showPartnershipModal}
                 onClose={() => setShowPartnershipModal(false)}
@@ -190,9 +190,9 @@ export default function ScoringScreen() {
                 bowlingTeam={bowlingTeam}
                 currentBowlerId={currentInnings.currentBowlerId}
                 lastOverBowlerId={currentInnings.lastOverBowlerId}
-                onSelectBowler={(bowlerId) => dispatch(setBowler({ 
+                onSelectBowler={(bowlerId) => dispatch(setBowler({
                     team: bowlingTeam.id === state.teamA.id ? 'teamA' : 'teamB',
-                    bowlerId 
+                    bowlerId
                 }))}
             />
         </SafeAreaView>

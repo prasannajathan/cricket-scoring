@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Team, InningsData } from '@/types';
+import { Team, InningsData } from '@/store/cricket/types';
 
 interface ScoreHeaderProps {
     battingTeam: Team;
@@ -9,7 +9,7 @@ interface ScoreHeaderProps {
     targetScore?: number;
 }
 
-export default function ScoreHeader({ 
+export default memo(function ScoreHeader({ 
     battingTeam, 
     currentInnings, 
     currentInning, 
@@ -53,7 +53,10 @@ export default function ScoreHeader({
             </View>
         </View>
     );
-}
+}, (prevProps, nextProps) => {
+    return prevProps.currentInnings.totalRuns === nextProps.currentInnings.totalRuns &&
+           prevProps.currentInnings.wickets === nextProps.currentInnings.wickets;
+});
 
 const styles = StyleSheet.create({
     container: {

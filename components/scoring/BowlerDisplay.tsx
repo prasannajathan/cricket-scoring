@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Cricketer } from '@/store/cricket/types';
-import { Team, InningsData } from '@/types';
+import { Team, InningsData } from '@/store/cricket/types';
 
 interface BowlerRowProps {
   bowler: Cricketer;
