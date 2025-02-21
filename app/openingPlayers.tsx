@@ -23,6 +23,7 @@ import {
   setBowler,
   setCurrentStriker,
   setCurrentNonStriker,
+  updateInningsPlayers
 } from '@/store/scoreboardSlice';
 
 export default function OpeningPlayersScreen() {
@@ -35,22 +36,11 @@ export default function OpeningPlayersScreen() {
   const isSecondInnings = innings === '2';
   const { teamA, teamB } = scoreboard;
 
-  // Determine who is batting/bowling for the *current* inning
-  // If it's second innings, the previously bowling side is now batting.
-  const battingTeamKey = scoreboard.teamA.batting ? 'teamA' : 'teamB';
-  const bowlingTeamKey = battingTeamKey === 'teamA' ? 'teamB' : 'teamA';
+  const currentInnings = isSecondInnings ? scoreboard.innings2 : scoreboard.innings1;
+  
+  const battingTeam = teamA.id === currentInnings.battingTeamId ? teamA : teamB;
+  const bowlingTeam = teamA.id === currentInnings.bowlingTeamId ? teamA : teamB;
 
-  // In second innings, invert that if needed:
-  // Actually, scoreboardSlice might already have flipped teamA.batting/teamB.batting after endInnings.
-  // So let's just trust the scoreboard. If scoreboard says teamB.batting = true, that's the new batting side.
-  // We'll rely on that instead of manual flipping.
-  const battingTeam = scoreboard[battingTeamKey];
-  const bowlingTeam = scoreboard[bowlingTeamKey];
-
-  // // Local state to hold user input. (Alternatively, you can keep using scoreboard’s openingStriker name.)
-  // const [strikerName, setStrikerName] = useState(battingTeam.openingStriker ?? '');
-  // const [nonStrikerName, setNonStrikerName] = useState(battingTeam.openingNonStriker ?? '');
-  // const [bowlerName, setBowlerName] = useState(bowlingTeam.openingBowler ?? '');
   // PART 1: We show a list of existing players from battingTeam.players, plus an "Add new" input
   const [selectedStrikerId, setSelectedStrikerId] = useState('');
   const [newStrikerName, setNewStrikerName] = useState('');
@@ -80,62 +70,62 @@ export default function OpeningPlayersScreen() {
   };
 
   const handleStartScoring = () => {
-    // Validate we have either selected an existing player or typed a new name for each role
+    // Validate selections
     if (validatePlayerSelection(selectedStrikerId, newStrikerName)) {
-      Alert.alert('Error', 'Pick or create a new Striker');
-      return;
+        Alert.alert('Error', 'Pick or create a new Striker');
+        return;
     }
     if (validatePlayerSelection(selectedNonStrikerId, newNonStrikerName)) {
-      Alert.alert('Error', 'Pick or create a new Non-Striker');
-      return;
+        Alert.alert('Error', 'Pick or create a new Non-Striker');
+        return;
     }
     if (validatePlayerSelection(selectedBowlerId, newBowlerName)) {
-      Alert.alert('Error', 'Pick or create a new Bowler');
-      return;
+        Alert.alert('Error', 'Pick or create a new Bowler');
+        return;
     }
 
-    // 1. STRIKER
+    // Handle player creation and assignment
     let strikerId = selectedStrikerId;
-    if (!strikerId && newStrikerName.trim()) {
-      // create new
-      strikerId = uuidv4();
-      dispatch(addPlayer({
-        team: battingTeamKey,
-        player: createCricketer(strikerId, newStrikerName.trim())
-      }));
-    }
-    if (strikerId) {
-      dispatch(setCurrentStriker({ team: battingTeamKey, playerId: strikerId }));
-    }
-
-    // 2. NON-STRIKER
     let nonStrikerId = selectedNonStrikerId;
-    if (!nonStrikerId && newNonStrikerName.trim()) {
-      nonStrikerId = uuidv4();
-      dispatch(addPlayer({
-        team: battingTeamKey,
-        player: createCricketer(nonStrikerId, newNonStrikerName.trim())
-      }));
-    }
-    if (nonStrikerId) {
-      dispatch(setCurrentNonStriker({ team: battingTeamKey, playerId: nonStrikerId }));
-    }
-
-    // 3. BOWLER
     let bowlerId = selectedBowlerId;
-    if (!bowlerId && newBowlerName.trim()) {
-      bowlerId = uuidv4();
-      dispatch(addPlayer({
-        team: bowlingTeamKey,
-        player: createCricketer(bowlerId, newBowlerName.trim())
-      }));
-    }
-    if (bowlerId) {
-      dispatch(setBowler({ team: bowlingTeamKey, bowlerId }));
+
+    // Create new players if needed
+    if (!strikerId && newStrikerName.trim()) {
+        strikerId = uuidv4();
+        dispatch(addPlayer({
+            team: battingTeam.id === teamA.id ? 'teamA' : 'teamB',
+            player: createCricketer(strikerId, newStrikerName.trim())
+        }));
     }
 
-    // Now we can push to scoring
-    router.push('/scoring');
+    if (!nonStrikerId && newNonStrikerName.trim()) {
+        nonStrikerId = uuidv4();
+        dispatch(addPlayer({
+            team: battingTeam.id === teamA.id ? 'teamA' : 'teamB',
+            player: createCricketer(nonStrikerId, newNonStrikerName.trim())
+        }));
+    }
+
+    if (!bowlerId && newBowlerName.trim()) {
+        bowlerId = uuidv4();
+        dispatch(addPlayer({
+            team: bowlingTeam.id === teamA.id ? 'teamA' : 'teamB',
+            player: createCricketer(bowlerId, newBowlerName.trim())
+        }));
+    }
+
+    // Update innings with player IDs
+    if (strikerId && nonStrikerId && bowlerId) {
+        dispatch(updateInningsPlayers({
+            inningNumber: isSecondInnings ? 2 : 1,
+            currentStrikerId: strikerId,
+            currentNonStrikerId: nonStrikerId,
+            currentBowlerId: bowlerId
+        }));
+        router.push('/scoring');
+    } else {
+        Alert.alert('Error', 'Please ensure all players are selected');
+    }
   }
 
   return (

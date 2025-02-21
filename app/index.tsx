@@ -1,15 +1,17 @@
-// (tabs)/index.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TextInput,
   TouchableOpacity,
-  ScrollView, SafeAreaView
+  ScrollView, 
+  SafeAreaView,
+  Alert
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
+import { v4 as uuidv4 } from 'uuid';
 
 import type { RootState } from '@/store';
 import {
@@ -22,7 +24,7 @@ import {
 export default function NewMatchScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  // Get values from Redux store
+  
   const {
     teamA,
     teamB,
@@ -31,14 +33,44 @@ export default function NewMatchScreen() {
     totalOvers,
   } = useSelector((state: RootState) => state.scoreboard);
 
-  // Example button handlers
   const handleAdvancedSettings = () => {
-    // navigation.navigate('advancedSettings' as never); 
     router.push('/advancedSettings');
   };
 
   const handleStartMatch = () => {
-    // Navigate to the next screen (e.g. pick opening players)
+    // Validate required fields
+    if (!teamA.teamName.trim() || !teamB.teamName.trim()) {
+      Alert.alert('Error', 'Please enter names for both teams');
+      return;
+    }
+
+    if (!tossWinner) {
+      Alert.alert('Error', 'Please select toss winner');
+      return;
+    }
+
+    if (!tossChoice) {
+      Alert.alert('Error', 'Please select toss choice');
+      return;
+    }
+
+    if (!totalOvers || totalOvers <= 0) {
+      Alert.alert('Error', 'Please enter valid number of overs');
+      return;
+    }
+
+    // Set batting/bowling teams based on toss
+    const battingTeam = tossChoice === 'bat' ? tossWinner : (tossWinner === 'teamA' ? 'teamB' : 'teamA');
+    
+    // Initialize first innings
+    dispatch({
+      type: 'scoreboard/initializeInnings',
+      payload: {
+        battingTeamId: battingTeam === 'teamA' ? teamA.id : teamB.id,
+        bowlingTeamId: battingTeam === 'teamA' ? teamB.id : teamA.id
+      }
+    });
+
     router.push('/openingPlayers');
   };
 
@@ -52,10 +84,8 @@ export default function NewMatchScreen() {
         </TouchableOpacity>
       </View>
       <Text style={styles.title}>Set up your new match</Text>
-      {/* Title */}
       <Text style={styles.screenTitle}>Teams</Text>
 
-      {/* TEAM A & TEAM B Inputs */}
       <View style={styles.inputCard}>
         <Text style={styles.label}>Team A Name</Text>
         <TextInput
@@ -78,7 +108,6 @@ export default function NewMatchScreen() {
         />
       </View>
 
-      {/* Toss Winner */}
       <Text style={styles.sectionTitle}>Toss won by?</Text>
       <View style={styles.radioGroup}>
         <TouchableOpacity
@@ -108,7 +137,6 @@ export default function NewMatchScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Opted to? */}
       <Text style={styles.sectionTitle}>Opted to?</Text>
       <View style={styles.radioGroup}>
         <TouchableOpacity
@@ -138,7 +166,6 @@ export default function NewMatchScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Overs Input */}
       <Text style={styles.sectionTitle}>Overs?</Text>
       <TextInput
         style={styles.textInput}
@@ -150,7 +177,6 @@ export default function NewMatchScreen() {
         }
       />
 
-      {/* Buttons */}
       <View style={styles.buttonsRow}>
         <TouchableOpacity
           style={[styles.button, styles.outlineButton]}
@@ -175,7 +201,6 @@ export default function NewMatchScreen() {
   );
 }
 
-// same styles as before
 const styles = StyleSheet.create({
   container: {
     flex: 1,

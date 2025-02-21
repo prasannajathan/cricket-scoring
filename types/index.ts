@@ -1,4 +1,3 @@
-// types/index.ts
 export interface Cricketer {
     // Batting fields
     id: string;
@@ -35,6 +34,7 @@ export interface DeliveryEvent {
     outBatsmanId?: string;
     wicketType?: 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
 }
+
 export interface ScoreBallPayload {
     runs: number;            // runs from that ball (not counting extras)
     extraType?: 'wide' | 'no-ball' | 'bye' | 'leg-bye';
@@ -57,51 +57,45 @@ export interface Team {
     id: string;
     teamName: string;
     players: Cricketer[];
-
-    tossWinner: boolean;          // to know which team won the toss
-    batting: boolean;
-    bowling: boolean;
-
-    completedOvers: number; // e.g. 4 overs complete
-    ballInCurrentOver: number; // 0-5
-    // overs: number;   // ---
-    totalRuns: number;
-    wickets: number;
-    extras: number;
-    deliveries: DeliveryEvent[];
-
-    currentBowlerId?: string; // track current bowler
+    isBatting: boolean;
+    isBowling: boolean;
+    tossWinner: boolean;
+    currentBowlerId?: string;
     currentStrikerId?: string;
     currentNonStrikerId?: string;
-    openingStriker?: string;
-    openingNonStriker?: string;
-    openingBowler?: string;
     lastOverBowlerId?: string;
+}
 
-    currentPartnership: number;
-    partnerships: number[];
-
-    target?: number; // ---
-    isDeclared?: boolean;
-    isAllOut?: boolean;
-    isCompleted?: boolean;
+export interface InningsData {
+    id: string;
+    battingTeamId: string;
+    bowlingTeamId: string;
+    totalRuns: number;
+    wickets: number;
+    completedOvers: number;
+    ballInCurrentOver: number;
+    extras: number;
+    partnerships: PartnershipRecord[];
+    deliveries: DeliveryEvent[];
+    isCompleted: boolean;
+    currentBowlerId?: string;
+    currentStrikerId?: string;
+    currentNonStrikerId?: string;
+    lastOverBowlerId?: string;
 }
 
 export interface ScoreboardState {
     id: string;
     teamA: Team;
     teamB: Team;
-
-    tossWinner: 'teamA' | 'teamB' | null;
-    tossChoice: 'bat' | 'bowl' | null;
+    tossWinner: 'teamA' | 'teamB';
+    tossChoice: 'bat' | 'bowl';
     totalOvers: number;
     currentInning: 1 | 2;
     targetScore?: number;
-
     totalPlayers: number;
-    deliveryHistory: DeliveryEvent[];
+    innings1: InningsData;
+    innings2: InningsData;
     matchResult?: string;
     matchOver: boolean;
-    deliveriesInning1: DeliveryEvent[];
-    deliveriesInning2: DeliveryEvent[];
 }

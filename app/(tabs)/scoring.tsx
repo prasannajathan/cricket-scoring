@@ -11,6 +11,7 @@ import {
     Pressable,
     Button,
     SafeAreaView,
+    Alert
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Picker } from '@react-native-picker/picker';
@@ -25,6 +26,9 @@ import {
     addExtraRuns,
     endInnings,
     setBowler,
+    setMatchResult,
+    setMatchOver,
+    clearMatchResult  // Add this import
 } from '@/store/scoreboardSlice';
 import { Cricketer } from '@/types';
 import { saveMatch } from '@/utils/saveMatchStorage'
@@ -53,9 +57,10 @@ export default function ScoringScreen() {
     const MemoizedBatsmanRow = memo(BatsmanRow);
     const MemoizedBowlerRow = memo(BowlerRow);
 
-    // Determine which team is batting & bowling
-    const battingTeam = teamA.batting ? teamA : teamB;
-    const bowlingTeam = teamA.batting ? teamB : teamA;
+    // Update the team and innings selection
+    const currentInnings = scoreboard[`innings${currentInning}`];
+    const battingTeam = teamA.id === currentInnings.battingTeamId ? teamA : teamB;
+    const bowlingTeam = teamA.id === currentInnings.bowlingTeamId ? teamA : teamB;
 
     // Extras/wicket toggles
     const [wide, setWide] = useState(false);
@@ -87,26 +92,46 @@ export default function ScoringScreen() {
     // useEffect to auto-end innings
     useEffect(() => {
         if (matchOver) return;
+        
         if (currentInning === 1) {
-            // if overs or 10 wickets => end the first innings
             if (battingTeam.completedOvers >= totalOvers || battingTeam.wickets >= 10) {
+                dispatch(clearMatchResult());
                 dispatch(endInnings());
-                router.push('/openingPlayers?innings=2');
+                router.push({
+                    pathname: '/openingPlayers',
+                    params: { innings: '2' }
+                });
             }
-        } else if (currentInning === 2) {
-            // If we want to auto-end second innings
-            if (battingTeam.completedOvers >= totalOvers || battingTeam.wickets >= 10) {
-                dispatch(endInnings());
+        } else if (currentInning === 2 && targetScore) {
+            const isInningsComplete = 
+                battingTeam.wickets >= 10 || 
+                battingTeam.completedOvers >= totalOvers ||
+                battingTeam.totalRuns >= targetScore;
+
+            if (isInningsComplete) {
+                // Only calculate result if innings is actually complete
+                const runsShort = targetScore - battingTeam.totalRuns;
+                if (battingTeam.totalRuns >= targetScore) {
+                    dispatch(setMatchResult(`${battingTeam.teamName} wins by ${10 - battingTeam.wickets} wickets`));
+                } else {
+                    dispatch(setMatchResult(`${bowlingTeam.teamName} wins by ${runsShort} runs`));
+                }
+                dispatch(setMatchOver(true));
                 router.push('/scorecard');
             }
         }
     }, [
         battingTeam.completedOvers,
-        battingTeam.wickets,
+        battingTeam.wickets, 
+        battingTeam.totalRuns,
         totalOvers,
+        targetScore,
         matchOver,
         currentInning,
-        dispatch
+        dispatch,
+        router,
+        battingTeam.teamName,
+        bowlingTeam.teamName
     ]);
 
     useEffect(() => {
@@ -132,8 +157,15 @@ export default function ScoringScreen() {
     // Score a ball
     const handleScore = (runValue: number) => {
         if (!bowlingTeam.currentBowlerId) {
-            alert('Please select a bowler first!');
-            router.push('/openingPlayers');
+            Alert.alert('Error', 'No bowler selected', [
+                { 
+                    text: 'Select Bowler', 
+                    onPress: () => router.push({
+                        pathname: '/openingPlayers',
+                        params: { innings: currentInning.toString() }
+                    })
+                }
+            ]);
             return;
         }
         if (!canScore) return;
@@ -179,41 +211,46 @@ export default function ScoringScreen() {
                 {/* Score display */}
                 <View style={styles.scoreHeader}>
                     <Text style={styles.scoreText}>
-                        {battingTeam.teamName} {battingTeam.totalRuns} - {battingTeam.wickets}
+                        {battingTeam.teamName} {currentInnings.totalRuns}/{currentInnings.wickets}
                     </Text>
                     <Text style={styles.oversText}>
-                        ({battingTeam.completedOvers}.{battingTeam.ballInCurrentOver} overs) | Inning: {currentInning}
+                        ({currentInnings.completedOvers}.{currentInnings.ballInCurrentOver} overs)
+                        {currentInning === 2 && targetScore && (
+                            <Text> Target: {targetScore}</Text>
+                        )}
                     </Text>
                     <Text style={styles.crrLabel}>
-                        CRR: {computeCRR(battingTeam.totalRuns, battingTeam.completedOvers, battingTeam.ballInCurrentOver)}
+                        CRR: {computeCRR(currentInnings.totalRuns, currentInnings.completedOvers, currentInnings.ballInCurrentOver)}
+                        {currentInning === 2 && targetScore && (
+                            <Text> | Required RR: {computeRRR(
+                                targetScore - currentInnings.totalRuns,
+                                totalOvers - currentInnings.completedOvers - (currentInnings.ballInCurrentOver / 6)
+                            )}</Text>
+                        )}
                     </Text>
                 </View>
 
                 {/* Batsmen */}
-                <Text style={styles.label}>Batsmen on Crease:</Text>
+                <Text style={styles.label}>Batsmen:</Text>
                 {battingTeam.players
-                    .filter((p) => !p.isOut)
-                    .slice(0, 2)
+                    .filter(p => p.id === currentInnings.currentStrikerId || p.id === currentInnings.currentNonStrikerId)
                     .map((p) => (
                         <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <MemoizedBatsmanRow key={p.id} player={p} />
-                            <TouchableOpacity
-                                style={styles.retireBtn}
-                                onPress={() => dispatch(retireBatsman({ team: teamA.batting ? 'teamA' : 'teamB', batsmanId: p.id }))}
-                            >
-                                <Text style={{ color: 'red' }}>Retire</Text>
-                            </TouchableOpacity>
+                            <MemoizedBatsmanRow player={p} />
+                            <Text style={{ marginLeft: 8 }}>
+                                {p.id === currentInnings.currentStrikerId ? '*' : ''}
+                            </Text>
                         </View>
                     ))}
 
                 {/* Bowler */}
                 <Text style={styles.label}>Current Bowler:</Text>
-                {bowlingTeam.currentBowlerId ? (
+                {currentInnings.currentBowlerId ? (
                     <MemoizedBowlerRow
-                        bowler={bowlingTeam.players.find((pl) => pl.id === bowlingTeam.currentBowlerId)!}
+                        bowler={bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId)!}
                     />
                 ) : (
-                    <Text>No current bowler selected</Text>
+                    <Text>No bowler selected</Text>
                 )}
 
                 {/* Toggle extras */}

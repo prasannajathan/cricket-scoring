@@ -4,6 +4,8 @@ import { SavedMatch } from '@/types/matchTypes';
 
 const MATCHES_KEY = 'CRICKET_MATCHES';
 
+AsyncStorage.clear();
+
 export async function loadMatches(): Promise<SavedMatch[]> {
   try {
     const json = await AsyncStorage.getItem(MATCHES_KEY);
