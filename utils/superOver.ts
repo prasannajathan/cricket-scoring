@@ -1,5 +1,5 @@
-import { DeliveryDetails } from '@/store/cricket/types/scoring';
-import { Team } from '@/store/cricket/types';
+import { DeliveryDetails } from '@/types/scoring';
+import { Team } from '@/types';
 
 export interface SuperOverState {
     isActive: boolean;

@@ -1,4 +1,4 @@
-import { DeliveryDetails, PowerPlay, BatsmanStats, BowlerStats } from '@/store/cricket/types/scoring';
+import { DeliveryDetails, PowerPlay, BatsmanStats, BowlerStats } from '@/types/scoring';
 import { BALLS_PER_OVER } from '@/constants/scoring';
 import { isPowerPlayOver } from '@/utils/powerPlay';
 
@@ -22,7 +22,7 @@ const calculatePowerPlayScore = (
     }, 0);
 };
 
-const calculatePartnershipStats = (deliveries: DeliveryDetails[]): { 
+export const calculatePartnershipStats = (deliveries: DeliveryDetails[]): { 
     highest: number; 
     average: number; 
 } => {

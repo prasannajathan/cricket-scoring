@@ -1,5 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { ScoreboardState, ScoreBallPayload } from '@/store/cricket/types';
+import { ScoreboardState, ScoreBallPayload } from '@/types';
 
 export const scoringReducers = {
     scoreBall: (state: ScoreboardState, action: PayloadAction<ScoreBallPayload>) => {

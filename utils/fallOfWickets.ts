@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { DeliveryDetails } from '@/store/cricket/types/scoring';
+import { DeliveryDetails } from '@/types/scoring';
 
 import { BALLS_PER_OVER } from '@/constants/scoring';
 

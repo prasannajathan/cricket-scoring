@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MatchState } from '@/store/cricket/types/scoring';
-import { SuperOverState } from '@/store/cricket/types';
+import { MatchState } from '@/types/scoring';
+import { SuperOverState } from '@/types';
 
 const MATCH_STORAGE_KEY = '@cricket_scoring:matches';
 const CURRENT_MATCH_KEY = '@cricket_scoring:current_match';

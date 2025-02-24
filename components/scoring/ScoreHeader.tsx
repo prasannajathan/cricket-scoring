@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Team, InningsData } from '@/store/cricket/types';
+import { Team, InningsData } from '@/types';
 
 interface ScoreHeaderProps {
     battingTeam: Team;

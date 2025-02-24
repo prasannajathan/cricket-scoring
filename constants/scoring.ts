@@ -1,5 +1,5 @@
-import { WicketType, ExtraType,  } from '@/store/cricket/types/scoring';
-import { ScoreboardState } from '@/store/cricket/types';
+import { WicketType, ExtraType } from '@/types/scoring';
+import { ScoreboardState } from '@/types';
 import { initialState } from '@/store/cricket/initialState';
 
 export const BALLS_PER_OVER = 6;

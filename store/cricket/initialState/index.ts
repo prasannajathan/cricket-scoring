@@ -1,8 +1,7 @@
 // Install react-native-get-random-values Import it before uuid:
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
-import { ExtendedTeam } from '../types';
-import { ScoreboardState } from '@/store/cricket/types';
+import { ScoreboardState, ExtendedTeam } from '@/types';
 
 export const initialTeamState: ExtendedTeam = {
     id: uuidv4(),
@@ -41,7 +40,7 @@ export const initialState: ScoreboardState = {
     teamB: { ...initialTeamState, teamName: 'team B', id: uuidv4() },
     tossWinner: 'teamA',
     tossChoice: 'bat',
-    totalOvers: 4,
+    totalOvers: 2,
     currentInning: 1,
     totalPlayers: 11,
     innings1: createInitialInnings(),

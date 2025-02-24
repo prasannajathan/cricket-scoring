@@ -12,7 +12,7 @@ import {
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
-import { Team, Cricketer } from '@/store/cricket/types';
+import { Team, Cricketer } from '@/types';
 import { getMatchRules } from '@/constants/scoring';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';

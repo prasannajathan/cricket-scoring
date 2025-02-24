@@ -1,4 +1,4 @@
-import { DeliveryDetails, MatchState } from '@/store/cricket/types/scoring';
+import { DeliveryDetails, MatchState } from '@/types/scoring';
 import { MATCH_RULES } from '@/constants/scoring';
 
 export class CricketScoringError extends Error {

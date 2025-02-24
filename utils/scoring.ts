@@ -1,4 +1,4 @@
-import { BatsmanStats, BowlerStats, Partnership, DeliveryDetails, ExtraType } from '@/store/cricket/types/scoring';
+import { BatsmanStats, BowlerStats, Partnership, DeliveryDetails, ExtraType } from '@/types/scoring';
 import { MATCH_RULES } from '@/constants/scoring';
 
 export const calculateBatsmanStats = (deliveries: DeliveryDetails[], batsmanId: string): BatsmanStats => {

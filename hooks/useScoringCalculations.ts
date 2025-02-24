@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { DeliveryDetails } from '@/store/cricket/types/scoring';
+import { DeliveryDetails } from '@/types/scoring';
+import { calculatePartnershipStats } from '@/utils/matchStats';
 
 export const useScoringCalculations = (deliveries: DeliveryDetails[]) => {
     const currentRunRate = useMemo(() => {

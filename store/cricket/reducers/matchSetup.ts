@@ -1,5 +1,5 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { ScoreboardState } from '@/store/cricket/types';
+import { ScoreboardState } from '@/types';
 
 export const matchSetupReducers = {
     setTeamName: (state: ScoreboardState, action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>) => {

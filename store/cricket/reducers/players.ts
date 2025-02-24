@@ -1,9 +1,8 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { ScoreboardState } from '@/store/cricket/types';
 // Install react-native-get-random-values Import it before uuid:
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
-import { Cricketer } from '@/store/cricket/types';
+import { Cricketer, ScoreboardState } from '@/types';
 
 interface UpdateInningsPlayersPayload {
     currentStrikerId: string;
