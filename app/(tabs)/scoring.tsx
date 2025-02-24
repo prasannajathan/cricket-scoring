@@ -37,6 +37,7 @@ export default function ScoringScreen() {
     const router = useRouter();
     const dispatch = useDispatch();
     const { matchId } = useLocalSearchParams();
+    const state = useSelector((state: RootState) => state.scoreboard);
 
     // Selectors
     const currentInnings = useSelector(selectCurrentInnings);

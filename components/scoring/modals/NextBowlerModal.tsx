@@ -1,9 +1,23 @@
-import React from 'react';
-import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Team } from '@/types';
+import React, { useState } from 'react';
+import {
+    Modal,
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView,
+    TextInput
+} from 'react-native';
+// Install react-native-get-random-values Import it before uuid:
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
+
+import { Team, Cricketer } from '@/store/cricket/types';
 import { getMatchRules } from '@/constants/scoring';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
+import { addPlayer } from '@/store/cricket/scoreboardSlice';
+import { createCricketer } from '@/utils';
 
 interface NextBowlerModalProps {
     visible: boolean;
@@ -22,15 +36,21 @@ export default function NextBowlerModal({
     lastOverBowlerId,
     onSelectBowler
 }: NextBowlerModalProps) {
-    const state = useSelector((state: RootState) => state.scoreboard);
-    const rules = getMatchRules(state);
+    const dispatch = useDispatch();
+    const scoreboard = useSelector((state: RootState) => state.scoreboard);
+    const rules = getMatchRules(scoreboard);
+
+    const { teamA } = scoreboard;
+
+    const [showAddPlayer, setShowAddPlayer] = useState(false);
+    const [newPlayerName, setNewPlayerName] = useState('');
 
     const canBowl = (bowlerId: string) => {
         const bowler = bowlingTeam.players.find(p => p.id === bowlerId);
         if (!bowler) return false;
 
-        return bowlerId !== lastOverBowlerId && 
-               bowler.overs < rules.MAX_OVERS_PER_BOWLER;
+        return bowlerId !== lastOverBowlerId &&
+            bowler.overs < rules.MAX_OVERS_PER_BOWLER;
     };
 
     const getBowlerStatus = (player: any) => {
@@ -43,41 +63,90 @@ export default function NextBowlerModal({
         return `${player.overs}-${player.runsConceded}-${player.wickets}`;
     };
 
+    const handleAddPlayer = () => {
+        if (!newPlayerName.trim()) return;
+        const strikerId = uuidv4();
+        dispatch(addPlayer({
+            team: bowlingTeam.id === teamA.id ? 'teamA' : 'teamB',
+            player: createCricketer(strikerId, newPlayerName.trim())
+        }));
+
+        setNewPlayerName('');
+        setShowAddPlayer(false);
+    };
+
     return (
         <Modal visible={visible} transparent={true} animationType="slide">
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
                     <Text style={styles.title}>Select Next Bowler</Text>
-                    <ScrollView style={styles.bowlerList}>
-                        {bowlingTeam.players.map(player => (
+
+                    {!showAddPlayer ? (
+                        <>
+                            <ScrollView style={styles.bowlerList}>
+                                {bowlingTeam.players.map(player => (
+                                    <TouchableOpacity
+                                        key={player.id}
+                                        style={[
+                                            styles.bowlerButton,
+                                            !canBowl(player.id) && styles.disabledButton
+                                        ]}
+                                        onPress={() => {
+                                            if (canBowl(player.id)) {
+                                                onSelectBowler(player.id);
+                                                onClose();
+                                            }
+                                        }}
+                                        disabled={!canBowl(player.id)}
+                                    >
+                                        <View>
+                                            <Text style={styles.bowlerName}>{player.name}</Text>
+                                            <Text style={[
+                                                styles.bowlerStatus,
+                                                !canBowl(player.id) && styles.disabledText
+                                            ]}>
+                                                {getBowlerStatus(player)}
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+
                             <TouchableOpacity
-                                key={player.id}
-                                style={[
-                                    styles.bowlerButton,
-                                    !canBowl(player.id) && styles.disabledButton
-                                ]}
-                                onPress={() => {
-                                    if (canBowl(player.id)) {
-                                        onSelectBowler(player.id);
-                                        onClose();
-                                    }
-                                }}
-                                disabled={!canBowl(player.id)}
+                                style={styles.addButton}
+                                onPress={() => setShowAddPlayer(true)}
                             >
-                                <View>
-                                    <Text style={styles.bowlerName}>{player.name}</Text>
-                                    <Text style={[
-                                        styles.bowlerStatus,
-                                        !canBowl(player.id) && styles.disabledText
-                                    ]}>
-                                        {getBowlerStatus(player)}
-                                    </Text>
-                                </View>
+                                <Text style={styles.addButtonText}>Add New Player</Text>
                             </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                        </>
+                    ) : (
+                        <View style={styles.addPlayerContainer}>
+                            <TextInput
+                                style={styles.input}
+                                value={newPlayerName}
+                                onChangeText={setNewPlayerName}
+                                placeholder="Enter player name"
+                                autoFocus
+                            />
+                            <View style={styles.buttonRow}>
+                                <TouchableOpacity
+                                    style={[styles.button, styles.cancelButton]}
+                                    onPress={() => setShowAddPlayer(false)}
+                                >
+                                    <Text style={styles.buttonText}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.button, styles.addButton]}
+                                    onPress={handleAddPlayer}
+                                >
+                                    <Text style={styles.buttonText}>Add</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    )}
+
                     <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                        <Text style={styles.closeButtonText}>Cancel</Text>
+                        <Text style={styles.closeButtonText}>Close</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -147,5 +216,45 @@ const styles = StyleSheet.create({
     },
     disabledText: {
         color: '#999',
+    },
+    addButton: {
+        backgroundColor: '#1B5E20',
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 16,
+    },
+    addButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        textAlign: 'center',
+    },
+    addPlayerContainer: {
+        padding: 16,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 16,
+        marginBottom: 16,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    button: {
+        flex: 1,
+        padding: 12,
+        borderRadius: 8,
+        marginHorizontal: 8,
+    },
+    cancelButton: {
+        backgroundColor: '#757575',
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        textAlign: 'center',
     }
 });

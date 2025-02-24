@@ -41,7 +41,7 @@ export const initialState: ScoreboardState = {
     teamB: { ...initialTeamState, teamName: 'team B', id: uuidv4() },
     tossWinner: 'teamA',
     tossChoice: 'bat',
-    totalOvers: 1,
+    totalOvers: 4,
     currentInning: 1,
     totalPlayers: 11,
     innings1: createInitialInnings(),

@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { initialState } from './initialState';
 import { matchSetupReducers } from './reducers/matchSetup';
 import { scoringReducers } from './reducers/scoring';
@@ -12,7 +12,7 @@ export const scoreboardSlice = createSlice({
         ...matchSetupReducers,
         ...scoringReducers,
         ...inningsReducers,
-        ...playerReducers,
+        ...playerReducers
     }
 });
 
