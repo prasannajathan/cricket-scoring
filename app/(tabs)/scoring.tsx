@@ -30,21 +30,22 @@ import {
     undoLastBall,
     swapBatsmen,
     setBowler,
-    addExtraRuns
+    addExtraRuns,
+    endInnings
 } from '@/store/cricket/scoreboardSlice';
 
 export default function ScoringScreen() {
     const router = useRouter();
     const dispatch = useDispatch();
     const { matchId } = useLocalSearchParams();
-    const state = useSelector((state: RootState) => state.scoreboard);
+    const state = useSelector((state: RootState) => state.scoreboard as any);
 
     // Selectors
     const currentInnings = useSelector(selectCurrentInnings);
     const battingTeam = useSelector(selectBattingTeam);
     const bowlingTeam = useSelector(selectBowlingTeam);
-    const currentInning = useSelector((state: RootState) => state.scoreboard.currentInning);
-    const targetScore = useSelector((state: RootState) => state.scoreboard.targetScore);
+    const currentInning = useSelector((state: RootState) => (state.scoreboard as any).currentInning);
+    const targetScore = useSelector((state: RootState) => (state.scoreboard as any).targetScore);
 
     // Local state for scoring
     const [wide, setWide] = useState(false);
@@ -81,12 +82,8 @@ export default function ScoringScreen() {
 
         dispatch(scoreBall({
             runs,
-            extraType: wide ? 'wide' :
-                noBall ? 'no-ball' :
-                    bye ? 'bye' :
-                        legBye ? 'leg-bye' :
-                            undefined,
-            wicket: wicket,
+            extraType: wide ? 'wide' : noBall ? 'no-ball' : bye ? 'bye' : legBye ? 'leg-bye' : undefined,
+            wicket,
             wicketType: wicket ? wicketType : undefined,
             outBatsmanId: wicket ? outBatsmanId : undefined
         }));
@@ -97,16 +94,42 @@ export default function ScoringScreen() {
     // Check for over completion and show bowler modal
     useEffect(() => {
         if (currentInnings?.ballInCurrentOver === 0 && currentInnings?.completedOvers > 0) {
-            setShowBowlerModal(true);
+            console.log(`Overs: ${currentInnings.completedOvers} / ${state.totalOvers}`); // Debugging
+            
+            // First check if innings should be complete
+            if (currentInnings.completedOvers >= state.totalOvers) {
+                // Force dispatch end innings if not already marked as completed
+                if (!currentInnings.isCompleted) {
+                    dispatch(endInnings());
+                }
+            } else {
+                // Only show bowler modal if innings is not complete
+                setShowBowlerModal(true);
+            }
         }
-    }, [currentInnings?.ballInCurrentOver, currentInnings?.completedOvers]);
+    }, [currentInnings?.ballInCurrentOver, currentInnings?.completedOvers, currentInning, state.totalOvers]);
 
-    // Check for innings completion
+    // Check for innings completion (all scenarios)
     useEffect(() => {
         if (currentInnings?.isCompleted) {
-            router.push('/scorecard');
+            if (currentInning === 1) {
+                // First innings complete - set target score before navigating
+                const targetScore = currentInnings.totalRuns + 1;
+                dispatch({
+                    type: 'scoreboard/setTargetScore',
+                    payload: targetScore
+                });
+                
+                // Give a short delay to ensure state updates before navigating
+                setTimeout(() => {
+                    router.push('/openingPlayers?innings=2');
+                }, 500);
+            } else {
+                // Second innings complete
+                router.push('/scorecard');
+            }
         }
-    }, [currentInnings?.isCompleted]);
+    }, [currentInnings?.isCompleted, currentInning]);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -157,8 +180,8 @@ export default function ScoringScreen() {
 
                 <ActionButtons
                     canScore={canScore}
-                    onUndo={() => dispatch(undoLastBall())}
-                    onSwap={() => dispatch(swapBatsmen())}
+                    onUndo={() => dispatch(undoLastBall({ matchId }))}
+                    onSwap={() => dispatch(swapBatsmen({ matchId }))}
                     onPartnership={() => setShowPartnershipModal(true)}
                     onExtras={() => setShowExtrasModal(true)}
                 />
@@ -186,13 +209,15 @@ export default function ScoringScreen() {
             />
 
             <NextBowlerModal
-                visible={showBowlerModal}
+                visible={showBowlerModal && 
+                         currentInnings?.completedOvers < state.totalOvers && 
+                         !currentInnings?.isCompleted}
                 onClose={() => setShowBowlerModal(false)}
                 bowlingTeam={bowlingTeam}
-                currentBowlerId={currentInnings.currentBowlerId}
-                lastOverBowlerId={currentInnings.lastOverBowlerId}
+                currentBowlerId={currentInnings?.currentBowlerId}
+                lastOverBowlerId={currentInnings?.lastOverBowlerId}
                 onSelectBowler={(bowlerId) => dispatch(setBowler({
-                    team: bowlingTeam.id === state.teamA.id ? 'teamA' : 'teamB',
+                    team: bowlingTeam?.id === state.teamA.id ? 'teamA' : 'teamB',
                     bowlerId
                 }))}
             />

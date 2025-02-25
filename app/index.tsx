@@ -22,7 +22,8 @@ import {
   setTossChoice,
   setTotalOvers,
   initializeInnings
-} from '@/store/cricket/scoreboardSlice.ts';
+} from '@/store/cricket/scoreboardSlice';
+import Root from './+html';
 
 export default function NewMatchScreen() {
   const router = useRouter();
@@ -36,13 +37,14 @@ export default function NewMatchScreen() {
     totalOvers,
   } = useSelector((state: RootState) => state.scoreboard);
 
+  console.log('scoreboard', useSelector((state: RootState) => state.scoreboard))
   const handleAdvancedSettings = () => {
     router.push('/advancedSettings');
   };
 
   const handleStartMatch = () => {
     // Validate required fields
-    if (!teamA.teamName.trim() || !teamB.teamName.trim()) {
+    if (!teamA.name.trim() || !teamB.name.trim()) {
       Alert.alert('Error', 'Please enter names for both teams');
       return;
     }
@@ -94,7 +96,7 @@ export default function NewMatchScreen() {
         <TextInput
           style={styles.textInput}
           placeholder="Team A Name"
-          value={teamA.teamName}
+          value={teamA.name}
           onChangeText={(value) => 
             dispatch(setTeamName({ team: 'teamA', name: value }))
           }
@@ -104,7 +106,7 @@ export default function NewMatchScreen() {
         <TextInput
           style={styles.textInput}
           placeholder="Team B Name"
-          value={teamB.teamName}
+          value={teamB.name}
           onChangeText={(value) => 
             dispatch(setTeamName({ team: 'teamB', name: value }))
           }

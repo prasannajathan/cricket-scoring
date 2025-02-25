@@ -1,6 +1,5 @@
 export interface ExtendedTeam extends Team {
     activePartnership?: PartnershipRecord | null;
-    lastOverBowlerId?: string;
 }
 
 export interface ExtendedScoreboardState extends Omit<ScoreboardState, 'teamA' | 'teamB'> {
@@ -22,16 +21,6 @@ export interface ScoreBallPayload {
     wicketType?: string;
     outBatsmanId?: string;
 }
-// moved from @types/index
-// export interface ScoreBallPayload {
-//     runs: number;            // runs from that ball (not counting extras)
-//     extraType?: 'wide' | 'no-ball' | 'bye' | 'leg-bye';
-//     wicket?: boolean;
-//     boundary?: boolean;      // if the shot was a 4 or 6
-//     outBatsmanId?: string;
-//     wicketType?: 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
-// }
-
 export interface DeliveryEvent {
     runs: number;
     batsmanRuns: number;
@@ -43,15 +32,6 @@ export interface DeliveryEvent {
     batsmanId: string;
     timestamp: number;
 }
-// moved from @types/index
-// export interface DeliveryEvent {
-//     runs: number;
-//     batsmanRuns: number;
-//     extraType?: 'wide' | 'no-ball' | 'bye' | 'leg-bye';
-//     wicket?: boolean;
-//     outBatsmanId?: string;
-//     wicketType?: 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
-// }
 
 export interface PartnershipRecord {
     runs: number;
@@ -60,15 +40,6 @@ export interface PartnershipRecord {
     player2Id: string;
     isActive: boolean;
 }
-// moved from @types/index
-// export interface PartnershipRecord {
-//     runs: number;
-//     batsman1Id: string;
-//     batsman2Id: string;
-//     startOver: number;
-//     endOver?: number;
-//     ballsFaced?: number;
-// }
 
 export interface InningsData {
     id: string;
@@ -100,7 +71,6 @@ export interface SavedMatch {
     matchResult?: string;
 }
 
-// moved from @types/index
 export interface Cricketer {
     // Batting fields
     id: string;
@@ -130,29 +100,49 @@ export interface Cricketer {
 }
 export interface Team {
     id: string;
-    teamName: string;
+    name: string;
     players: Cricketer[];
-    isBatting: boolean;
-    isBowling: boolean;
-    tossWinner: boolean;
-    currentBowlerId?: string;
-    currentStrikerId?: string;
-    currentNonStrikerId?: string;
-    lastOverBowlerId?: string;
+    currentStrikerId: string | null;
+    currentNonStrikerId: string | null;
+    currentBowlerId: string | null;
+    lastOverBowlerId: string | null;
 }
 
 export interface ScoreboardState {
     id: string;
     teamA: Team;
     teamB: Team;
-    tossWinner: 'teamA' | 'teamB';
+    currentInning: 1 | 2;
+    innings1: Innings;
+    innings2: Innings;
+    tossWinner: string;
     tossChoice: 'bat' | 'bowl';
     totalOvers: number;
-    currentInning: 1 | 2;
-    targetScore?: number;
-    totalPlayers: number;
-    innings1: InningsData;
-    innings2: InningsData;
-    matchResult?: string;
     matchOver: boolean;
+    matchResult: string | null;
+    targetScore: number | null;
+}
+
+export interface Innings {
+    battingTeamId: string;
+    bowlingTeamId: string;
+    totalRuns: number;
+    wickets: number;
+    extras: number;
+    completedOvers: number;
+    ballInCurrentOver: number;
+    currentStrikerId: string | null;
+    currentNonStrikerId: string | null;
+    currentBowlerId: string | null;
+    lastOverBowlerId: string | null;
+    deliveries: Delivery[];
+}
+
+export interface Delivery {
+    runs: number;
+    extraType?: 'wide' | 'no-ball' | 'bye' | 'leg-bye';
+    wicket?: boolean;
+    wicketType?: string;
+    batsmanId: string;
+    bowlerId: string;
 }

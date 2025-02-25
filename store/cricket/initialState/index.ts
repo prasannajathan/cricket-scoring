@@ -1,51 +1,68 @@
-// Install react-native-get-random-values Import it before uuid:
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
-import { ScoreboardState, ExtendedTeam } from '@/types';
+import { 
+    ScoreboardState, 
+    Team, 
+    Innings, 
+    ExtendedTeam,
+    Cricketer 
+} from '@/types';
 
-export const initialTeamState: ExtendedTeam = {
+const createInitialPlayer = (name: string): Cricketer => ({
     id: uuidv4(),
-    teamName: '',
+    name,
+    runs: 0,
+    balls: 0,
+    fours: 0,
+    sixes: 0,
+    strikeRate: 0,
+    isOut: false,
+    overs: 0,
+    ballsThisOver: 0,
+    runsConceded: 0,
+    wickets: 0,
+    economy: 0,
+    maidens: 0,
+    catches: 0,
+    runouts: 0
+});
+
+export const initialTeamState: Team = {
+    id: '',
+    name: '',
     players: [],
-    isBatting: false,
-    isBowling: false,
-    tossWinner: false,
-    currentBowlerId: undefined,
-    currentStrikerId: undefined,
-    currentNonStrikerId: undefined,
-    lastOverBowlerId: undefined
+    currentStrikerId: null,
+    currentNonStrikerId: null,
+    currentBowlerId: null,
+    lastOverBowlerId: null
 };
 
-const createInitialInnings = () => ({
-    id: uuidv4(),
+const createInitialInnings = (): Innings => ({
     battingTeamId: '',
     bowlingTeamId: '',
     totalRuns: 0,
     wickets: 0,
+    extras: 0,
     completedOvers: 0,
     ballInCurrentOver: 0,
-    extras: 0,
-    partnerships: [],
-    deliveries: [],
-    isCompleted: false,
-    currentBowlerId: undefined,
-    currentStrikerId: undefined,
-    currentNonStrikerId: undefined,
-    lastOverBowlerId: undefined
+    currentStrikerId: null,
+    currentNonStrikerId: null,
+    currentBowlerId: null,
+    lastOverBowlerId: null,
+    deliveries: []
 });
 
 export const initialState: ScoreboardState = {
     id: uuidv4(),
-    teamA: { ...initialTeamState, teamName: 'team A', id: uuidv4() },
-    teamB: { ...initialTeamState, teamName: 'team B', id: uuidv4() },
-    tossWinner: 'teamA',
-    tossChoice: 'bat',
-    totalOvers: 2,
+    teamA: { ...initialTeamState, id: uuidv4() },
+    teamB: { ...initialTeamState, id: uuidv4() },
     currentInning: 1,
-    totalPlayers: 11,
     innings1: createInitialInnings(),
     innings2: createInitialInnings(),
+    tossWinner: 'teamA',
+    tossChoice: 'bat',
+    totalOvers: 20,
     matchOver: false,
-    matchResult: undefined,
-    targetScore: undefined
+    matchResult: null,
+    targetScore: null
 };
