@@ -11,9 +11,6 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
-// Install react-native-get-random-values Import it before uuid:
-import 'react-native-get-random-values';
-import { v4 as uuidv4 } from 'uuid';
 
 import type { RootState } from '@/store';
 import {
@@ -22,7 +19,15 @@ import {
   setTossChoice,
   setTotalOvers,
   initializeInnings
-} from '@/store/cricket/scoreboardSlice.ts';
+} from '@/store/cricket/scoreboardSlice';
+
+const determineBattingTeam = (
+  tossWinner: 'teamA' | 'teamB',
+  tossChoice: 'bat' | 'bowl'
+): 'teamA' | 'teamB' => {
+  if (tossChoice === 'bat') return tossWinner;
+  return tossWinner === 'teamA' ? 'teamB' : 'teamA';
+};
 
 export default function NewMatchScreen() {
   const router = useRouter();
@@ -41,40 +46,38 @@ export default function NewMatchScreen() {
   };
 
   const handleStartMatch = () => {
-    // Validate required fields
-    if (!teamA.teamName.trim() || !teamB.teamName.trim()) {
-      Alert.alert('Error', 'Please enter names for both teams');
+    // Validate inputs
+    const validationErrors = {
+      teams: !teamA.teamName.trim() || !teamB.teamName.trim(),
+      toss: !tossWinner || !tossChoice,
+      overs: !totalOvers || totalOvers <= 0
+    };
+
+    if (Object.values(validationErrors).some(Boolean)) {
+      const errorMessage = validationErrors.teams 
+        ? 'Please enter names for both teams'
+        : validationErrors.toss
+        ? 'Please complete toss details'
+        : 'Please enter valid number of overs';
+      
+      Alert.alert('Error', errorMessage);
       return;
     }
 
-    if (!tossWinner) {
-      Alert.alert('Error', 'Please select toss winner');
-      return;
-    }
-
-    if (!tossChoice) {
-      Alert.alert('Error', 'Please select toss choice');
-      return;
-    }
-
-    if (!totalOvers || totalOvers <= 0) {
-      Alert.alert('Error', 'Please enter valid number of overs');
-      return;
-    }
-
-    // Set batting/bowling teams based on toss
-    const battingTeam = tossChoice === 'bat' ? tossWinner : (tossWinner === 'teamA' ? 'teamB' : 'teamA');
-    
-    // Initialize first innings
-    dispatch({
-      type: 'scoreboard/initializeInnings',
-      payload: {
+    try {
+      const battingTeam = determineBattingTeam(tossWinner, tossChoice);
+      
+      // Initialize first innings with proper team IDs
+      dispatch(initializeInnings({
         battingTeamId: battingTeam === 'teamA' ? teamA.id : teamB.id,
         bowlingTeamId: battingTeam === 'teamA' ? teamB.id : teamA.id
-      }
-    });
+      }));
 
-    router.push('/openingPlayers');
+      router.push('/openingPlayers');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to initialize match. Please try again.');
+      console.error('Match initialization failed:', error);
+    }
   };
 
   return (
@@ -123,7 +126,7 @@ export default function NewMatchScreen() {
               tossWinner === 'teamA' && styles.radioSelected,
             ]}
           />
-          <Text style={styles.radioLabel}>Team A</Text>
+          <Text style={styles.radioLabel}>{teamA.teamName.trim() || 'Team A'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -136,7 +139,7 @@ export default function NewMatchScreen() {
               tossWinner === 'teamB' && styles.radioSelected,
             ]}
           />
-          <Text style={styles.radioLabel}>Team B</Text>
+          <Text style={styles.radioLabel}>{teamB.teamName.trim() || 'Team B'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -176,7 +179,7 @@ export default function NewMatchScreen() {
         placeholder="20"
         value={String(totalOvers)}
         onChangeText={(value) => 
-          dispatch(setTotalOvers(parseInt(value, 10) || 1))
+          dispatch(setTotalOvers(parseInt(value, 10) || 0))
         }
       />
 

@@ -1,5 +1,4 @@
-// openingPlayers.tsx
-import React, { useMemo, useState, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +8,6 @@ import {
   StyleSheet,
   Alert
 } from 'react-native';
-// import { Picker } from '@react-native-picker/picker';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 // Install react-native-get-random-values Import it before uuid:
@@ -20,12 +18,9 @@ import type { RootState } from '@/store';
 import { createCricketer } from '@/utils';
 import {
   addPlayer,
-  setCurrentStriker,
-  setCurrentNonStriker,
-  setBowler,
-  initializeInnings,
   updateInningsPlayers
 } from '@/store/cricket/scoreboardSlice';
+import { selectBattingTeam, selectBowlingTeam } from '@/store/cricket/selectors';
 
 export default function OpeningPlayersScreen() {
   const router = useRouter();
@@ -37,10 +32,8 @@ export default function OpeningPlayersScreen() {
   const isSecondInnings = innings === '2';
   const { teamA, teamB } = scoreboard;
 
-  const currentInnings = isSecondInnings ? scoreboard.innings2 : scoreboard.innings1;
-  
-  const battingTeam = teamA.id === currentInnings.battingTeamId ? teamA : teamB;
-  const bowlingTeam = teamA.id === currentInnings.bowlingTeamId ? teamA : teamB;
+  const battingTeam = useSelector(selectBattingTeam);
+  const bowlingTeam = useSelector(selectBowlingTeam);
 
   // PART 1: We show a list of existing players from battingTeam.players, plus an "Add new" input
   const [selectedStrikerId, setSelectedStrikerId] = useState('');
@@ -57,7 +50,6 @@ export default function OpeningPlayersScreen() {
   // We might want only those who "bowled or fielded" last innings, or we can just show them all.
   const existingBattingPlayers = battingTeam.players;
   const existingBowlingPlayers = bowlingTeam.players;
-
 
   useLayoutEffect(() => {
     navigation.setOptions({

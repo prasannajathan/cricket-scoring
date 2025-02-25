@@ -5,6 +5,27 @@ import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
 export const inningsReducers = {
+    initializeInnings: (state: ScoreboardState, action: PayloadAction<{ battingTeamId: string; bowlingTeamId: string }>) => {
+        const { battingTeamId, bowlingTeamId } = action.payload;
+        const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
+
+        currentInnings.id = uuidv4();
+        currentInnings.battingTeamId = battingTeamId;
+        currentInnings.bowlingTeamId = bowlingTeamId;
+        currentInnings.totalRuns = 0;
+        currentInnings.wickets = 0;
+        currentInnings.completedOvers = 0;
+        currentInnings.ballInCurrentOver = 0;
+        currentInnings.extras = 0;
+        currentInnings.partnerships = [];
+        currentInnings.deliveries = [];
+        currentInnings.isCompleted = false;
+        currentInnings.currentBowlerId = undefined;
+        currentInnings.currentStrikerId = undefined;
+        currentInnings.currentNonStrikerId = undefined;
+        currentInnings.lastOverBowlerId = undefined;
+    },
+
     endInnings: (state: ScoreboardState) => {
         if (state.currentInning === 1) {
             state.innings1.isCompleted = true;
@@ -44,27 +65,6 @@ export const inningsReducers = {
                 player.maidens = 0;
             });
         }
-    },
-
-    initializeInnings: (state: ScoreboardState, action: PayloadAction<{ battingTeamId: string; bowlingTeamId: string }>) => {
-        const { battingTeamId, bowlingTeamId } = action.payload;
-        const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
-
-        currentInnings.id = uuidv4();
-        currentInnings.battingTeamId = battingTeamId;
-        currentInnings.bowlingTeamId = bowlingTeamId;
-        currentInnings.totalRuns = 0;
-        currentInnings.wickets = 0;
-        currentInnings.completedOvers = 0;
-        currentInnings.ballInCurrentOver = 0;
-        currentInnings.extras = 0;
-        currentInnings.partnerships = [];
-        currentInnings.deliveries = [];
-        currentInnings.isCompleted = false;
-        currentInnings.currentBowlerId = undefined;
-        currentInnings.currentStrikerId = undefined;
-        currentInnings.currentNonStrikerId = undefined;
-        currentInnings.lastOverBowlerId = undefined;
     },
 
     checkInningsCompletion: (state: ScoreboardState) => {

@@ -4,13 +4,15 @@ export const selectCurrentInnings = (state: RootState) =>
     state.scoreboard.currentInning === 1 ? state.scoreboard.innings1 : state.scoreboard.innings2;
 
 export const selectBattingTeam = (state: RootState) => {
-    const currentInnings = selectCurrentInnings(state);
-    return state.scoreboard[currentInnings.battingTeamId === state.scoreboard.teamA.id ? 'teamA' : 'teamB'];
+  const { teamA, teamB, currentInning } = state.scoreboard;
+  const currentInnings = currentInning === 2 ? state.scoreboard.innings2 : state.scoreboard.innings1;
+  return teamA.id === currentInnings.battingTeamId ? teamA : teamB;
 };
 
 export const selectBowlingTeam = (state: RootState) => {
-    const currentInnings = selectCurrentInnings(state);
-    return state.scoreboard[currentInnings.bowlingTeamId === state.scoreboard.teamA.id ? 'teamA' : 'teamB'];
+  const { teamA, teamB, currentInning } = state.scoreboard;
+  const currentInnings = currentInning === 2 ? state.scoreboard.innings2 : state.scoreboard.innings1;
+  return teamA.id === currentInnings.bowlingTeamId ? teamA : teamB;
 };
 
 export const selectCurrentBowler = (state: RootState) => {

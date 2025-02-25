@@ -26,7 +26,7 @@ export const playerReducers = {
             sixes: 0,
             strikeRate: 0,
             isOut: false,
-            isRetired: false,
+            // isRetired: false,
             overs: 0,
             ballsThisOver: 0,
             runsConceded: 0,
@@ -125,8 +125,8 @@ export const playerReducers = {
         battingTeam.currentNonStrikerId = currentNonStrikerId;
         bowlingTeam.currentBowlerId = currentBowlerId;
     },
-    swapBatsman: (state) => {
-        const battingTeam = state.teamA.batting ? state.teamA : state.teamB;
+    swapBatsman: (state: ScoreboardState) => {
+        const battingTeam = state.teamA.isBatting ? state.teamA : state.teamB;
         const tmp = battingTeam.currentStrikerId;
         battingTeam.currentStrikerId = battingTeam.currentNonStrikerId;
         battingTeam.currentNonStrikerId = tmp;
