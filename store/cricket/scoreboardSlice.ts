@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import { initialState } from './initialState';
 import { matchSetupReducers } from './reducers/matchSetup';
 import { scoringReducers } from './reducers/scoring';
@@ -6,14 +6,14 @@ import { inningsReducers } from './reducers/innings';
 import { playerReducers } from './reducers/players';
 
 export const scoreboardSlice = createSlice({
-    name: 'scoreboard',
-    initialState,
-    reducers: {
-        ...matchSetupReducers,
-        ...scoringReducers,
-        ...inningsReducers,
-        ...playerReducers
-    }
+  name: 'scoreboard',
+  initialState,
+  reducers: {
+    ...matchSetupReducers,
+    ...scoringReducers,
+    ...inningsReducers,
+    ...playerReducers
+  }
 });
 
 // Export all actions
@@ -41,7 +41,9 @@ export const {
     setMatchResult,
     setMatchOver,
     updateInningsPlayers,
-    loadSavedMatch
+    loadSavedMatch,
+    updateBattingTeam,
+    addDelivery
 } = scoreboardSlice.actions;
 
 export default scoreboardSlice.reducer;

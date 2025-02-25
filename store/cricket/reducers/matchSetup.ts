@@ -1,5 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ScoreboardState } from '@/types';
+import { TeamId } from '@/types/match';
 
 export const matchSetupReducers = {
     setTeamName: (state: ScoreboardState, action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>) => {
@@ -20,7 +21,7 @@ export const matchSetupReducers = {
     setTossChoice: (state: ScoreboardState, action: PayloadAction<'bat' | 'bowl'>) => {
         state.tossChoice = action.payload;
         const battingTeam = state.tossChoice === 'bat' ? state.tossWinner : (state.tossWinner === 'teamA' ? 'teamB' : 'teamA');
-        
+
         state.teamA.isBatting = battingTeam === 'teamA';
         state.teamA.isBowling = !state.teamA.isBatting;
         state.teamB.isBatting = !state.teamA.isBatting;
@@ -28,6 +29,24 @@ export const matchSetupReducers = {
 
         state.innings1.battingTeamId = state[battingTeam].id;
         state.innings1.bowlingTeamId = state[battingTeam === 'teamA' ? 'teamB' : 'teamA'].id;
+    },
+
+    updateBattingTeam: (
+        state,
+        action: PayloadAction<{ teamId: TeamId }>
+    ) => {
+        state.teams.forEach(team => {
+            team.isBatting = team.id === action.payload.teamId;
+            team.isBowling = team.id !== action.payload.teamId;
+        });
+
+        const currentInnings = state.innings[state.innings.length - 1];
+        if (currentInnings) {
+            currentInnings.battingTeamId = action.payload.teamId;
+            currentInnings.bowlingTeamId = state.teams.find(
+                t => t.id !== action.payload.teamId
+            )?.id || '';
+        }
     },
 
     setTotalOvers: (state: ScoreboardState, action: PayloadAction<number>) => {
@@ -51,11 +70,11 @@ export const matchSetupReducers = {
     setMatchResult: (state, action: PayloadAction<string>) => {
         state.matchResult = action.payload;
     },
-    
+
     setMatchOver: (state, action: PayloadAction<boolean>) => {
         state.matchOver = action.payload;
     },
-    
+
     loadSavedMatch: (state, action: PayloadAction<SavedMatch>) => {
         // Load all saved match data into state
         return {

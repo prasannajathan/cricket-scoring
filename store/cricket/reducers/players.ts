@@ -3,6 +3,10 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { Cricketer, ScoreboardState } from '@/types';
+import { 
+    Player, 
+    TeamId, 
+  } from '@/types/match';
 
 interface UpdateInningsPlayersPayload {
     currentStrikerId: string;
@@ -12,28 +16,37 @@ interface UpdateInningsPlayersPayload {
 }
 
 export const playerReducers = {
+    // addPlayer: (
+    //     state: ScoreboardState,
+    //     action: PayloadAction<{ team: 'teamA' | 'teamB'; player: Cricketer }>
+    // ) => {
+    //     const { team, player } = action.payload;
+    //     state[team].players.push({
+    //         ...player,
+    //         id: player.id || uuidv4(),
+    //         runs: 0,
+    //         balls: 0,
+    //         fours: 0,
+    //         sixes: 0,
+    //         strikeRate: 0,
+    //         isOut: false,
+    //         isRetired: false,
+    //         overs: 0,
+    //         ballsThisOver: 0,
+    //         runsConceded: 0,
+    //         wickets: 0,
+    //         economy: 0,
+    //         maidens: 0
+    //     });
+    // },
     addPlayer: (
-        state: ScoreboardState,
-        action: PayloadAction<{ team: 'teamA' | 'teamB'; player: Cricketer }>
+        state,
+        action: PayloadAction<{ teamId: TeamId; player: Player }>
     ) => {
-        const { team, player } = action.payload;
-        state[team].players.push({
-            ...player,
-            id: player.id || uuidv4(),
-            runs: 0,
-            balls: 0,
-            fours: 0,
-            sixes: 0,
-            strikeRate: 0,
-            isOut: false,
-            isRetired: false,
-            overs: 0,
-            ballsThisOver: 0,
-            runsConceded: 0,
-            wickets: 0,
-            economy: 0,
-            maidens: 0
-        });
+        const team = state.teams.find(t => t.id === action.payload.teamId);
+        if (team) {
+            team.players.push(action.payload.player);
+        }
     },
 
     setCurrentStriker: (
@@ -42,7 +55,7 @@ export const playerReducers = {
     ) => {
         const { team, playerId } = action.payload;
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
-        
+
         if (state[team].id === currentInnings.battingTeamId) {
             currentInnings.currentStrikerId = playerId;
             state[team].currentStrikerId = playerId;
@@ -55,7 +68,7 @@ export const playerReducers = {
     ) => {
         const { team, playerId } = action.payload;
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
-        
+
         if (state[team].id === currentInnings.battingTeamId) {
             currentInnings.currentNonStrikerId = playerId;
             state[team].currentNonStrikerId = playerId;
@@ -68,13 +81,13 @@ export const playerReducers = {
     ) => {
         const { team, bowlerId } = action.payload;
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
-        
+
         if (state[team].id === currentInnings.bowlingTeamId) {
             // Check if bowler bowled last over
             if (bowlerId === currentInnings.lastOverBowlerId) {
                 return; // Cannot bowl consecutive overs
             }
-            
+
             currentInnings.currentBowlerId = bowlerId;
             state[team].currentBowlerId = bowlerId;
         }
@@ -93,8 +106,8 @@ export const playerReducers = {
 
     updatePlayerStats: (
         state: ScoreboardState,
-        action: PayloadAction<{ 
-            team: 'teamA' | 'teamB'; 
+        action: PayloadAction<{
+            team: 'teamA' | 'teamB';
             playerId: string;
             stats: Partial<Cricketer>
         }>
@@ -107,7 +120,7 @@ export const playerReducers = {
     },
 
     updateInningsPlayers: (
-        state: ScoreboardState, 
+        state: ScoreboardState,
         action: PayloadAction<UpdateInningsPlayersPayload>
     ) => {
         const { currentStrikerId, currentNonStrikerId, currentBowlerId, inningNumber } = action.payload;

@@ -17,12 +17,15 @@ import ExtrasToggle from '@/components/scoring/ExtrasToggle';
 import WicketPanel from '@/components/scoring/WicketPanel';
 import ScoringButtons from '@/components/scoring/ScoringButtons';
 import ActionButtons from '@/components/scoring/ActionButtons';
+import { MatchStatistics } from '@/components/statistics/MatchStatistics';
 
 // Import modals
 import PartnershipModal from '@/components/scoring/modals/PartnershipModal';
 import ExtrasModal from '@/components/scoring/modals/ExtrasModal';
 import AdvancedScoringModal from '@/components/scoring/modals/AdvancedScoringModal';
 import NextBowlerModal from '@/components/scoring/modals/NextBowlerModal';
+import RetirementModal from '@/components/scoring/modals/RetirementModal';
+import NewBatsmanModal from '@/components/scoring/modals/NewBatsmanModal';
 
 // Import actions
 import {
@@ -30,14 +33,17 @@ import {
     undoLastBall,
     swapBatsmen,
     setBowler,
-    addExtraRuns
+    addExtraRuns,
+    retireBatsman,
+    addNewBatsman,
+    handleEndOfInnings
 } from '@/store/cricket/scoreboardSlice';
 
 export default function ScoringScreen() {
     const router = useRouter();
     const dispatch = useDispatch();
     const { matchId } = useLocalSearchParams();
-    const state = useSelector((state: RootState) => state.scoreboard);
+    const state = useSelector((state: RootState) => state);
 
     // Selectors
     const currentInnings = useSelector(selectCurrentInnings);
@@ -60,6 +66,9 @@ export default function ScoringScreen() {
     const [showExtrasModal, setShowExtrasModal] = useState(false);
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
     const [showBowlerModal, setShowBowlerModal] = useState(false);
+    const [showRetirementModal, setShowRetirementModal] = useState(false);
+    const [showNewBatsmanModal, setShowNewBatsmanModal] = useState(false);
+    const [retiredBatsmanId, setRetiredBatsmanId] = useState<string | null>(null);
 
     // Computed state
     const canScore = !!(currentInnings?.currentStrikerId && currentInnings?.currentBowlerId);
@@ -80,18 +89,35 @@ export default function ScoringScreen() {
         if (!canScore) return;
 
         dispatch(scoreBall({
-            runs,
-            extraType: wide ? 'wide' :
-                noBall ? 'no-ball' :
-                    bye ? 'bye' :
-                        legBye ? 'leg-bye' :
-                            undefined,
-            wicket: wicket,
-            wicketType: wicket ? wicketType : undefined,
-            outBatsmanId: wicket ? outBatsmanId : undefined
+            delivery: {
+                runs,
+                extraType: wide ? 'wide' :
+                    noBall ? 'no-ball' :
+                        bye ? 'bye' :
+                            legBye ? 'leg-bye' : undefined,
+                batsmanId: currentInnings.currentStrikerId!,
+                bowlerId: currentInnings.currentBowlerId!,
+                timestamp: Date.now(),
+                wicket: wicket ? {
+                    type: wicketType,
+                    dismissedPlayerId: outBatsmanId || currentInnings.currentStrikerId!
+                } : undefined
+            }
         }));
 
         resetScoringState();
+    };
+
+    // Handle retirement
+    const handleRetirement = (batsmanId: string, type: 'hurt' | 'out' | 'tactical') => {
+        dispatch(retireBatsman({ batsmanId, retirementType: type }));
+        setShowNewBatsmanModal(true);
+    };
+
+    // Handle new batsman
+    const handleNewBatsman = (batsmanId: string, position: 'striker' | 'nonStriker') => {
+        dispatch(addNewBatsman({ batsmanId, position }));
+        setShowNewBatsmanModal(false);
     };
 
     // Check for over completion and show bowler modal
@@ -104,7 +130,10 @@ export default function ScoringScreen() {
     // Check for innings completion
     useEffect(() => {
         if (currentInnings?.isCompleted) {
-            router.push('/scorecard');
+            dispatch(handleEndOfInnings());
+            if (state.matchDetails.matchOver) {
+                router.push('/match-summary');
+            }
         }
     }, [currentInnings?.isCompleted]);
 
@@ -115,7 +144,7 @@ export default function ScoringScreen() {
                     battingTeam={battingTeam}
                     currentInnings={currentInnings}
                     currentInning={currentInning}
-                    targetScore={targetScore}
+                    targetScore={state.matchDetails.targetScore}
                 />
 
                 <BatsmenDisplay
@@ -161,7 +190,10 @@ export default function ScoringScreen() {
                     onSwap={() => dispatch(swapBatsmen())}
                     onPartnership={() => setShowPartnershipModal(true)}
                     onExtras={() => setShowExtrasModal(true)}
+                    onRetire={() => setShowRetirementModal(true)}
                 />
+
+                <MatchStatistics />
 
             </ScrollView>
 
@@ -195,6 +227,23 @@ export default function ScoringScreen() {
                     team: bowlingTeam.id === state.teamA.id ? 'teamA' : 'teamB',
                     bowlerId
                 }))}
+            />
+
+            <RetirementModal
+                visible={showRetirementModal}
+                onClose={() => setShowRetirementModal(false)}
+                battingTeam={battingTeam}
+                currentStrikerId={currentInnings?.currentStrikerId}
+                currentNonStrikerId={currentInnings?.currentNonStrikerId}
+                onRetire={handleRetirement}
+            />
+
+            <NewBatsmanModal
+                visible={showNewBatsmanModal}
+                onClose={() => setShowNewBatsmanModal(false)}
+                battingTeam={battingTeam}
+                currentInnings={currentInnings}
+                onSelectBatsman={handleNewBatsman}
             />
         </SafeAreaView>
     );
