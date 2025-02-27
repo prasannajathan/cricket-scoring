@@ -55,7 +55,9 @@ export default memo(function ScoreHeader({
     );
 }, (prevProps, nextProps) => {
     return prevProps.currentInnings.totalRuns === nextProps.currentInnings.totalRuns &&
-           prevProps.currentInnings.wickets === nextProps.currentInnings.wickets;
+           prevProps.currentInnings.wickets === nextProps.currentInnings.wickets &&
+           prevProps.currentInnings.completedOvers === nextProps.currentInnings.completedOvers &&
+           prevProps.currentInnings.ballInCurrentOver === nextProps.currentInnings.ballInCurrentOver;
 });
 
 const styles = StyleSheet.create({
