@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { RootState } from '@/store';
@@ -77,7 +77,12 @@ export default function ScoringScreen() {
 
     // Scoring handler
     const handleScore = (runs: number) => {
-        if (!canScore) return;
+        // if (!canScore) return;
+        if (!currentInnings?.currentBowlerId) {
+            // No bowler selected, show the modal
+            setShowBowlerModal(true);
+            return;
+        }
 
         dispatch(scoreBall({
             runs,
@@ -92,6 +97,11 @@ export default function ScoringScreen() {
         }));
 
         resetScoringState();
+    };
+
+    // Add a function to change the bowler anytime
+    const handleChangeBowler = () => {
+        setShowBowlerModal(true);
     };
 
     // Check for over completion and show bowler modal
@@ -167,6 +177,13 @@ export default function ScoringScreen() {
                         onPartnership={() => setShowPartnershipModal(true)}
                         onExtras={() => setShowExtrasModal(true)}
                     />
+
+                    <TouchableOpacity 
+                        style={styles.changeBowlerButton}
+                        onPress={handleChangeBowler}
+                    >
+                        <Text style={styles.changeBowlerText}>Change Bowler</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
 
@@ -196,10 +213,13 @@ export default function ScoringScreen() {
                 bowlingTeam={bowlingTeam}
                 currentBowlerId={currentInnings.currentBowlerId}
                 lastOverBowlerId={currentInnings.lastOverBowlerId}
-                onSelectBowler={(bowlerId) => dispatch(setBowler({
-                    team: bowlingTeam.id === state.teamA.id ? 'teamA' : 'teamB',
-                    bowlerId
-                }))}
+                onSelectBowler={(bowlerId) => {
+                    dispatch(setBowler({
+                        team: bowlingTeam.id === state.teamA.id ? 'teamA' : 'teamB',
+                        bowlerId
+                    }));
+                    setShowBowlerModal(false);
+                }}
             />
         </SafeAreaView>
     );
@@ -227,5 +247,16 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.2,
         shadowRadius: 2,
+    },
+    changeBowlerButton: {
+        marginTop: 10,
+        padding: 10,
+        backgroundColor: '#007bff',
+        borderRadius: 5,
+        alignItems: 'center',
+    },
+    changeBowlerText: {
+        color: '#fff',
+        fontWeight: 'bold',
     }
 });
