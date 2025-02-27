@@ -284,6 +284,7 @@ const handleWicketConfirm = (wicketData: {
                 bowlingTeam={bowlingTeam}
                 currentStrikerId={currentInnings?.currentStrikerId || ''}
                 currentNonStrikerId={currentInnings?.currentNonStrikerId || ''}
+                battingTeamKey={battingTeam.id === state.teamA.id ? 'teamA' : 'teamB'}
             />
         </SafeAreaView>
     );
