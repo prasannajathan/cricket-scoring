@@ -47,7 +47,7 @@ export default function ScoringButtons({
                 style={[styles.runButton, styles.advancedButton]}
                 onPress={onAdvancedScore}
             >
-                <Text style={styles.runText}>...</Text>
+                <Text style={styles.runText}>Penalty</Text>
             </TouchableOpacity>
         </View>
     );

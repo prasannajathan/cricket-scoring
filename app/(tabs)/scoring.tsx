@@ -152,7 +152,6 @@ export default function ScoringScreen() {
                         setLegBye={setLegBye}
                     />
 
-                    {wicket && (
                         <WicketPanel
                             wicketType={wicketType}
                             setWicketType={setWicketType}
@@ -160,7 +159,7 @@ export default function ScoringScreen() {
                             setOutBatsmanId={setOutBatsmanId}
                             battingTeam={battingTeam}
                         />
-                    )}
+                    
 
                     <ScoringButtons
                         onScore={handleScore}
