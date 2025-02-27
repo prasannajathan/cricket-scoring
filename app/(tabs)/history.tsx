@@ -16,7 +16,7 @@ export default function HistoryScreen() {
   // Load saved matches on mount
   useEffect(() => {
     const loadSavedData = async () => {
-      const data = await loadMatches();
+      const data = await getSavedMatches();
       setSavedMatches(data);
     };
     loadSavedData();
@@ -31,7 +31,7 @@ export default function HistoryScreen() {
 
   const handleResumeMatch = async (matchId: string) => {
     try {
-      const matches = await loadMatches();
+      const matches = await getSavedMatches();
       const matchToResume = matches.find(m => m.id === matchId);
       
       if (matchToResume) {

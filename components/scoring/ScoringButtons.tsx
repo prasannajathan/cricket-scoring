@@ -1,47 +1,54 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 interface ScoringButtonsProps {
     onScore: (runs: number) => void;
     canScore: boolean;
     onAdvancedScore: () => void;
+    wicket: boolean;
+    setWicket: (value: boolean) => void;
 }
 
-export default function ScoringButtons({
-    onScore,
-    canScore,
-    onAdvancedScore
+export default function ScoringButtons({ 
+    onScore, 
+    canScore, 
+    onAdvancedScore, 
+    wicket,
+    setWicket
 }: ScoringButtonsProps) {
-    const RunButton = ({ runs }: { runs: number }) => (
-        <TouchableOpacity
-            style={[styles.runButton, !canScore && styles.disabledButton]}
-            onPress={() => onScore(runs)}
-            disabled={!canScore}
-        >
-            <Text style={[styles.runText, !canScore && styles.disabledText]}>
-                {runs}
-            </Text>
-        </TouchableOpacity>
-    );
+    const runButtons = [0, 1, 2, 3, 4, 6];
 
     return (
         <View style={styles.container}>
-            <View style={styles.row}>
-                <RunButton runs={0} />
-                <RunButton runs={1} />
-                <RunButton runs={2} />
-                <RunButton runs={3} />
+            <View style={styles.runsContainer}>
+                {runButtons.map((runs) => (
+                    <TouchableOpacity
+                        key={runs}
+                        style={[
+                            styles.runButton,
+                            runs === 4 ? styles.fourButton : null,
+                            runs === 6 ? styles.sixButton : null,
+                            !canScore ? styles.disabledButton : null
+                        ]}
+                        onPress={() => onScore(runs)}
+                        disabled={!canScore}
+                    >
+                        <Text style={[
+                            styles.runText, 
+                            (runs === 4 || runs === 6) ? styles.boundaryText : null,
+                            !canScore ? styles.disabledText : null
+                        ]}>
+                            {runs}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
-            <View style={styles.row}>
-                <RunButton runs={4} />
-                <RunButton runs={6} />
-                <TouchableOpacity
-                    style={[styles.runButton, styles.advancedButton]}
-                    onPress={onAdvancedScore}
-                >
-                    <Text style={styles.runText}>...</Text>
-                </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+                style={[styles.runButton, styles.advancedButton]}
+                onPress={onAdvancedScore}
+            >
+                <Text style={styles.runText}>...</Text>
+            </TouchableOpacity>
         </View>
     );
 }
@@ -58,8 +65,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 1,
     },
-    row: {
+    runsContainer: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         justifyContent: 'space-between',
         marginBottom: 8,
     },
@@ -76,6 +84,15 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 20,
         fontWeight: 'bold',
+    },
+    fourButton: {
+        backgroundColor: '#FFEB3B',
+    },
+    sixButton: {
+        backgroundColor: '#F44336',
+    },
+    boundaryText: {
+        color: '#000',
     },
     advancedButton: {
         backgroundColor: '#2E7D32',

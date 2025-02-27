@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { RootState } from '@/store';
@@ -109,7 +109,7 @@ export default function ScoringScreen() {
     }, [currentInnings?.isCompleted]);
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        <SafeAreaView style={styles.safeArea}>
             <ScrollView style={styles.container}>
                 <ScoreHeader
                     battingTeam={battingTeam}
@@ -118,54 +118,59 @@ export default function ScoringScreen() {
                     targetScore={targetScore}
                 />
 
-                <BatsmenDisplay
-                    battingTeam={battingTeam}
-                    currentInnings={currentInnings}
-                />
-
-                <BowlerDisplay
-                    bowlingTeam={bowlingTeam}
-                    currentInnings={currentInnings}
-                />
-
-                <ExtrasToggle
-                    wide={wide}
-                    noBall={noBall}
-                    bye={bye}
-                    legBye={legBye}
-                    setWide={setWide}
-                    setNoBall={setNoBall}
-                    setBye={setBye}
-                    setLegBye={setLegBye}
-                />
-
-                {wicket && (
-                    <WicketPanel
-                        wicketType={wicketType}
-                        setWicketType={setWicketType}
-                        outBatsmanId={outBatsmanId}
-                        setOutBatsmanId={setOutBatsmanId}
+                <View style={styles.playerInfoContainer}>
+                    <BatsmenDisplay
                         battingTeam={battingTeam}
+                        currentInnings={currentInnings}
                     />
-                )}
 
-                <ScoringButtons
-                    onScore={handleScore}
-                    canScore={canScore}
-                    onAdvancedScore={() => setShowAdvancedModal(true)}
-                />
+                    <BowlerDisplay
+                        bowlingTeam={bowlingTeam}
+                        currentInnings={currentInnings}
+                    />
+                </View>
 
-                <ActionButtons
-                    canScore={canScore}
-                    onUndo={() => dispatch(undoLastBall())}
-                    onSwap={() => dispatch(swapBatsmen())}
-                    onPartnership={() => setShowPartnershipModal(true)}
-                    onExtras={() => setShowExtrasModal(true)}
-                />
+                <View style={styles.scoringContainer}>
+                    <ExtrasToggle
+                        wide={wide}
+                        noBall={noBall}
+                        bye={bye}
+                        legBye={legBye}
+                        setWide={setWide}
+                        setNoBall={setNoBall}
+                        setBye={setBye}
+                        setLegBye={setLegBye}
+                    />
 
+                    {wicket && (
+                        <WicketPanel
+                            wicketType={wicketType}
+                            setWicketType={setWicketType}
+                            outBatsmanId={outBatsmanId}
+                            setOutBatsmanId={setOutBatsmanId}
+                            battingTeam={battingTeam}
+                        />
+                    )}
+
+                    <ScoringButtons
+                        onScore={handleScore}
+                        canScore={canScore}
+                        onAdvancedScore={() => setShowAdvancedModal(true)}
+                        wicket={wicket}
+                        setWicket={setWicket}
+                    />
+
+                    <ActionButtons
+                        canScore={canScore}
+                        onUndo={() => dispatch(undoLastBall())}
+                        onSwap={() => dispatch(swapBatsmen())}
+                        onPartnership={() => setShowPartnershipModal(true)}
+                        onExtras={() => setShowExtrasModal(true)}
+                    />
+                </View>
             </ScrollView>
 
-            {/* ... modals ... */}
+            {/* Modals */}
             <PartnershipModal
                 visible={showPartnershipModal}
                 onClose={() => setShowPartnershipModal(false)}
@@ -201,9 +206,26 @@ export default function ScoringScreen() {
 }
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1, 
+        backgroundColor: '#f9f9f9'
+    },
     container: {
         flex: 1,
+        padding: 12,
+    },
+    playerInfoContainer: {
+        marginVertical: 8,
+    },
+    scoringContainer: {
+        marginTop: 8,
         backgroundColor: '#fff',
-        padding: 10,
+        borderRadius: 12,
+        padding: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
     }
 });

@@ -70,3 +70,11 @@ export const clearCurrentMatch = async (): Promise<void> => {
         throw error;
     }
 };
+
+export const clearStorage = async () => {
+    try {
+      await AsyncStorage.clear();
+    } catch (e) {
+      console.error('Failed to clear storage:', e);
+    }
+  };

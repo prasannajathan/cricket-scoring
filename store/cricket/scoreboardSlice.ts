@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { ScoreboardState } from '@/types';
 import { initialState } from './initialState';
 import { matchSetupReducers } from './reducers/matchSetup';
 import { scoringReducers } from './reducers/scoring';
@@ -7,7 +8,7 @@ import { playerReducers } from './reducers/players';
 
 export const scoreboardSlice = createSlice({
     name: 'scoreboard',
-    initialState,
+    initialState: initialState as unknown as ScoreboardState,
     reducers: {
         ...matchSetupReducers,
         ...scoringReducers,
