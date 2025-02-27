@@ -5,8 +5,8 @@ interface ScoringButtonsProps {
     onScore: (runs: number) => void;
     canScore: boolean;
     onAdvancedScore: () => void;
-    wicket: boolean;
-    setWicket: (value: boolean) => void;
+    wicket: boolean;  // Now used just for styling
+    setWicket: () => void;  // Now expects a function with no parameters
 }
 
 export default function ScoringButtons({ 
@@ -42,7 +42,27 @@ export default function ScoringButtons({
                         </Text>
                     </TouchableOpacity>
                 ))}
+                
+                {/* Wicket Button */}
+                <TouchableOpacity
+                    style={[
+                        styles.runButton,
+                        styles.wicketButton,
+                        !canScore ? styles.disabledButton : null
+                    ]}
+                    onPress={setWicket}
+                    disabled={!canScore}
+                >
+                    <Text style={[
+                        styles.runText,
+                        styles.wicketText,
+                        !canScore ? styles.disabledText : null
+                    ]}>
+                        W
+                    </Text>
+                </TouchableOpacity>
             </View>
+            
             <TouchableOpacity
                 style={[styles.runButton, styles.advancedButton]}
                 onPress={onAdvancedScore}
@@ -55,15 +75,7 @@ export default function ScoringButtons({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        marginBottom: 16,
-        padding: 8,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 1,
+        marginVertical: 8,
     },
     runsContainer: {
         flexDirection: 'row',
@@ -72,16 +84,16 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     runButton: {
-        flex: 1,
+        width: '31%',  // Three buttons per row
+        aspectRatio: 1.5,
         backgroundColor: '#1B5E20',
-        padding: 16,
-        margin: 4,
-        borderRadius: 8,
-        alignItems: 'center',
         justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8,
+        marginBottom: 8,
     },
     runText: {
-        color: '#fff',
+        color: 'white',
         fontSize: 20,
         fontWeight: 'bold',
     },
@@ -94,7 +106,15 @@ const styles = StyleSheet.create({
     boundaryText: {
         color: '#000',
     },
+    wicketButton: {
+        backgroundColor: '#D32F2F',
+    },
+    wicketText: {
+        color: 'white',
+    },
     advancedButton: {
+        width: '100%',
+        aspectRatio: 5,
         backgroundColor: '#2E7D32',
     },
     disabledButton: {

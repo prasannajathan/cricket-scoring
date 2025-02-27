@@ -14,7 +14,6 @@ import ScoreHeader from '@/components/scoring/ScoreHeader';
 import BatsmenDisplay from '@/components/scoring/BatsmenDisplay';
 import BowlerDisplay from '@/components/scoring/BowlerDisplay';
 import ExtrasToggle from '@/components/scoring/ExtrasToggle';
-import WicketPanel from '@/components/scoring/WicketPanel';
 import ScoringButtons from '@/components/scoring/ScoringButtons';
 import ActionButtons from '@/components/scoring/ActionButtons';
 
@@ -23,6 +22,8 @@ import PartnershipModal from '@/components/scoring/modals/PartnershipModal';
 import ExtrasModal from '@/components/scoring/modals/ExtrasModal';
 import AdvancedScoringModal from '@/components/scoring/modals/AdvancedScoringModal';
 import NextBowlerModal from '@/components/scoring/modals/NextBowlerModal';
+import NextBatsmanModal from '@/components/scoring/modals/NextBatsmanModal';
+import WicketModal from '@/components/scoring/modals/WicketModal';
 
 // Import actions
 import {
@@ -30,7 +31,9 @@ import {
     undoLastBall,
     swapBatsmen,
     setBowler,
-    addExtraRuns
+    addExtraRuns,
+    setCurrentStriker,
+    setCurrentNonStriker
 } from '@/store/cricket/scoreboardSlice';
 
 export default function ScoringScreen() {
@@ -51,53 +54,107 @@ export default function ScoringScreen() {
     const [noBall, setNoBall] = useState(false);
     const [bye, setBye] = useState(false);
     const [legBye, setLegBye] = useState(false);
-    const [wicket, setWicket] = useState(false);
-    const [wicketType, setWicketType] = useState('bowled');
-    const [outBatsmanId, setOutBatsmanId] = useState<string | undefined>();
+    // const [isStrikerOut, setIsStrikerOut] = useState(false);
+    const [tempRuns, setTempRuns] = useState(0);
 
     // Modal states
     const [showPartnershipModal, setShowPartnershipModal] = useState(false);
     const [showExtrasModal, setShowExtrasModal] = useState(false);
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
     const [showBowlerModal, setShowBowlerModal] = useState(false);
+    const [showWicketModal, setShowWicketModal] = useState(false);
+    // const [showNextBatsmanModal, setShowNextBatsmanModal] = useState(false);
 
     // Computed state
     const canScore = !!(currentInnings?.currentStrikerId && currentInnings?.currentBowlerId);
 
-    // Reset extras and wicket state
-    const resetScoringState = () => {
+    // Reset extras state
+    const resetExtrasState = () => {
         setWide(false);
         setNoBall(false);
         setBye(false);
         setLegBye(false);
-        setWicket(false);
-        setWicketType('bowled');
-        setOutBatsmanId(undefined);
     };
 
     // Scoring handler
     const handleScore = (runs: number) => {
-        // if (!canScore) return;
-        if (!currentInnings?.currentBowlerId) {
-            // No bowler selected, show the modal
+        if (!canScore) {
             setShowBowlerModal(true);
             return;
         }
-
-        dispatch(scoreBall({
-            runs,
-            extraType: wide ? 'wide' :
-                noBall ? 'no-ball' :
-                    bye ? 'bye' :
-                        legBye ? 'leg-bye' :
-                            undefined,
-            wicket: wicket,
-            wicketType: wicket ? wicketType : undefined,
-            outBatsmanId: wicket ? outBatsmanId : undefined
-        }));
-
-        resetScoringState();
+        
+        if (wide || noBall || bye || legBye) {
+            // Handle extras
+            dispatch(scoreBall({
+                runs,
+                extraType: wide ? 'wide' : noBall ? 'no-ball' : bye ? 'bye' : 'leg-bye',
+            }));
+            resetExtrasState();
+        } else {
+            // Regular run scoring
+            dispatch(scoreBall({ runs }));
+        }
     };
+
+    // Open wicket modal when wicket button is pressed
+    const handleWicketButtonPress = () => {
+        if (!canScore) {
+            setShowBowlerModal(true);
+            return;
+        }
+        
+        // Store the current runs temporarily (in case we want to add runs with the wicket)
+        setTempRuns(0); 
+        setShowWicketModal(true);
+    };
+
+    // Update the handleWicketConfirm function:
+
+const handleWicketConfirm = (wicketData: {
+    wicketType: string;
+    outBatsmanId: string;
+    fielderId?: string;
+    fielderName?: string;
+    nextBatsmanId: string;
+}) => {
+    // Close the wicket modal
+    setShowWicketModal(false);
+    
+    // Determine which batsman was out for next batsman selection
+    const isStriker = wicketData.outBatsmanId === currentInnings.currentStrikerId;
+    
+    // Record the wicket in the scoreboard with the appropriate data
+    dispatch(scoreBall({
+        runs: tempRuns,
+        wicket: true,
+        wicketType: wicketData.wicketType,
+        outBatsmanId: wicketData.outBatsmanId,
+        fielderId: wicketData.fielderId,
+        fielderName: wicketData.fielderName,
+    }));
+    
+    // Update the new batsman directly without showing the NextBatsmanModal
+    const teamKey = battingTeam.id === state.teamA.id ? 'teamA' : 'teamB';
+    
+    if (isStriker) {
+        dispatch(setCurrentStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
+    } else {
+        dispatch(setCurrentNonStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
+    }
+};
+
+    // Handle next batsman selection
+    // const handleSelectNextBatsman = (batsmanId: string) => {
+    //     const teamKey = battingTeam.id === state.teamA.id ? 'teamA' : 'teamB';
+        
+    //     if (isStrikerOut) {
+    //         dispatch(setCurrentStriker({ team: teamKey, playerId: batsmanId }));
+    //     } else {
+    //         dispatch(setCurrentNonStriker({ team: teamKey, playerId: batsmanId }));
+    //     }
+        
+    //     setShowNextBatsmanModal(false);
+    // };
 
     // Add a function to change the bowler anytime
     const handleChangeBowler = () => {
@@ -140,7 +197,6 @@ export default function ScoringScreen() {
                     />
                 </View>
 
-                <View style={styles.scoringContainer}>
                     <ExtrasToggle
                         wide={wide}
                         noBall={noBall}
@@ -152,21 +208,12 @@ export default function ScoringScreen() {
                         setLegBye={setLegBye}
                     />
 
-                        <WicketPanel
-                            wicketType={wicketType}
-                            setWicketType={setWicketType}
-                            outBatsmanId={outBatsmanId}
-                            setOutBatsmanId={setOutBatsmanId}
-                            battingTeam={battingTeam}
-                        />
-                    
-
                     <ScoringButtons
                         onScore={handleScore}
                         canScore={canScore}
                         onAdvancedScore={() => setShowAdvancedModal(true)}
-                        wicket={wicket}
-                        setWicket={setWicket}
+                        wicket={false}
+                        setWicket={handleWicketButtonPress}
                     />
 
                     <ActionButtons
@@ -183,7 +230,6 @@ export default function ScoringScreen() {
                     >
                         <Text style={styles.changeBowlerText}>Change Bowler</Text>
                     </TouchableOpacity>
-                </View>
             </ScrollView>
 
             {/* Modals */}
@@ -210,8 +256,8 @@ export default function ScoringScreen() {
                 visible={showBowlerModal}
                 onClose={() => setShowBowlerModal(false)}
                 bowlingTeam={bowlingTeam}
-                currentBowlerId={currentInnings.currentBowlerId}
-                lastOverBowlerId={currentInnings.lastOverBowlerId}
+                currentBowlerId={currentInnings?.currentBowlerId}
+                lastOverBowlerId={currentInnings?.lastOverBowlerId}
                 onSelectBowler={(bowlerId) => {
                     dispatch(setBowler({
                         team: bowlingTeam.id === state.teamA.id ? 'teamA' : 'teamB',
@@ -219,6 +265,25 @@ export default function ScoringScreen() {
                     }));
                     setShowBowlerModal(false);
                 }}
+            />
+
+            {/* <NextBatsmanModal
+                visible={showNextBatsmanModal}
+                onClose={() => setShowNextBatsmanModal(false)}
+                battingTeam={battingTeam}
+                outBatsmanId={isStrikerOut ? currentInnings?.currentStrikerId : currentInnings?.currentNonStrikerId}
+                isStriker={isStrikerOut}
+                onSelectBatsman={handleSelectNextBatsman}
+            /> */}
+            
+            <WicketModal
+                visible={showWicketModal}
+                onClose={() => setShowWicketModal(false)}
+                onConfirm={handleWicketConfirm}
+                battingTeam={battingTeam}
+                bowlingTeam={bowlingTeam}
+                currentStrikerId={currentInnings?.currentStrikerId || ''}
+                currentNonStrikerId={currentInnings?.currentNonStrikerId || ''}
             />
         </SafeAreaView>
     );
@@ -236,26 +301,17 @@ const styles = StyleSheet.create({
     playerInfoContainer: {
         marginVertical: 8,
     },
-    scoringContainer: {
-        marginTop: 8,
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 12,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-    },
+
     changeBowlerButton: {
         marginTop: 10,
-        padding: 10,
-        backgroundColor: '#007bff',
-        borderRadius: 5,
+        padding: 12,
+        backgroundColor: '#1B5E20',
+        borderRadius: 8,
         alignItems: 'center',
     },
     changeBowlerText: {
         color: '#fff',
         fontWeight: 'bold',
+        fontSize: 16,
     }
 });
