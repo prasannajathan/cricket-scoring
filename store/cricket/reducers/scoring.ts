@@ -25,20 +25,6 @@ export const scoringReducers = {
             }
         }
 
-        // Update bowler stats
-        const bowler = bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId);
-        if (bowler) {
-            bowler.runsConceded += totalRuns;
-            if (legalDelivery) {
-                bowler.ballsThisOver += 1;
-                const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
-                bowler.economy = (bowler.runsConceded / (totalBalls / 6));
-            }
-            if (wicket && !['runout', 'retired'].includes(wicketType || '')) {
-                bowler.wickets += 1;
-            }
-        }
-
         // Handle extras
         if (extraType === 'wide' || extraType === 'no-ball') {
             totalRuns += 1;
@@ -46,6 +32,49 @@ export const scoringReducers = {
             legalDelivery = false;
         } else if (extraType === 'bye' || extraType === 'leg-bye') {
             currentInnings.extras += runs;
+        }
+
+        // Update bowler stats - FIX HERE
+        const bowler = bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId);
+        if (bowler) {
+            // For wides, only count as extras, not as bowler's runs
+            if (extraType === 'wide') {
+                // Don't increment bowler's runs for wide balls
+                // Don't increment bowler's balls for wide balls
+            } 
+            // For no-balls, count the penalty run against the bowler
+            else if (extraType === 'no-ball') {
+                bowler.runsConceded += 1; // Just the no-ball penalty
+                // Don't increment ballsThisOver for no-balls
+                // If there are batsman runs on a no-ball, add them separately
+                if (runs > 0) {
+                    bowler.runsConceded += runs;
+                }
+            }
+            // For byes/leg-byes, count the ball but not the runs
+            else if (extraType === 'bye' || extraType === 'leg-bye') {
+                // Count the ball but not the runs
+                bowler.ballsThisOver += 1;
+                // Don't add runs to bowler's runsConceded
+            }
+            // For regular deliveries or batsman runs off no-balls
+            else {
+                bowler.runsConceded += totalRuns;
+                if (legalDelivery) {
+                    bowler.ballsThisOver += 1;
+                }
+            }
+            
+            // Update economy rate if balls have been bowled
+            const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
+            if (totalBalls > 0) {
+                bowler.economy = (bowler.runsConceded / (totalBalls / 6));
+            }
+            
+            // Handle wicket attribution
+            if (wicket && !['runout', 'retired'].includes(wicketType || '')) {
+                bowler.wickets += 1;
+            }
         }
 
         // Update innings total and check for completion

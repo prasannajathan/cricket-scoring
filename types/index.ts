@@ -22,15 +22,6 @@ export interface ScoreBallPayload {
     wicketType?: string;
     outBatsmanId?: string;
 }
-// moved from @types/index
-// export interface ScoreBallPayload {
-//     runs: number;            // runs from that ball (not counting extras)
-//     extraType?: 'wide' | 'no-ball' | 'bye' | 'leg-bye';
-//     wicket?: boolean;
-//     boundary?: boolean;      // if the shot was a 4 or 6
-//     outBatsmanId?: string;
-//     wicketType?: 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
-// }
 
 export interface DeliveryEvent {
     runs: number;
@@ -43,15 +34,6 @@ export interface DeliveryEvent {
     batsmanId: string;
     timestamp: number;
 }
-// moved from @types/index
-// export interface DeliveryEvent {
-//     runs: number;
-//     batsmanRuns: number;
-//     extraType?: 'wide' | 'no-ball' | 'bye' | 'leg-bye';
-//     wicket?: boolean;
-//     outBatsmanId?: string;
-//     wicketType?: 'bowled' | 'caught' | 'runout' | 'lbw' | 'stumped' | 'hitWicket' | 'retired' | 'other';
-// }
 
 export interface PartnershipRecord {
     runs: number;
@@ -60,16 +42,6 @@ export interface PartnershipRecord {
     player2Id: string;
     isActive: boolean;
 }
-// moved from @types/index
-// export interface PartnershipRecord {
-//     runs: number;
-//     batsman1Id: string;
-//     batsman2Id: string;
-//     startOver: number;
-//     endOver?: number;
-//     ballsFaced?: number;
-// }
-
 export interface InningsData {
     id: string;
     battingTeamId: string;
@@ -87,7 +59,6 @@ export interface InningsData {
     deliveries: DeliveryEvent[];
     isCompleted: boolean;
 }
-
 export interface SavedMatch {
     id: string;
     name: string;
@@ -100,7 +71,6 @@ export interface SavedMatch {
     matchResult?: string;
 }
 
-// moved from @types/index
 export interface Cricketer {
     // Batting fields
     id: string;
@@ -127,6 +97,7 @@ export interface Cricketer {
 
     // Team fields
     captain?: boolean;
+    isRetired?: boolean;
 }
 export interface Team {
     id: string;

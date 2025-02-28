@@ -32,14 +32,9 @@ export default function BowlerDisplay({ bowlingTeam, currentInnings }: BowlerDis
 
   if (!currentBowler) return null;
 
-  const computeOvers = (overs: number, balls: number) => {
-    return `${overs}.${balls}`;
-  };
+  const oversText = `${currentBowler.overs}.${currentBowler.ballsThisOver}`;
 
-  const computeEconomy = (runs: number, overs: number, balls: number) => {
-    const totalOvers = overs + (balls / 6);
-    return totalOvers > 0 ? (runs / totalOvers).toFixed(2) : '0.00';
-  };
+  const economy = currentBowler.economy.toFixed(2);
 
   return (
     <View style={styles.container}>
@@ -53,18 +48,10 @@ export default function BowlerDisplay({ bowlingTeam, currentInnings }: BowlerDis
       </View>
       <View style={styles.bowlerRow}>
         <Text style={[styles.bowlerStat, styles.nameCell]}>{currentBowler.name}</Text>
-        <Text style={styles.bowlerStat}>
-          {computeOvers(currentBowler.overs, currentBowler.ballsThisOver)}
-        </Text>
+        <Text style={styles.bowlerStat}>{oversText}</Text>
         <Text style={styles.bowlerStat}>{currentBowler.runsConceded}</Text>
         <Text style={styles.bowlerStat}>{currentBowler.wickets}</Text>
-        <Text style={styles.bowlerStat}>
-          {computeEconomy(
-            currentBowler.runsConceded,
-            currentBowler.overs,
-            currentBowler.ballsThisOver
-          )}
-        </Text>
+        <Text style={styles.bowlerStat}>{economy}</Text>
       </View>
     </View>
   );

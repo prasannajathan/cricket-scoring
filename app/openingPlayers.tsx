@@ -37,14 +37,14 @@ export default function OpeningPlayersScreen() {
 
   // PART 1: We show a list of existing players from battingTeam.players, plus an "Add new" input
   const [selectedStrikerId, setSelectedStrikerId] = useState('');
-  const [newStrikerName, setNewStrikerName] = useState('');
+  const [newStrikerName, setNewStrikerName] = useState('Sachin');
 
   const [selectedNonStrikerId, setSelectedNonStrikerId] = useState('');
-  const [newNonStrikerName, setNewNonStrikerName] = useState('');
+  const [newNonStrikerName, setNewNonStrikerName] = useState('Sehwag');
 
   // PART 2: For the bowler side
   const [selectedBowlerId, setSelectedBowlerId] = useState('');
-  const [newBowlerName, setNewBowlerName] = useState('');
+  const [newBowlerName, setNewBowlerName] = useState('Steyn');
 
   // Filter the existing players for the new batting side.
   // We might want only those who "bowled or fielded" last innings, or we can just show them all.

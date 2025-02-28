@@ -32,7 +32,7 @@ interface WicketModalProps {
     bowlingTeam: Team;
     currentStrikerId: string;
     currentNonStrikerId: string;
-    battingTeamKey: 'teamA' | 'teamB'; // Add this prop
+    battingTeamKey: 'teamA' | 'teamB';
 }
 
 export default function WicketModal({
@@ -109,23 +109,23 @@ export default function WicketModal({
         return battingTeam.players.find(p => p.id === nextBatsmanId)?.name || 'Next Batsman';
     };
 
-    const handleAddNewBatsman = () => {
-        if (!newBatsmanName.trim()) return;
-        
-        const newId = uuidv4();
-        
-        dispatch(addPlayer({
-            team: battingTeamKey, // Use the prop directly
-            player: createCricketer(newId, newBatsmanName.trim())
-        }));
-
-        setNextBatsmanId(newId);
-        setNewBatsmanName('');
-    };
-
     const handleConfirm = () => {
+        // If a new batsman name is provided, add them first
+        let finalNextBatsmanId = nextBatsmanId;
+        
+        if (newBatsmanName.trim() && !nextBatsmanId) {
+            const newId = uuidv4();
+            
+            dispatch(addPlayer({
+                team: battingTeamKey,
+                player: createCricketer(newId, newBatsmanName.trim())
+            }));
+            
+            finalNextBatsmanId = newId;
+        }
+        
         // Validate required inputs
-        if (!outBatsmanId || !nextBatsmanId) return;
+        if (!outBatsmanId || (!finalNextBatsmanId && !newBatsmanName.trim())) return;
         
         // Check if fielder is required but not provided
         if (needsFielder && !fielderId && !fielderName) return;
@@ -135,8 +135,18 @@ export default function WicketModal({
             outBatsmanId,
             fielderId,
             fielderName: fielderName || undefined,
-            nextBatsmanId
+            nextBatsmanId: finalNextBatsmanId || ''
         });
+    };
+
+    // Fix for the "key" prop warning - create batsman items directly
+    const renderBatsmanItem = (name: string, index: number) => {
+        return name;
+    };
+    
+    // Fix for fielder items
+    const renderFielderItem = (name: string, index: number) => {
+        return name;
     };
 
     return (
@@ -169,6 +179,7 @@ export default function WicketModal({
                                 textStyle={styles.dropdownText}
                                 dropdownStyle={styles.dropdownMenu}
                                 dropdownTextStyle={styles.dropdownMenuText}
+                                renderRow={renderBatsmanItem}
                             />
                         </View>
 
@@ -183,6 +194,7 @@ export default function WicketModal({
                                 textStyle={styles.dropdownText}
                                 dropdownStyle={styles.dropdownMenu}
                                 dropdownTextStyle={styles.dropdownMenuText}
+                                renderRow={renderBatsmanItem}
                             />
                         </View>
 
@@ -206,6 +218,7 @@ export default function WicketModal({
                                     textStyle={styles.dropdownText}
                                     dropdownStyle={styles.dropdownMenu}
                                     dropdownTextStyle={styles.dropdownMenuText}
+                                    renderRow={renderFielderItem}
                                 />
                                 
                                 <Text style={styles.orText}>OR</Text>
@@ -232,11 +245,13 @@ export default function WicketModal({
                                     defaultValue={getNextBatsmanName()}
                                     onSelect={(index: number) => {
                                         setNextBatsmanId(availableBatsmen[index].id);
+                                        setNewBatsmanName(''); // Clear new name when selecting from dropdown
                                     }}
                                     style={styles.dropdown}
                                     textStyle={styles.dropdownText}
                                     dropdownStyle={styles.dropdownMenu}
                                     dropdownTextStyle={styles.dropdownMenuText}
+                                    renderRow={renderBatsmanItem}
                                 />
                             ) : (
                                 <Text style={styles.noPlayersText}>No available batsmen</Text>
@@ -244,23 +259,18 @@ export default function WicketModal({
                             
                             <Text style={styles.orText}>OR</Text>
                             
-                            <View style={styles.addNewBatsmanContainer}>
+                            <View style={styles.newBatsmanContainer}>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="New batsman name"
                                     value={newBatsmanName}
-                                    onChangeText={setNewBatsmanName}
+                                    onChangeText={(text) => {
+                                        setNewBatsmanName(text);
+                                        if (text.trim()) {
+                                            setNextBatsmanId(undefined); // Clear selected batsman when typing
+                                        }
+                                    }}
                                 />
-                                <TouchableOpacity
-                                    style={[
-                                        styles.addButton, 
-                                        !newBatsmanName.trim() && styles.disabledButton
-                                    ]}
-                                    onPress={handleAddNewBatsman}
-                                    disabled={!newBatsmanName.trim()}
-                                >
-                                    <Text style={styles.addButtonText}>Add</Text>
-                                </TouchableOpacity>
                             </View>
                         </View>
                     </ScrollView>
@@ -277,10 +287,12 @@ export default function WicketModal({
                             style={[
                                 styles.button, 
                                 styles.confirmButton,
-                                (!nextBatsmanId || (needsFielder && !fielderId && !fielderName)) && styles.disabledButton
+                                ((!nextBatsmanId && !newBatsmanName.trim()) || 
+                                (needsFielder && !fielderId && !fielderName)) && styles.disabledButton
                             ]} 
                             onPress={handleConfirm}
-                            disabled={!nextBatsmanId || (needsFielder && !fielderId && !fielderName)}
+                            disabled={(!nextBatsmanId && !newBatsmanName.trim()) || 
+                                     (needsFielder && !fielderId && !fielderName)}
                         >
                             <Text style={styles.confirmText}>Confirm</Text>
                         </TouchableOpacity>
@@ -365,20 +377,8 @@ const styles = StyleSheet.create({
         padding: 12,
         fontSize: 16,
     },
-    addNewBatsmanContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    addButton: {
-        backgroundColor: '#1B5E20',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        marginLeft: 8,
-    },
-    addButtonText: {
-        color: '#fff',
-        fontWeight: '500',
+    newBatsmanContainer: {
+        marginTop: 8,
     },
     noPlayersText: {
         padding: 12,
