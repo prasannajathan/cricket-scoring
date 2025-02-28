@@ -5,16 +5,12 @@ interface ScoringButtonsProps {
     onScore: (runs: number) => void;
     canScore: boolean;
     onAdvancedScore: () => void;
-    wicket: boolean;  // Now used just for styling
-    setWicket: () => void;  // Now expects a function with no parameters
 }
 
 export default function ScoringButtons({ 
     onScore, 
     canScore, 
-    onAdvancedScore, 
-    wicket,
-    setWicket
+    onAdvancedScore
 }: ScoringButtonsProps) {
     const runButtons = [0, 1, 2, 3, 4, 6];
 
@@ -42,25 +38,6 @@ export default function ScoringButtons({
                         </Text>
                     </TouchableOpacity>
                 ))}
-                
-                {/* Wicket Button */}
-                <TouchableOpacity
-                    style={[
-                        styles.runButton,
-                        styles.wicketButton,
-                        !canScore ? styles.disabledButton : null
-                    ]}
-                    onPress={setWicket}
-                    disabled={!canScore}
-                >
-                    <Text style={[
-                        styles.runText,
-                        styles.wicketText,
-                        !canScore ? styles.disabledText : null
-                    ]}>
-                        W
-                    </Text>
-                </TouchableOpacity>
             </View>
             
             <TouchableOpacity

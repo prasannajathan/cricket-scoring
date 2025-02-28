@@ -16,6 +16,7 @@ import BowlerDisplay from '@/components/scoring/BowlerDisplay';
 import ExtrasToggle from '@/components/scoring/ExtrasToggle';
 import ScoringButtons from '@/components/scoring/ScoringButtons';
 import ActionButtons from '@/components/scoring/ActionButtons';
+import WicketToggle from '@/components/scoring/WicketToggle';
 
 // Import modals
 import PartnershipModal from '@/components/scoring/modals/PartnershipModal';
@@ -54,7 +55,7 @@ export default function ScoringScreen() {
     const [noBall, setNoBall] = useState(false);
     const [bye, setBye] = useState(false);
     const [legBye, setLegBye] = useState(false);
-    // const [isStrikerOut, setIsStrikerOut] = useState(false);
+    const [wicket, setWicket] = useState(false);
     const [tempRuns, setTempRuns] = useState(0);
 
     // Modal states
@@ -63,7 +64,6 @@ export default function ScoringScreen() {
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
     const [showBowlerModal, setShowBowlerModal] = useState(false);
     const [showWicketModal, setShowWicketModal] = useState(false);
-    // const [showNextBatsmanModal, setShowNextBatsmanModal] = useState(false);
 
     // Computed state
     const canScore = !!(currentInnings?.currentStrikerId && currentInnings?.currentBowlerId);
@@ -83,7 +83,13 @@ export default function ScoringScreen() {
             return;
         }
         
-        if (wide || noBall || bye || legBye) {
+        if (wicket) {
+            // Save runs for use in wicket modal
+            setTempRuns(runs);
+            
+            // Show wicket modal (with runs already attached)
+            setShowWicketModal(true);
+        } else if (wide || noBall || bye || legBye) {
             // Handle extras
             dispatch(scoreBall({
                 runs,
@@ -94,6 +100,9 @@ export default function ScoringScreen() {
             // Regular run scoring
             dispatch(scoreBall({ runs }));
         }
+        
+        // Reset wicket toggle after handling
+        setWicket(false);
     };
 
     // Open wicket modal when wicket button is pressed
@@ -120,12 +129,9 @@ const handleWicketConfirm = (wicketData: {
     // Close the wicket modal
     setShowWicketModal(false);
     
-    // Determine which batsman was out for next batsman selection
-    const isStriker = wicketData.outBatsmanId === currentInnings.currentStrikerId;
-    
-    // Record the wicket in the scoreboard with the appropriate data
+    // Record the wicket in the scoreboard with runs included
     dispatch(scoreBall({
-        runs: tempRuns,
+        runs: tempRuns, // These are the runs we saved earlier
         wicket: true,
         wicketType: wicketData.wicketType,
         outBatsmanId: wicketData.outBatsmanId,
@@ -133,8 +139,9 @@ const handleWicketConfirm = (wicketData: {
         fielderName: wicketData.fielderName,
     }));
     
-    // Update the new batsman directly without showing the NextBatsmanModal
+    // Update the new batsman directly
     const teamKey = battingTeam.id === state.teamA.id ? 'teamA' : 'teamB';
+    const isStriker = wicketData.outBatsmanId === currentInnings.currentStrikerId;
     
     if (isStriker) {
         dispatch(setCurrentStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
@@ -142,19 +149,6 @@ const handleWicketConfirm = (wicketData: {
         dispatch(setCurrentNonStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
     }
 };
-
-    // Handle next batsman selection
-    // const handleSelectNextBatsman = (batsmanId: string) => {
-    //     const teamKey = battingTeam.id === state.teamA.id ? 'teamA' : 'teamB';
-        
-    //     if (isStrikerOut) {
-    //         dispatch(setCurrentStriker({ team: teamKey, playerId: batsmanId }));
-    //     } else {
-    //         dispatch(setCurrentNonStriker({ team: teamKey, playerId: batsmanId }));
-    //     }
-        
-    //     setShowNextBatsmanModal(false);
-    // };
 
     // Add a function to change the bowler anytime
     const handleChangeBowler = () => {
@@ -197,39 +191,48 @@ const handleWicketConfirm = (wicketData: {
                     />
                 </View>
 
-                    <ExtrasToggle
-                        wide={wide}
-                        noBall={noBall}
-                        bye={bye}
-                        legBye={legBye}
-                        setWide={setWide}
-                        setNoBall={setNoBall}
-                        setBye={setBye}
-                        setLegBye={setLegBye}
-                    />
+                <View style={styles.scoringContainer}>
+                    <View style={styles.togglesContainer}>
+                        <ExtrasToggle
+                            wide={wide}
+                            noBall={noBall}
+                            bye={bye}
+                            legBye={legBye}
+                            setWide={setWide}
+                            setNoBall={setNoBall}
+                            setBye={setBye}
+                            setLegBye={setLegBye}
+                        />
+                        <WicketToggle
+                            wicket={wicket}
+                            setWicket={setWicket}
+                            disabled={!canScore}
+                        />
+                    </View>
 
                     <ScoringButtons
                         onScore={handleScore}
                         canScore={canScore}
                         onAdvancedScore={() => setShowAdvancedModal(true)}
-                        wicket={false}
-                        setWicket={handleWicketButtonPress}
                     />
 
-                    <ActionButtons
-                        canScore={canScore}
-                        onUndo={() => dispatch(undoLastBall())}
-                        onSwap={() => dispatch(swapBatsmen())}
-                        onPartnership={() => setShowPartnershipModal(true)}
-                        onExtras={() => setShowExtrasModal(true)}
-                    />
+                    {/* Rest of your components */}
+                </View>
 
-                    <TouchableOpacity 
-                        style={styles.changeBowlerButton}
-                        onPress={handleChangeBowler}
-                    >
-                        <Text style={styles.changeBowlerText}>Change Bowler</Text>
-                    </TouchableOpacity>
+                <ActionButtons
+                    canScore={canScore}
+                    onUndo={() => dispatch(undoLastBall())}
+                    onSwap={() => dispatch(swapBatsmen())}
+                    onPartnership={() => setShowPartnershipModal(true)}
+                    onExtras={() => setShowExtrasModal(true)}
+                />
+
+                <TouchableOpacity 
+                    style={styles.changeBowlerButton}
+                    onPress={handleChangeBowler}
+                >
+                    <Text style={styles.changeBowlerText}>Change Bowler</Text>
+                </TouchableOpacity>
             </ScrollView>
 
             {/* Modals */}
@@ -266,15 +269,6 @@ const handleWicketConfirm = (wicketData: {
                     setShowBowlerModal(false);
                 }}
             />
-
-            {/* <NextBatsmanModal
-                visible={showNextBatsmanModal}
-                onClose={() => setShowNextBatsmanModal(false)}
-                battingTeam={battingTeam}
-                outBatsmanId={isStrikerOut ? currentInnings?.currentStrikerId : currentInnings?.currentNonStrikerId}
-                isStriker={isStrikerOut}
-                onSelectBatsman={handleSelectNextBatsman}
-            /> */}
             
             <WicketModal
                 visible={showWicketModal}
@@ -302,7 +296,12 @@ const styles = StyleSheet.create({
     playerInfoContainer: {
         marginVertical: 8,
     },
-
+    scoringContainer: {
+        marginVertical: 8,
+    },
+    togglesContainer: {
+        marginVertical: 8,
+    },
     changeBowlerButton: {
         marginTop: 10,
         padding: 12,

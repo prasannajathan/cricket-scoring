@@ -61,7 +61,13 @@ export default function WicketModal({
         'run out',
         'stumped',
         'hit wicket',
-        'retired hurt'
+        'caught & bowled',
+        'retired hurt',
+        'retired out',
+        'timed out',
+        'handled the ball',
+        'obstructing the field',
+        'hit the ball twice',
     ];
     
     // Reset when modal opens
@@ -189,12 +195,12 @@ export default function WicketModal({
                             <ModalDropdown
                                 options={wicketTypes}
                                 defaultValue={wicketType}
-                                onSelect={(index: number, value: string) => setWicketType(value)}
+                                onSelect={(index: number) => setWicketType(wicketTypes[index])}
                                 style={styles.dropdown}
                                 textStyle={styles.dropdownText}
                                 dropdownStyle={styles.dropdownMenu}
                                 dropdownTextStyle={styles.dropdownMenuText}
-                                renderRow={renderBatsmanItem}
+                                renderRow={(option) => <Text style={styles.dropdownItem}>{option}</Text>}
                             />
                         </View>
 
