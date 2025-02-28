@@ -11,7 +11,7 @@ import {
     Platform
 } from 'react-native';
 import { Team, Cricketer } from '@/types';
-import ModalDropdown from 'react-native-modal-dropdown';
+import { Dropdown } from 'react-native-element-dropdown';
 import { useDispatch } from 'react-redux';
 import { addPlayer } from '@/store/cricket/scoreboardSlice';
 import { createCricketer } from '@/utils';
@@ -53,6 +53,7 @@ export default function WicketModal({
     const [fielderName, setFielderName] = useState('');
     const [nextBatsmanId, setNextBatsmanId] = useState<string | undefined>(undefined);
     const [newBatsmanName, setNewBatsmanName] = useState('');
+    const [isFocus, setIsFocus] = useState(false);
     
     const wicketTypes = [
         'bowled',
@@ -69,6 +70,11 @@ export default function WicketModal({
         'obstructing the field',
         'hit the ball twice',
     ];
+    
+    const wicketTypeData = wicketTypes.map(type => ({
+        label: type,
+        value: type
+    }));
     
     // Reset when modal opens
     useEffect(() => {
@@ -106,14 +112,29 @@ export default function WicketModal({
                  player.id !== currentNonStrikerId
     );
     
-    const getOutBatsmanName = () => {
-        return battingTeam.players.find(p => p.id === outBatsmanId)?.name || 'Batsman';
-    };
-
-    const getNextBatsmanName = () => {
-        if (!nextBatsmanId) return 'Select next batsman';
-        return battingTeam.players.find(p => p.id === nextBatsmanId)?.name || 'Next Batsman';
-    };
+    const batsmenData = [
+        { 
+            label: battingTeam.players.find(p => p.id === currentStrikerId)?.name || 'Striker', 
+            value: currentStrikerId 
+        },
+        { 
+            label: battingTeam.players.find(p => p.id === currentNonStrikerId)?.name || 'Non-striker', 
+            value: currentNonStrikerId 
+        }
+    ];
+    
+    const nextBatsmenData = availableBatsmen.map(p => ({
+        label: p.name,
+        value: p.id
+    }));
+    
+    const fielderData = [
+        { label: 'Select fielder', value: '' },
+        ...bowlingTeam.players.map(p => ({
+            label: p.name,
+            value: p.id
+        }))
+    ];
 
     const handleConfirm = () => {
         // If a new batsman name is provided, add them first
@@ -145,16 +166,6 @@ export default function WicketModal({
         });
     };
 
-    // Fix for the "key" prop warning - create batsman items directly
-    const renderBatsmanItem = (name: string, index: number) => {
-        return name;
-    };
-    
-    // Fix for fielder items
-    const renderFielderItem = (name: string, index: number) => {
-        return name;
-    };
-
     return (
         <Modal
             visible={visible}
@@ -172,35 +183,44 @@ export default function WicketModal({
                         {/* OUT BATSMAN SECTION */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Who is out?</Text>
-                            <ModalDropdown
-                                options={[
-                                    battingTeam.players.find(p => p.id === currentStrikerId)?.name || 'Striker',
-                                    battingTeam.players.find(p => p.id === currentNonStrikerId)?.name || 'Non-striker'
-                                ]}
-                                defaultValue={getOutBatsmanName()}
-                                onSelect={(index: number) => {
-                                    setOutBatsmanId(index === 0 ? currentStrikerId : currentNonStrikerId);
+                            <Dropdown
+                                style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
+                                placeholderStyle={styles.placeholderStyle}
+                                selectedTextStyle={styles.selectedTextStyle}
+                                data={batsmenData}
+                                maxHeight={300}
+                                labelField="label"
+                                valueField="value"
+                                placeholder="Select batsman"
+                                value={outBatsmanId}
+                                onFocus={() => setIsFocus(true)}
+                                onBlur={() => setIsFocus(false)}
+                                onChange={item => {
+                                    setOutBatsmanId(item.value);
+                                    setIsFocus(false);
                                 }}
-                                style={styles.dropdown}
-                                textStyle={styles.dropdownText}
-                                dropdownStyle={styles.dropdownMenu}
-                                dropdownTextStyle={styles.dropdownMenuText}
-                                renderRow={renderBatsmanItem}
                             />
                         </View>
 
                         {/* WICKET TYPE SECTION */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>How was the batsman dismissed?</Text>
-                            <ModalDropdown
-                                options={wicketTypes}
-                                defaultValue={wicketType}
-                                onSelect={(index: number) => setWicketType(wicketTypes[index])}
-                                style={styles.dropdown}
-                                textStyle={styles.dropdownText}
-                                dropdownStyle={styles.dropdownMenu}
-                                dropdownTextStyle={styles.dropdownMenuText}
-                                renderRow={(option) => <Text style={styles.dropdownItem}>{option}</Text>}
+                            <Dropdown
+                                style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
+                                placeholderStyle={styles.placeholderStyle}
+                                selectedTextStyle={styles.selectedTextStyle}
+                                data={wicketTypeData}
+                                maxHeight={300}
+                                labelField="label"
+                                valueField="value"
+                                placeholder="Select wicket type"
+                                value={wicketType}
+                                onFocus={() => setIsFocus(true)}
+                                onBlur={() => setIsFocus(false)}
+                                onChange={item => {
+                                    setWicketType(item.value);
+                                    setIsFocus(false);
+                                }}
                             />
                         </View>
 
@@ -208,23 +228,25 @@ export default function WicketModal({
                         {needsFielder && (
                             <View style={styles.section}>
                                 <Text style={styles.sectionTitle}>{getFielderLabel()}</Text>
-                                <ModalDropdown
-                                    options={[
-                                        'Select fielder',
-                                        ...bowlingTeam.players.map(p => p.name)
-                                    ]}
-                                    defaultValue="Select fielder"
-                                    onSelect={(index: number) => {
-                                        if (index > 0) {
-                                            setFielderId(bowlingTeam.players[index - 1].id);
+                                <Dropdown
+                                    style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
+                                    placeholderStyle={styles.placeholderStyle}
+                                    selectedTextStyle={styles.selectedTextStyle}
+                                    data={fielderData}
+                                    maxHeight={300}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Select fielder"
+                                    value={fielderId || ''}
+                                    onFocus={() => setIsFocus(true)}
+                                    onBlur={() => setIsFocus(false)}
+                                    onChange={item => {
+                                        if (item.value) {
+                                            setFielderId(item.value);
                                             setFielderName('');
                                         }
+                                        setIsFocus(false);
                                     }}
-                                    style={styles.dropdown}
-                                    textStyle={styles.dropdownText}
-                                    dropdownStyle={styles.dropdownMenu}
-                                    dropdownTextStyle={styles.dropdownMenuText}
-                                    renderRow={renderFielderItem}
                                 />
                                 
                                 <Text style={styles.orText}>OR</Text>
@@ -246,18 +268,23 @@ export default function WicketModal({
                             <Text style={styles.sectionTitle}>Select next batsman</Text>
                             
                             {availableBatsmen.length > 0 ? (
-                                <ModalDropdown
-                                    options={availableBatsmen.map(p => p.name)}
-                                    defaultValue={getNextBatsmanName()}
-                                    onSelect={(index: number) => {
-                                        setNextBatsmanId(availableBatsmen[index].id);
+                                <Dropdown
+                                    style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
+                                    placeholderStyle={styles.placeholderStyle}
+                                    selectedTextStyle={styles.selectedTextStyle}
+                                    data={nextBatsmenData}
+                                    maxHeight={300}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Select next batsman"
+                                    value={nextBatsmanId}
+                                    onFocus={() => setIsFocus(true)}
+                                    onBlur={() => setIsFocus(false)}
+                                    onChange={item => {
+                                        setNextBatsmanId(item.value);
                                         setNewBatsmanName(''); // Clear new name when selecting from dropdown
+                                        setIsFocus(false);
                                     }}
-                                    style={styles.dropdown}
-                                    textStyle={styles.dropdownText}
-                                    dropdownStyle={styles.dropdownMenu}
-                                    dropdownTextStyle={styles.dropdownMenuText}
-                                    renderRow={renderBatsmanItem}
                                 />
                             ) : (
                                 <Text style={styles.noPlayersText}>No available batsmen</Text>
@@ -349,25 +376,20 @@ const styles = StyleSheet.create({
         color: '#333',
     },
     dropdown: {
+        height: 50,
         backgroundColor: '#fff',
         borderRadius: 8,
         borderWidth: 1,
         borderColor: '#E0E0E0',
-        padding: 12,
-        justifyContent: 'center',
+        paddingHorizontal: 12,
     },
-    dropdownText: {
+    placeholderStyle: {
         fontSize: 16,
+        color: '#888',
     },
-    dropdownMenu: {
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#E0E0E0',
-        width: '90%',
-    },
-    dropdownMenuText: {
+    selectedTextStyle: {
         fontSize: 16,
-        padding: 12,
+        color: '#000',
     },
     orText: {
         textAlign: 'center',
@@ -382,6 +404,7 @@ const styles = StyleSheet.create({
         borderColor: '#E0E0E0',
         padding: 12,
         fontSize: 16,
+        height: 50,
     },
     newBatsmanContainer: {
         marginTop: 8,

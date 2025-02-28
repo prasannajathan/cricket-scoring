@@ -17,6 +17,7 @@ import ExtrasToggle from '@/components/scoring/ExtrasToggle';
 import ScoringButtons from '@/components/scoring/ScoringButtons';
 import ActionButtons from '@/components/scoring/ActionButtons';
 import WicketToggle from '@/components/scoring/WicketToggle';
+import OverRowDisplay from '@/components/scoring/OverRowDisplay';
 
 // Import modals
 import PartnershipModal from '@/components/scoring/modals/PartnershipModal';
@@ -190,7 +191,7 @@ const handleWicketConfirm = (wicketData: {
                         currentInnings={currentInnings}
                     />
                 </View>
-
+                <OverRowDisplay />
                 <View style={styles.scoringContainer}>
                     <View style={styles.togglesContainer}>
                         <ExtrasToggle
