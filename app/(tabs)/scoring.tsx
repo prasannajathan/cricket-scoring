@@ -137,7 +137,7 @@ const handleWicketConfirm = (wicketData: {
         wicketType: wicketData.wicketType,
         outBatsmanId: wicketData.outBatsmanId,
         fielderId: wicketData.fielderId,
-        fielderName: wicketData.fielderName,
+        // fielderName: wicketData.fielderName,
     }));
     
     // Update the new batsman directly

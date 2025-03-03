@@ -92,14 +92,14 @@ export const inningsReducers = {
         }
     },
 
-    wicketFallen: (state) => {
-        const battingTeam = state.teamA.batting ? state.teamA : state.teamB;
-        battingTeam.wickets += 1;
+    wicketFallen: (state: ScoreboardState) => {
+        const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
+        currentInnings.wickets += 1;
     },
 
-    incrementOvers: (state) => {
-        const battingTeam = state.teamA.batting ? state.teamA : state.teamB;
-        battingTeam.completedOvers += 1;
-        battingTeam.ballInCurrentOver = 0;
+    incrementOvers: (state: ScoreboardState) => {
+        const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
+        currentInnings.completedOvers += 1;
+        currentInnings.ballInCurrentOver = 0;
     },
 };

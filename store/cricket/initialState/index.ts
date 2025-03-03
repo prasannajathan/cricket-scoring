@@ -13,7 +13,11 @@ export const initialTeamState: ExtendedTeam = {
     currentBowlerId: undefined,
     currentStrikerId: undefined,
     currentNonStrikerId: undefined,
-    lastOverBowlerId: undefined
+    lastOverBowlerId: undefined,
+    wickets: 0,
+    completedOvers: 0,
+    totalRuns: 0,
+    ballInCurrentOver: 0,
 };
 
 const createInitialInnings = () => ({

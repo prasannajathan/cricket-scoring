@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { selectCurrentInnings } from '@/store/cricket/selectors';
-import { Delivery, InningsData } from '@/types';
+import { DeliveryEvent, InningsData } from '@/types';
 
 export default function OverRowDisplay() {
   const currentInnings = useSelector(selectCurrentInnings);
@@ -36,7 +36,7 @@ export default function OverRowDisplay() {
 }
 
 // Helper to get current over balls
-function getCurrentOverBalls(innings: InningsData): Delivery[] {
+function getCurrentOverBalls(innings: InningsData): DeliveryEvent[] {
   if (!innings || !innings.deliveries || innings.deliveries.length === 0) {
     return [];
   }
@@ -78,7 +78,7 @@ function getCurrentOverBalls(innings: InningsData): Delivery[] {
 }
 
 // Helper to format ball for display
-function formatBallDisplay(ball: Delivery): string {
+function formatBallDisplay(ball: DeliveryEvent): string {
   if (ball.wicket) return 'W';
   
   if (ball.extraType === 'wide') {

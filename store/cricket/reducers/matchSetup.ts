@@ -1,5 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
-import { ScoreboardState } from '@/types';
+import { initialState } from '@/store/cricket/initialState';
+import { ScoreboardState, SavedMatch } from '@/types';
 
 export const matchSetupReducers = {
     setTeamName: (state: ScoreboardState, action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>) => {
@@ -41,22 +42,22 @@ export const matchSetupReducers = {
         state.targetScore = undefined;
     },
 
-    clearMatchResult: (state) => {
+    clearMatchResult: (state: ScoreboardState) => {
         state.matchResult = undefined;
         state.matchOver = false;
     },
 
     resetGame: () => initialState,
 
-    setMatchResult: (state, action: PayloadAction<string>) => {
+    setMatchResult: (state: ScoreboardState, action: PayloadAction<string>) => {
         state.matchResult = action.payload;
     },
     
-    setMatchOver: (state, action: PayloadAction<boolean>) => {
+    setMatchOver: (state: ScoreboardState, action: PayloadAction<boolean>) => {
         state.matchOver = action.payload;
     },
     
-    loadSavedMatch: (state, action: PayloadAction<SavedMatch>) => {
+    loadSavedMatch: (state: ScoreboardState, action: PayloadAction<SavedMatch>) => {
         // Load all saved match data into state
         return {
             ...state,

@@ -21,6 +21,7 @@ export interface ScoreBallPayload {
     wicket?: boolean;
     wicketType?: string;
     outBatsmanId?: string;
+    fielderId?: string; 
 }
 
 export interface DeliveryEvent {
@@ -110,6 +111,10 @@ export interface Team {
     currentStrikerId?: string;
     currentNonStrikerId?: string;
     lastOverBowlerId?: string;
+    wickets: number;
+    completedOvers?: number;
+    totalRuns?: number;
+    ballInCurrentOver?: number;
 }
 
 export interface ScoreboardState {
