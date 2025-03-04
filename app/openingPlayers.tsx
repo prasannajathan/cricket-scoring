@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
-// Install react-native-get-random-values Import it before uuid:
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,7 +17,8 @@ import type { RootState } from '@/store';
 import { createCricketer } from '@/utils';
 import {
   addPlayer,
-  updateInningsPlayers
+  updateInningsPlayers,
+  startInnings2
 } from '@/store/cricket/scoreboardSlice';
 import { selectBattingTeam, selectBowlingTeam } from '@/store/cricket/selectors';
 
@@ -27,36 +27,55 @@ export default function OpeningPlayersScreen() {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const scoreboard = useSelector((state: RootState) => state.scoreboard);
-  // "innings" param from the query, e.g. ?innings=2
   const { innings = '1' } = useLocalSearchParams();
   const isSecondInnings = innings === '2';
-  const { teamA, teamB } = scoreboard;
+  const { teamA, teamB, innings1 } = scoreboard;
 
+  // Get the batting and bowling teams based on the current innings
   const battingTeam = useSelector(selectBattingTeam);
   const bowlingTeam = useSelector(selectBowlingTeam);
 
-  // PART 1: We show a list of existing players from battingTeam.players, plus an "Add new" input
+  // When showing players for the second innings, make sure to use the updated team assignments
+  useEffect(() => {
+    if (isSecondInnings) {
+        // Log the team info to confirm correct assignments
+        console.log('Second innings teams:', {
+            batting: battingTeam.teamName,
+            bowling: bowlingTeam.teamName,
+            battingId: battingTeam.id,
+            bowlingId: bowlingTeam.id
+        });
+    }
+  }, [isSecondInnings, battingTeam.id, bowlingTeam.id]);
+
+  // Get first innings information for showing target score
+  const firstInningsScore = isSecondInnings ? innings1.totalRuns : 0;
+  const targetScore = isSecondInnings ? firstInningsScore + 1 : undefined;
+  const firstInningsTeamName = isSecondInnings ? 
+    (innings1.battingTeamId === teamA.id ? teamA.teamName : teamB.teamName) : undefined;
+  const firstInningsWickets = isSecondInnings ? innings1.wickets : 0;
+  const firstInningsOvers = isSecondInnings ? 
+    `${innings1.completedOvers}.${innings1.ballInCurrentOver}` : 0;
+
   const [selectedStrikerId, setSelectedStrikerId] = useState('');
-  const [newStrikerName, setNewStrikerName] = useState('Sachin');
+  const [newStrikerName, setNewStrikerName] = useState('');
 
   const [selectedNonStrikerId, setSelectedNonStrikerId] = useState('');
-  const [newNonStrikerName, setNewNonStrikerName] = useState('Sehwag');
+  const [newNonStrikerName, setNewNonStrikerName] = useState('');
 
-  // PART 2: For the bowler side
   const [selectedBowlerId, setSelectedBowlerId] = useState('');
-  const [newBowlerName, setNewBowlerName] = useState('Steyn');
+  const [newBowlerName, setNewBowlerName] = useState('');
 
   // Filter the existing players for the new batting side.
-  // We might want only those who "bowled or fielded" last innings, or we can just show them all.
-  const existingBattingPlayers = battingTeam.players;
+  const existingBattingPlayers = battingTeam.players.filter(p => !p.isOut && !p.isRetired);
   const existingBowlingPlayers = bowlingTeam.players;
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: 'Select Opening Players',
+      title: isSecondInnings ? 'Second Innings Setup' : 'Select Opening Players',
       headerBackTitle: 'Back',
     });
-  }, [navigation]);
+  }, [navigation, isSecondInnings]);
 
   const validatePlayerSelection = (selectedId: string, newName: string): boolean => {
     return !selectedId && !newName.trim();
@@ -109,6 +128,12 @@ export default function OpeningPlayersScreen() {
 
     // Update innings with player IDs
     if (strikerId && nonStrikerId && bowlerId) {
+        // If it's the second innings, we need to start it properly
+        if (isSecondInnings) {
+          // Mark the first innings as complete and set up the second innings
+          dispatch(startInnings2());
+        }
+
         dispatch(updateInningsPlayers({
             inningNumber: isSecondInnings ? 2 : 1,
             currentStrikerId: strikerId,
@@ -123,71 +148,163 @@ export default function OpeningPlayersScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* The header back arrow typically appears automatically with a Stack.Navigator,
-          so you might not need a custom back button. */}
       <Text style={styles.title}>
         {isSecondInnings ? 'Second Innings' : 'First Innings'}: Select Opening Players
       </Text>
 
+      {/* First innings summary - only show for second innings */}
+      {isSecondInnings && targetScore && (
+        <View style={styles.firstInningsSummary}>
+          <Text style={styles.firstInningsHeading}>First Innings Summary</Text>
+          <Text style={styles.firstInningsScore}>
+            {firstInningsTeamName}: {firstInningsScore}/{firstInningsWickets} ({firstInningsOvers} overs)
+          </Text>
+          <Text style={styles.targetText}>
+            {battingTeam.teamName} needs {targetScore} runs to win
+          </Text>
+        </View>
+      )}
+
       {/* Striker */}
-      <Text style={styles.label}>Striker({battingTeam.teamName})</Text>
-      {/* Picker for existing players */}
-      {/* <Picker
-        selectedValue={selectedStrikerId}
-        onValueChange={(val) => setSelectedStrikerId(val)}
-      >
-        <Picker.Item label="(Select existing)" value="" />
-        {existingBattingPlayers.map((p) => (
-          <Picker.Item label={p.name} value={p.id} key={p.id} />
-        ))}
-      </Picker> */}
-      {/* Or new name input */}
+      <Text style={styles.label}>Striker ({battingTeam.teamName})</Text>
+      {existingBattingPlayers.length > 0 && (
+        <View style={styles.playerSelection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {existingBattingPlayers.map((player) => (
+              <TouchableOpacity 
+                key={player.id}
+                style={[
+                  styles.playerBubble,
+                  selectedStrikerId === player.id ? styles.selectedPlayerBubble : {}
+                ]}
+                onPress={() => {
+                  setSelectedStrikerId(player.id);
+                  setNewStrikerName('');
+                }}
+              >
+                <Text style={[
+                  styles.playerBubbleText,
+                  selectedStrikerId === player.id ? styles.selectedPlayerBubbleText : {}
+                ]}>
+                  {player.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
       <TextInput
-        style={styles.textInput}
+        style={[
+          styles.textInput, 
+          selectedStrikerId ? styles.disabledInput : {}
+        ]}
         placeholder="Add new Striker name"
         value={newStrikerName}
-        onChangeText={setNewStrikerName}
+        onChangeText={text => {
+          setNewStrikerName(text);
+          if (text.trim()) {
+            setSelectedStrikerId('');
+          }
+        }}
+        editable={!selectedStrikerId}
       />
 
       {/* Non-striker */}
       <Text style={styles.label}>Non-Striker ({battingTeam.teamName})</Text>
-      {/* <Picker
-        selectedValue={selectedNonStrikerId}
-        onValueChange={(val) => setSelectedNonStrikerId(val)}
-      >
-        <Picker.Item label="(Select existing)" value="" />
-        {existingBattingPlayers.map((p) => (
-          <Picker.Item label={p.name} value={p.id} key={p.id} />
-        ))}
-      </Picker> */}
+      {existingBattingPlayers.length > 0 && (
+        <View style={styles.playerSelection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {existingBattingPlayers
+              .filter(p => p.id !== selectedStrikerId)
+              .map((player) => (
+                <TouchableOpacity 
+                  key={player.id}
+                  style={[
+                    styles.playerBubble,
+                    selectedNonStrikerId === player.id ? styles.selectedPlayerBubble : {}
+                  ]}
+                  onPress={() => {
+                    setSelectedNonStrikerId(player.id);
+                    setNewNonStrikerName('');
+                  }}
+                >
+                  <Text style={[
+                    styles.playerBubbleText,
+                    selectedNonStrikerId === player.id ? styles.selectedPlayerBubbleText : {}
+                  ]}>
+                    {player.name}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            }
+          </ScrollView>
+        </View>
+      )}
       <TextInput
-        style={styles.textInput}
+        style={[
+          styles.textInput, 
+          selectedNonStrikerId ? styles.disabledInput : {}
+        ]}
         placeholder="Add new Non-Striker name"
         value={newNonStrikerName}
-        onChangeText={setNewNonStrikerName}
+        onChangeText={text => {
+          setNewNonStrikerName(text);
+          if (text.trim()) {
+            setSelectedNonStrikerId('');
+          }
+        }}
+        editable={!selectedNonStrikerId}
       />
 
       {/* Opening bowler */}
       <Text style={styles.label}>Opening Bowler ({bowlingTeam.teamName})</Text>
-      {/* <Picker
-        selectedValue={selectedBowlerId}
-        onValueChange={(val) => setSelectedBowlerId(val)}
-      >
-        <Picker.Item label="(Select existing)" value="" />
-        {existingBowlingPlayers.map((p) => (
-          <Picker.Item label={p.name} value={p.id} key={p.id} />
-        ))}
-      </Picker> */}
+      {existingBowlingPlayers.length > 0 && (
+        <View style={styles.playerSelection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {existingBowlingPlayers.map((player) => (
+              <TouchableOpacity 
+                key={player.id}
+                style={[
+                  styles.playerBubble,
+                  selectedBowlerId === player.id ? styles.selectedPlayerBubble : {}
+                ]}
+                onPress={() => {
+                  setSelectedBowlerId(player.id);
+                  setNewBowlerName('');
+                }}
+              >
+                <Text style={[
+                  styles.playerBubbleText,
+                  selectedBowlerId === player.id ? styles.selectedPlayerBubbleText : {}
+                ]}>
+                  {player.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
       <TextInput
-        style={styles.textInput}
+        style={[
+          styles.textInput, 
+          selectedBowlerId ? styles.disabledInput : {}
+        ]}
         placeholder="Add new Bowler name"
         value={newBowlerName}
-        onChangeText={setNewBowlerName}
+        onChangeText={text => {
+          setNewBowlerName(text);
+          if (text.trim()) {
+            setSelectedBowlerId('');
+          }
+        }}
+        editable={!selectedBowlerId}
       />
 
       {/* Start Match Button */}
       <TouchableOpacity style={styles.startButton} onPress={handleStartScoring}>
-        <Text style={styles.startButtonText}>Start match</Text>
+        <Text style={styles.startButtonText}>
+          {isSecondInnings ? 'Start Second Innings' : 'Start Match'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -205,25 +322,78 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
+  firstInningsSummary: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+  },
+  firstInningsHeading: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+    marginBottom: 8,
+  },
+  firstInningsScore: {
+    fontSize: 18,
+    color: '#1B5E20',
+    marginBottom: 8,
+  },
+  targetText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#D32F2F',
+  },
   label: {
     fontSize: 16,
     color: '#2E7D32',
-    marginBottom: 4,
+    fontWeight: '500',
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  playerSelection: {
+    marginBottom: 12,
+  },
+  playerBubble: {
+    backgroundColor: '#E0E0E0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  selectedPlayerBubble: {
+    backgroundColor: '#2E7D32',
+  },
+  playerBubbleText: {
+    color: '#424242',
+    fontSize: 14,
+  },
+  selectedPlayerBubbleText: {
+    color: '#FFFFFF',
   },
   textInput: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCC',
+    borderWidth: 1,
+    borderColor: '#CCC',
+    borderRadius: 8,
     marginBottom: 16,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: '#FFF',
+    fontSize: 16,
+  },
+  disabledInput: {
+    backgroundColor: '#F1F1F1',
+    color: '#9E9E9E',
   },
   startButton: {
     backgroundColor: '#2E7D32',
     paddingVertical: 14,
     borderRadius: 6,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 16,
+    marginBottom: 32,
   },
   startButtonText: {
     color: '#FFFFFF',

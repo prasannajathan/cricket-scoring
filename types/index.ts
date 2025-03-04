@@ -59,6 +59,7 @@ export interface InningsData {
     partnerships: PartnershipRecord[];
     deliveries: DeliveryEvent[];
     isCompleted: boolean;
+    readyForInnings2?: boolean;
 }
 export interface SavedMatch {
     id: string;

@@ -24,6 +24,7 @@ export const {
     setTossChoice,
     setTotalOvers,
     initializeInnings,
+    startInnings2,
     setCurrentStriker,
     setCurrentNonStriker,
     addPlayer,

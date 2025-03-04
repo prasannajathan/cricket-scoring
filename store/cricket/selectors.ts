@@ -3,16 +3,25 @@ import { RootState } from '@/store';
 export const selectCurrentInnings = (state: RootState) => 
     state.scoreboard.currentInning === 1 ? state.scoreboard.innings1 : state.scoreboard.innings2;
 
+// Update these selectors to reliably determine the batting and bowling teams
 export const selectBattingTeam = (state: RootState) => {
-  const { teamA, teamB, currentInning } = state.scoreboard;
-  const currentInnings = currentInning === 2 ? state.scoreboard.innings2 : state.scoreboard.innings1;
-  return teamA.id === currentInnings.battingTeamId ? teamA : teamB;
+    const currentInning = state.scoreboard.currentInning;
+    const innings = currentInning === 1 ? state.scoreboard.innings1 : state.scoreboard.innings2;
+    
+    // Using the battingTeamId to determine the correct team
+    return innings.battingTeamId === state.scoreboard.teamA.id 
+        ? state.scoreboard.teamA 
+        : state.scoreboard.teamB;
 };
 
 export const selectBowlingTeam = (state: RootState) => {
-  const { teamA, teamB, currentInning } = state.scoreboard;
-  const currentInnings = currentInning === 2 ? state.scoreboard.innings2 : state.scoreboard.innings1;
-  return teamA.id === currentInnings.bowlingTeamId ? teamA : teamB;
+    const currentInning = state.scoreboard.currentInning;
+    const innings = currentInning === 1 ? state.scoreboard.innings1 : state.scoreboard.innings2;
+    
+    // Using the bowlingTeamId to determine the correct team
+    return innings.bowlingTeamId === state.scoreboard.teamA.id 
+        ? state.scoreboard.teamA 
+        : state.scoreboard.teamB;
 };
 
 export const selectCurrentBowler = (state: RootState) => {

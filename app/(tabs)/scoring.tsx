@@ -24,8 +24,8 @@ import PartnershipModal from '@/components/scoring/modals/PartnershipModal';
 import ExtrasModal from '@/components/scoring/modals/ExtrasModal';
 import AdvancedScoringModal from '@/components/scoring/modals/AdvancedScoringModal';
 import NextBowlerModal from '@/components/scoring/modals/NextBowlerModal';
-import NextBatsmanModal from '@/components/scoring/modals/NextBatsmanModal';
 import WicketModal from '@/components/scoring/modals/WicketModal';
+import EndInningsModal from '@/components/scoring/modals/EndInningsModal';
 
 // Import actions
 import {
@@ -33,6 +33,7 @@ import {
     undoLastBall,
     swapBatsmen,
     setBowler,
+    endInnings,
     addExtraRuns,
     setCurrentStriker,
     setCurrentNonStriker
@@ -65,6 +66,7 @@ export default function ScoringScreen() {
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
     const [showBowlerModal, setShowBowlerModal] = useState(false);
     const [showWicketModal, setShowWicketModal] = useState(false);
+    const [showEndInningsModal, setShowEndInningsModal] = useState(false);
 
     // Computed state
     const canScore = !!(currentInnings?.currentStrikerId && currentInnings?.currentBowlerId);
@@ -75,6 +77,18 @@ export default function ScoringScreen() {
         setNoBall(false);
         setBye(false);
         setLegBye(false);
+    };
+
+    // Add a reset function at the top of your component
+    const resetScoringState = () => {
+        resetExtrasState();
+        setWicket(false);
+        setTempRuns(0);
+        setShowPartnershipModal(false);
+        setShowExtrasModal(false); 
+        setShowAdvancedModal(false);
+        setShowBowlerModal(false);
+        setShowWicketModal(false);
     };
 
     // Scoring handler
@@ -107,19 +121,18 @@ export default function ScoringScreen() {
     };
 
     // Open wicket modal when wicket button is pressed
-    const handleWicketButtonPress = () => {
-        if (!canScore) {
-            setShowBowlerModal(true);
-            return;
-        }
+    // const handleWicketButtonPress = () => {
+    //     if (!canScore) {
+    //         setShowBowlerModal(true);
+    //         return;
+    //     }
         
-        // Store the current runs temporarily (in case we want to add runs with the wicket)
-        setTempRuns(0); 
-        setShowWicketModal(true);
-    };
+    //     // Store the current runs temporarily (in case we want to add runs with the wicket)
+    //     setTempRuns(0); 
+    //     setShowWicketModal(true);
+    // };
 
-    // Update the handleWicketConfirm function:
-
+    // Update the handleWicketConfirm function to include fielderName and better handle the next batsman
 const handleWicketConfirm = (wicketData: {
     wicketType: string;
     outBatsmanId: string;
@@ -142,7 +155,7 @@ const handleWicketConfirm = (wicketData: {
     
     // Update the new batsman directly
     const teamKey = battingTeam.id === state.teamA.id ? 'teamA' : 'teamB';
-    const isStriker = wicketData.outBatsmanId === currentInnings.currentStrikerId;
+    const isStriker = wicketData.outBatsmanId === currentInnings?.currentStrikerId;
     
     if (isStriker) {
         dispatch(setCurrentStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
@@ -156,19 +169,126 @@ const handleWicketConfirm = (wicketData: {
         setShowBowlerModal(true);
     };
 
-    // Check for over completion and show bowler modal
+    // Update this useEffect to prevent showing the bowler modal when innings is done
     useEffect(() => {
-        if (currentInnings?.ballInCurrentOver === 0 && currentInnings?.completedOvers > 0) {
+        // Only show bowler modal for new over if:
+        // 1. The over is complete (ballInCurrentOver === 0 and completedOvers > 0)
+        // 2. AND the innings is not complete (not readyForInnings2)
+        if (currentInnings?.ballInCurrentOver === 0 && 
+            currentInnings?.completedOvers > 0 &&
+            !currentInnings?.readyForInnings2 && 
+            !currentInnings?.isCompleted) {
             setShowBowlerModal(true);
         }
-    }, [currentInnings?.ballInCurrentOver, currentInnings?.completedOvers]);
+    }, [currentInnings?.ballInCurrentOver, currentInnings?.completedOvers, currentInnings?.readyForInnings2, currentInnings?.isCompleted]);
 
     // Check for innings completion
+    const [isComponentMounted, setIsComponentMounted] = useState(false);
+    
+    // Mark the component as mounted after the initial render
     useEffect(() => {
-        if (currentInnings?.isCompleted) {
-            router.push('/scorecard');
+        setIsComponentMounted(true);
+        return () => setIsComponentMounted(false);
+    }, []);
+
+    // Add this useEffect to reset state when the component mounts or the innings changes
+    useEffect(() => {
+        resetScoringState();
+    }, [state.currentInning]);
+
+    // Add this debugging function to your component
+const debugInningsStatus = () => {
+    console.log('Current status:', {
+        inning: state.currentInning,
+        battingTeam: battingTeam?.teamName,
+        bowlingTeam: bowlingTeam?.teamName,
+        isCompleted: currentInnings?.isCompleted,
+        readyForInnings2: currentInnings?.readyForInnings2,
+        wickets: currentInnings?.wickets,
+        completedOvers: currentInnings?.completedOvers,
+        totalOvers: state.totalOvers,
+        showEndInningsModal
+    });
+};
+
+// Modify this useEffect to handle both conditions properly
+useEffect(() => {
+    // Only run this effect if the component is fully mounted
+    if (!isComponentMounted) return;
+    
+    const checkInningsStatus = () => {
+        if (!currentInnings) return;
+        
+        // Debug the current status
+        debugInningsStatus();
+        
+        // Handle second innings completion - navigate to scorecard
+        if (state.currentInning === 2 && currentInnings.isCompleted) {
+            const timer = setTimeout(() => {
+                router.push('/scorecard');
+            }, 300);
+            return () => clearTimeout(timer);
         }
-    }, [currentInnings?.isCompleted]);
+        
+        // Handle first innings readiness for transitioning to second innings
+        if (state.currentInning === 1 && currentInnings.readyForInnings2 && !showEndInningsModal) {
+            // Close any other open modals
+            setShowBowlerModal(false);
+            setShowWicketModal(false);
+            setShowPartnershipModal(false);
+            setShowExtrasModal(false);
+            setShowAdvancedModal(false);
+            
+            // Show the end innings modal
+            setShowEndInningsModal(true);
+            return;
+        }
+        
+        // Check if first innings should be marked as ready for innings 2
+        if (state.currentInning === 1 && 
+            currentInnings.battingTeamId && 
+            currentInnings.currentStrikerId) {
+            
+            const allOut = currentInnings.wickets >= battingTeam.players.filter(p => !p.isRetired).length - 1;
+            const oversComplete = currentInnings.completedOvers >= state.totalOvers;
+            
+            if ((allOut || oversComplete) && !currentInnings.readyForInnings2) {
+                // Use checkInningsCompletion instead of endInnings
+                dispatch({ type: 'scoreboard/checkInningsCompletion' });
+            }
+        }
+    };
+    
+    // Use a shorter timeout
+    const timer = setTimeout(checkInningsStatus, 150);
+    return () => clearTimeout(timer);
+    
+}, [
+    isComponentMounted,
+    currentInnings?.isCompleted,
+    currentInnings?.readyForInnings2,
+    currentInnings?.wickets,
+    currentInnings?.completedOvers,
+    state.currentInning,
+    currentInnings?.battingTeamId,
+    currentInnings?.currentStrikerId,
+    showEndInningsModal
+]);
+
+// Add this handler for the modal confirmation
+const handleEndInningsConfirm = () => {
+    console.log('End innings confirmed - navigating to openingPlayers');
+    setShowEndInningsModal(false);
+    
+    // Set a flag to prevent multiple navigation attempts
+    const navigating = true;
+    
+    // Navigate to the second innings setup screen after a short delay
+    // This ensures the modal is fully closed before navigation
+    setTimeout(() => {
+        router.push('/openingPlayers?innings=2');
+    }, 100);
+};
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -280,6 +400,12 @@ const handleWicketConfirm = (wicketData: {
                 currentStrikerId={currentInnings?.currentStrikerId || ''}
                 currentNonStrikerId={currentInnings?.currentNonStrikerId || ''}
                 battingTeamKey={battingTeam.id === state.teamA.id ? 'teamA' : 'teamB'}
+            />
+
+            <EndInningsModal
+                visible={showEndInningsModal}
+                onClose={() => setShowEndInningsModal(false)}
+                onConfirm={handleEndInningsConfirm}
             />
         </SafeAreaView>
     );
