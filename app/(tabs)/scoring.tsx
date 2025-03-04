@@ -39,6 +39,16 @@ import {
     setCurrentNonStriker
 } from '@/store/cricket/scoreboardSlice';
 
+// Import useLocalStorage from Expo at the top of your file
+import * as SecureStore from 'expo-secure-store';
+
+// Add import
+import { showAlertOnce } from '@/utils/onceAlert';
+
+// At the top of your file, OUTSIDE of your component
+// This will persist across component remounts
+const SHOWN_MATCH_ALERTS = new Set<string>();
+
 export default function ScoringScreen() {
     const router = useRouter();
     const dispatch = useDispatch();
@@ -89,8 +99,6 @@ export default function ScoringScreen() {
         setShowAdvancedModal(false);
         setShowBowlerModal(false);
         setShowWicketModal(false);
-        isNavigating.current = false;
-        matchAlertShown.current = false;
         setShowEndInningsModal(false);
     };
 
@@ -136,18 +144,6 @@ export default function ScoringScreen() {
         // Reset wicket toggle after handling
         setWicket(false);
     };
-
-    // Open wicket modal when wicket button is pressed
-    // const handleWicketButtonPress = () => {
-    //     if (!canScore) {
-    //         setShowBowlerModal(true);
-    //         return;
-    //     }
-        
-    //     // Store the current runs temporarily (in case we want to add runs with the wicket)
-    //     setTempRuns(0); 
-    //     setShowWicketModal(true);
-    // };
 
     // Update the handleWicketConfirm function to include fielderName and better handle the next batsman
 const handleWicketConfirm = (wicketData: {
@@ -334,36 +330,30 @@ const handleEndInningsConfirm = () => {
     }, 150);
 };
 
-// Add this useEffect to check for match completion
-useEffect(() => {
-    if (state.matchOver && !isNavigating.current) {
-        isNavigating.current = true;
-        console.log("Match is over! Winner:", state.matchResult);
-        
-        // Show the match result as an alert
-        Alert.alert(
-            "Match Completed",
-            state.matchResult || "Match has ended.",
-            [
-                { 
-                    text: "View Scorecard", 
-                    onPress: () => {
-                        setTimeout(() => {
-                            router.push('/scorecard');
-                        }, 100);
-                    }
-                }
-            ]
-        );
-    }
-}, [state.matchOver, state.matchResult]);
 
-// Add a new useEffect to handle match completion alerts
+// Replace your current alert useEffect with this much simpler version
 useEffect(() => {
-    if (state.matchOver && state.matchResult && !isNavigating.current) {
-        console.log("Match is over, showing alert:", state.matchResult);
-        isNavigating.current = true;
-        
+    // Only show if match is over and has a result
+    if (!state.matchOver || !state.matchResult) {
+        return;
+    }
+    
+    // Create a key for this specific match alert
+    const alertKey = `match-${state.id}-completed`;
+    
+    // Check if we've already shown this alert during this app session
+    if (SHOWN_MATCH_ALERTS.has(alertKey)) {
+        console.log(`Alert for match ${alertKey} already shown in this app session, skipping`);
+        return;
+    }
+    
+    // Mark as shown IMMEDIATELY before any async operations
+    SHOWN_MATCH_ALERTS.add(alertKey);
+    
+    console.log(`First time showing alert for match ${alertKey}, proceeding`);
+    
+    // Show the alert after a short delay to let UI settle
+    setTimeout(() => {
         Alert.alert(
             "Match Completed",
             state.matchResult,
@@ -379,74 +369,8 @@ useEffect(() => {
             ],
             { cancelable: false }
         );
-    }
-}, [state.matchOver, state.matchResult]);
-
-// Modify your matchOver useEffect to use a ref to track if the alert has been shown
-const matchAlertShown = useRef(false);
-
-useEffect(() => {
-    if (state.matchOver && state.matchResult && !isNavigating.current && !matchAlertShown.current) {
-        console.log("Match is over, showing alert:", state.matchResult);
-        
-        // Mark both flags to prevent duplicate navigation and alerts
-        isNavigating.current = true;
-        matchAlertShown.current = true;
-        
-        Alert.alert(
-            "Match Completed",
-            state.matchResult,
-            [
-                {
-                    text: "View Scorecard",
-                    onPress: () => {
-                        setTimeout(() => {
-                            router.push('/scorecard');
-                        }, 100);
-                    }
-                }
-            ],
-            { cancelable: false }
-        );
-    }
-}, [state.matchOver, state.matchResult]);
-
-// Use state to track if alert has been shown
-const [alertShown, setAlertShown] = useState(false);
-
-// Then in your useEffect
-useEffect(() => {
-    // Only show alert if match is over, there's a result, and alert hasn't been shown yet
-    if (state.matchOver && state.matchResult && !alertShown) {
-        console.log("Match is over, showing alert (state-based):", state.matchResult);
-        
-        // Mark alert as shown
-        setAlertShown(true);
-        
-        Alert.alert(
-            "Match Completed",
-            state.matchResult,
-            [
-                {
-                    text: "View Scorecard",
-                    onPress: () => {
-                        setTimeout(() => {
-                            router.push('/scorecard');
-                        }, 100);
-                    }
-                }
-            ],
-            { cancelable: false }
-        );
-    }
-}, [state.matchOver, state.matchResult, alertShown]);
-
-// Reset the flag when match state changes
-useEffect(() => {
-    if (!state.matchOver) {
-        setAlertShown(false);
-    }
-}, [state.matchOver]);
+    }, 500);
+}, [state.matchOver, state.matchResult, state.id]);
 
     return (
         <SafeAreaView style={styles.safeArea}>

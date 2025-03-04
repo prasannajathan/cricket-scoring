@@ -98,25 +98,31 @@ export const scoringReducers = {
         
         // Check for target reached BEFORE handling ball count
         if (state.currentInning === 2 && state.targetScore && currentInnings.totalRuns >= state.targetScore) {
-            console.log("Target reached!", {
-                totalRuns: currentInnings.totalRuns,
-                targetScore: state.targetScore,
-                battingTeam: battingTeam.teamName
-            });
-            
             // Match is won by the batting team
             currentInnings.isCompleted = true;
             state.matchOver = true;
             
             // Calculate the margin of victory (by wickets)
-            // Use the actual number of active batsmen for accurate calculation
-            const totalWickets = battingTeam.players.filter(p => !p.isRetired).length - 1;
             const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets);
             
             // Set the match result
             state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
             
-            // Just record the delivery and return
+            // Make sure to update the ball count for a legal delivery before ending
+            if (legalDelivery) {
+                // Increment ball count
+                currentInnings.ballInCurrentOver += 1;
+                
+                // Check if over is complete
+                if (currentInnings.ballInCurrentOver === 6) {
+                    currentInnings.completedOvers += 1;
+                    currentInnings.ballInCurrentOver = 0;
+                    
+                    // No need to swap bowlers as match is over
+                }
+            }
+            
+            // Record the delivery
             currentInnings.deliveries.push({
                 runs,
                 batsmanRuns: extraType === 'bye' || extraType === 'leg-bye' ? 0 : runs,
