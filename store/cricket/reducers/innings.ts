@@ -3,6 +3,7 @@ import { ScoreboardState } from '@/types';
 // Install react-native-get-random-values Import it before uuid:
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
+import { checkInningsCompletionHelper } from '@/utils';
 
 export const inningsReducers = {
     initializeInnings: (state: ScoreboardState, action: PayloadAction<{ battingTeamId: string; bowlingTeamId: string }>) => {
@@ -53,40 +54,7 @@ export const inningsReducers = {
     },
 
     checkInningsCompletion: (state: ScoreboardState) => {
-        const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
-        
-        // Guard against checking incomplete innings
-        if (!currentInnings.battingTeamId || !currentInnings.bowlingTeamId) {
-            return;
-        }
-        
-        // Check for completion conditions
-        const allOut = currentInnings.wickets >= state.totalPlayers - 1;  
-        const oversComplete = currentInnings.completedOvers >= state.totalOvers;
-        const targetReached = state.currentInning === 2 && 
-                              state.targetScore && 
-                              currentInnings.totalRuns >= state.targetScore;
-        
-        if (allOut || oversComplete || targetReached) {
-            // Don't mark the first innings as completed here - let startInnings2 handle that
-            if (state.currentInning === 2) {
-                state.innings2.isCompleted = true;
-                state.matchOver = true;
-
-                // Set match result
-                if (currentInnings.totalRuns >= (state.targetScore || 0)) {
-                    const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-                    state.matchResult = `${battingTeam.teamName} wins by ${state.totalPlayers - 1 - currentInnings.wickets} wickets`;
-                } else {
-                    const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-                    state.matchResult = `${bowlingTeam.teamName} wins by ${state.targetScore! - currentInnings.totalRuns - 1} runs`;
-                }
-            }
-            // For first innings, just set a flag for the UI but don't mark as completed
-            else {
-                state.innings1.readyForInnings2 = true;
-            }
-        }
+        checkInningsCompletionHelper(state);
     },
 
     wicketFallen: (state: ScoreboardState) => {
@@ -99,14 +67,31 @@ export const inningsReducers = {
         currentInnings.completedOvers += 1;
         currentInnings.ballInCurrentOver = 0;
     },
+    
+    setCurrentInning: (state, action: PayloadAction<number>) => {
+        state.currentInning = action.payload;
+    },
 
     startInnings2: (state: ScoreboardState) => {
         // Set current inning to 2
         state.currentInning = 2;
         
-        // Swap the batting and bowling teams
+        // Explicitly swap the batting and bowling teams
         state.innings2.battingTeamId = state.innings1.bowlingTeamId;
         state.innings2.bowlingTeamId = state.innings1.battingTeamId;
+        
+        // Update the isBatting and isBowling flags on the teams
+        if (state.innings2.battingTeamId === state.teamA.id) {
+            state.teamA.isBatting = true;
+            state.teamA.isBowling = false;
+            state.teamB.isBatting = false;
+            state.teamB.isBowling = true;
+        } else {
+            state.teamA.isBatting = false;
+            state.teamA.isBowling = true;
+            state.teamB.isBatting = true;
+            state.teamB.isBowling = false;
+        }
         
         // Mark first innings as complete
         state.innings1.isCompleted = true;
@@ -115,13 +100,21 @@ export const inningsReducers = {
         state.innings2.ballInCurrentOver = 0;
         state.innings2.completedOvers = 0;
         
-        // Target score for second innings
+        // CRITICAL: Set target score for second innings
         state.targetScore = state.innings1.totalRuns + 1;
         
-        // Update the isBatting and isBowling flags on the teams
-        state.teamA.isBatting = state.innings2.battingTeamId === state.teamA.id;
-        state.teamA.isBowling = !state.teamA.isBatting;
-        state.teamB.isBatting = !state.teamA.isBatting;
-        state.teamB.isBowling = !state.teamB.isBatting;
+        console.log("Starting Innings 2:", {
+            battingTeam: state.innings2.battingTeamId === state.teamA.id ? "Team A" : "Team B",
+            bowlingTeam: state.innings2.bowlingTeamId === state.teamA.id ? "Team A" : "Team B",
+            teamABatting: state.teamA.isBatting,
+            teamBBatting: state.teamB.isBatting,
+            targetScore: state.targetScore,
+            innings1Runs: state.innings1.totalRuns
+        });
     },
+
+    setTargetScore: (state: ScoreboardState, action: PayloadAction<number>) => {
+        state.targetScore = action.payload;
+        console.log("Target score set to:", state.targetScore);
+    }
 };

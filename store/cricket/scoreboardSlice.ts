@@ -13,7 +13,7 @@ export const scoreboardSlice = createSlice({
         ...matchSetupReducers,
         ...scoringReducers,
         ...inningsReducers,
-        ...playerReducers
+        ...playerReducers,
     }
 });
 
@@ -43,7 +43,8 @@ export const {
     setMatchResult,
     setMatchOver,
     updateInningsPlayers,
-    loadSavedMatch
+    loadSavedMatch,
+    setCurrentInning
 } = scoreboardSlice.actions;
 
 export default scoreboardSlice.reducer;

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { RootState } from '@/store';
@@ -89,10 +89,19 @@ export default function ScoringScreen() {
         setShowAdvancedModal(false);
         setShowBowlerModal(false);
         setShowWicketModal(false);
+        isNavigating.current = false;
+        matchAlertShown.current = false;
+        setShowEndInningsModal(false);
     };
 
     // Scoring handler
     const handleScore = (runs: number) => {
+        // Prevent scoring if match is over
+        if (state.matchOver) {
+            Alert.alert("Match Completed", "The match is already over.");
+            return;
+        }
+
         if (!canScore) {
             setShowBowlerModal(true);
             return;
@@ -114,6 +123,14 @@ export default function ScoringScreen() {
         } else {
             // Regular run scoring
             dispatch(scoreBall({ runs }));
+        }
+        
+        // Calculate and check if this scoring action will win the match
+        if (state.currentInning === 2 && state.targetScore) {
+            const currentTotal = currentInnings?.totalRuns || 0;
+            if (currentTotal + runs >= state.targetScore && !wicket) {
+                console.log("This will win the match!");
+            }
         }
         
         // Reset wicket toggle after handling
@@ -140,6 +157,13 @@ const handleWicketConfirm = (wicketData: {
     fielderName?: string;
     nextBatsmanId: string;
 }) => {
+    // Prevent if match is over
+    if (state.matchOver) {
+        setShowWicketModal(false);
+        Alert.alert("Match Completed", "The match is already over.");
+        return;
+    }
+
     // Close the wicket modal
     setShowWicketModal(false);
     
@@ -169,18 +193,21 @@ const handleWicketConfirm = (wicketData: {
         setShowBowlerModal(true);
     };
 
-    // Update this useEffect to prevent showing the bowler modal when innings is done
+    // Update the bowler modal effect
     useEffect(() => {
         // Only show bowler modal for new over if:
         // 1. The over is complete (ballInCurrentOver === 0 and completedOvers > 0)
         // 2. AND the innings is not complete (not readyForInnings2)
+        // 3. AND the match is not over
         if (currentInnings?.ballInCurrentOver === 0 && 
             currentInnings?.completedOvers > 0 &&
             !currentInnings?.readyForInnings2 && 
-            !currentInnings?.isCompleted) {
+            !currentInnings?.isCompleted &&
+            !state.matchOver) {  // Add this condition
             setShowBowlerModal(true);
         }
-    }, [currentInnings?.ballInCurrentOver, currentInnings?.completedOvers, currentInnings?.readyForInnings2, currentInnings?.isCompleted]);
+    }, [currentInnings?.ballInCurrentOver, currentInnings?.completedOvers, 
+        currentInnings?.readyForInnings2, currentInnings?.isCompleted, state.matchOver]);
 
     // Check for innings completion
     const [isComponentMounted, setIsComponentMounted] = useState(false);
@@ -222,16 +249,28 @@ useEffect(() => {
         // Debug the current status
         debugInningsStatus();
         
+        // First check if match is over - this takes precedence
+        if (state.matchOver) {
+            // Hide the end innings modal if showing
+            if (showEndInningsModal) {
+                setShowEndInningsModal(false);
+            }
+            return;
+        }
+        
         // Handle second innings completion - navigate to scorecard
         if (state.currentInning === 2 && currentInnings.isCompleted) {
-            const timer = setTimeout(() => {
-                router.push('/scorecard');
-            }, 300);
-            return () => clearTimeout(timer);
+            // This will be handled by the matchOver effect now
+            return;
         }
         
         // Handle first innings readiness for transitioning to second innings
-        if (state.currentInning === 1 && currentInnings.readyForInnings2 && !showEndInningsModal) {
+        // Add a navigation status flag to prevent double navigation
+        if (state.currentInning === 1 && 
+            currentInnings.readyForInnings2 && 
+            !showEndInningsModal && 
+            !isNavigating.current) {
+            
             // Close any other open modals
             setShowBowlerModal(false);
             setShowWicketModal(false);
@@ -272,23 +311,142 @@ useEffect(() => {
     state.currentInning,
     currentInnings?.battingTeamId,
     currentInnings?.currentStrikerId,
-    showEndInningsModal
+    showEndInningsModal,
+    state.matchOver
 ]);
 
-// Add this handler for the modal confirmation
+// Add a navigation flag using useRef at the top of your component
+const isNavigating = useRef(false);
+
+// Update handleEndInningsConfirm to use the flag
 const handleEndInningsConfirm = () => {
     console.log('End innings confirmed - navigating to openingPlayers');
+    
+    // Close the modal
     setShowEndInningsModal(false);
     
-    // Set a flag to prevent multiple navigation attempts
-    const navigating = true;
+    // Set the navigation flag to prevent duplicate navigation
+    isNavigating.current = true;
     
-    // Navigate to the second innings setup screen after a short delay
-    // This ensures the modal is fully closed before navigation
+    // Navigate after a short delay
     setTimeout(() => {
         router.push('/openingPlayers?innings=2');
-    }, 100);
+    }, 150);
 };
+
+// Add this useEffect to check for match completion
+useEffect(() => {
+    if (state.matchOver && !isNavigating.current) {
+        isNavigating.current = true;
+        console.log("Match is over! Winner:", state.matchResult);
+        
+        // Show the match result as an alert
+        Alert.alert(
+            "Match Completed",
+            state.matchResult || "Match has ended.",
+            [
+                { 
+                    text: "View Scorecard", 
+                    onPress: () => {
+                        setTimeout(() => {
+                            router.push('/scorecard');
+                        }, 100);
+                    }
+                }
+            ]
+        );
+    }
+}, [state.matchOver, state.matchResult]);
+
+// Add a new useEffect to handle match completion alerts
+useEffect(() => {
+    if (state.matchOver && state.matchResult && !isNavigating.current) {
+        console.log("Match is over, showing alert:", state.matchResult);
+        isNavigating.current = true;
+        
+        Alert.alert(
+            "Match Completed",
+            state.matchResult,
+            [
+                {
+                    text: "View Scorecard",
+                    onPress: () => {
+                        setTimeout(() => {
+                            router.push('/scorecard');
+                        }, 100);
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    }
+}, [state.matchOver, state.matchResult]);
+
+// Modify your matchOver useEffect to use a ref to track if the alert has been shown
+const matchAlertShown = useRef(false);
+
+useEffect(() => {
+    if (state.matchOver && state.matchResult && !isNavigating.current && !matchAlertShown.current) {
+        console.log("Match is over, showing alert:", state.matchResult);
+        
+        // Mark both flags to prevent duplicate navigation and alerts
+        isNavigating.current = true;
+        matchAlertShown.current = true;
+        
+        Alert.alert(
+            "Match Completed",
+            state.matchResult,
+            [
+                {
+                    text: "View Scorecard",
+                    onPress: () => {
+                        setTimeout(() => {
+                            router.push('/scorecard');
+                        }, 100);
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    }
+}, [state.matchOver, state.matchResult]);
+
+// Use state to track if alert has been shown
+const [alertShown, setAlertShown] = useState(false);
+
+// Then in your useEffect
+useEffect(() => {
+    // Only show alert if match is over, there's a result, and alert hasn't been shown yet
+    if (state.matchOver && state.matchResult && !alertShown) {
+        console.log("Match is over, showing alert (state-based):", state.matchResult);
+        
+        // Mark alert as shown
+        setAlertShown(true);
+        
+        Alert.alert(
+            "Match Completed",
+            state.matchResult,
+            [
+                {
+                    text: "View Scorecard",
+                    onPress: () => {
+                        setTimeout(() => {
+                            router.push('/scorecard');
+                        }, 100);
+                    }
+                }
+            ],
+            { cancelable: false }
+        );
+    }
+}, [state.matchOver, state.matchResult, alertShown]);
+
+// Reset the flag when match state changes
+useEffect(() => {
+    if (!state.matchOver) {
+        setAlertShown(false);
+    }
+}, [state.matchOver]);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -298,6 +456,7 @@ const handleEndInningsConfirm = () => {
                     currentInnings={currentInnings}
                     currentInning={currentInning}
                     targetScore={targetScore}
+                    matchResult={state.matchResult}
                 />
 
                 <View style={styles.playerInfoContainer}>

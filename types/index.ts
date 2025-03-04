@@ -132,4 +132,5 @@ export interface ScoreboardState {
     innings2: InningsData;
     matchResult?: string;
     matchOver: boolean;
+    alertMessage?: string;
 }

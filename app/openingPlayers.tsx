@@ -35,18 +35,29 @@ export default function OpeningPlayersScreen() {
   const battingTeam = useSelector(selectBattingTeam);
   const bowlingTeam = useSelector(selectBowlingTeam);
 
-  // When showing players for the second innings, make sure to use the updated team assignments
+  // When showing players for the second innings, make sure to set currentInning and apply startInnings2 
   useEffect(() => {
     if (isSecondInnings) {
+        // Explicitly set currentInning to 2 and start the second innings
+        if (scoreboard.currentInning !== 2 || !scoreboard.targetScore) {
+            console.log("Initializing second innings and setting target score");
+            dispatch({ type: 'scoreboard/startInnings2' });
+        }
+        
         // Log the team info to confirm correct assignments
-        console.log('Second innings teams:', {
+        console.log('Second innings teams status:', {
             batting: battingTeam.teamName,
             bowling: bowlingTeam.teamName,
             battingId: battingTeam.id,
-            bowlingId: bowlingTeam.id
+            bowlingId: bowlingTeam.id,
+            teamABatting: scoreboard.teamA.isBatting,
+            teamBBatting: scoreboard.teamB.isBatting,
+            players: battingTeam.players.length,
+            currentInning: scoreboard.currentInning,
+            targetScore: scoreboard.targetScore
         });
     }
-  }, [isSecondInnings, battingTeam.id, bowlingTeam.id]);
+  }, [isSecondInnings, battingTeam.id, bowlingTeam.id, scoreboard.currentInning, scoreboard.targetScore]);
 
   // Get first innings information for showing target score
   const firstInningsScore = isSecondInnings ? innings1.totalRuns : 0;
@@ -128,10 +139,17 @@ export default function OpeningPlayersScreen() {
 
     // Update innings with player IDs
     if (strikerId && nonStrikerId && bowlerId) {
-        // If it's the second innings, we need to start it properly
+        // Make sure second innings is properly initialized
         if (isSecondInnings) {
-          // Mark the first innings as complete and set up the second innings
-          dispatch(startInnings2());
+            // Force set the target score again to be super sure
+            if (!scoreboard.targetScore) {
+                const targetScore = scoreboard.innings1.totalRuns + 1;
+                dispatch({ 
+                    type: 'scoreboard/setTargetScore', 
+                    payload: targetScore
+                });
+                console.log("Force setting target score to:", targetScore);
+            }
         }
 
         dispatch(updateInningsPlayers({
@@ -140,7 +158,11 @@ export default function OpeningPlayersScreen() {
             currentNonStrikerId: nonStrikerId,
             currentBowlerId: bowlerId
         }));
-        router.push('/scoring');
+        
+        // Navigate after a short delay
+        setTimeout(() => {
+            router.push('/scoring');
+        }, 100);
     } else {
         Alert.alert('Error', 'Please ensure all players are selected');
     }

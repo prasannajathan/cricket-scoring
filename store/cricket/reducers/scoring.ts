@@ -1,10 +1,26 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ScoreboardState, ScoreBallPayload } from '@/types';
+import { checkInningsCompletionHelper, calculateRemainingWickets } from '@/utils';
 
 export const scoringReducers = {
     scoreBall: (state: ScoreboardState, action: PayloadAction<ScoreBallPayload>) => {
-        if (state.matchOver) return;
-
+        console.log("scoreBall action:", {
+            runs: action.payload.runs,
+            extraType: action.payload.extraType,
+            wicket: action.payload.wicket,
+            currentInning: state.currentInning,
+            currentTotal: state.currentInning === 2 ? state.innings2.totalRuns : state.innings1.totalRuns,
+            targetScore: state.targetScore,
+            matchOver: state.matchOver
+        });
+        
+        // If match is already over, don't allow more scoring
+        if (state.matchOver) {
+            console.log("Match already over, ignoring ball");
+            return;
+        }
+        
+        // Get current innings and teams
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
         const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
         const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
@@ -77,10 +93,52 @@ export const scoringReducers = {
             }
         }
 
-        // Update innings total and check for completion
+        // Update innings total
         currentInnings.totalRuns += totalRuns;
         
-        // Handle ball count and over completion
+        // Check for target reached BEFORE handling ball count
+        if (state.currentInning === 2 && state.targetScore && currentInnings.totalRuns >= state.targetScore) {
+            console.log("Target reached!", {
+                totalRuns: currentInnings.totalRuns,
+                targetScore: state.targetScore,
+                battingTeam: battingTeam.teamName
+            });
+            
+            // Match is won by the batting team
+            currentInnings.isCompleted = true;
+            state.matchOver = true;
+            
+            // Calculate the margin of victory (by wickets)
+            // Use the actual number of active batsmen for accurate calculation
+            const totalWickets = battingTeam.players.filter(p => !p.isRetired).length - 1;
+            const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets);
+            
+            // Set the match result
+            state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
+            
+            // Just record the delivery and return
+            currentInnings.deliveries.push({
+                runs,
+                batsmanRuns: extraType === 'bye' || extraType === 'leg-bye' ? 0 : runs,
+                extraType,
+                wicket: wicket || false,
+                outBatsmanId,
+                wicketType,
+                bowlerId: currentInnings.currentBowlerId!,
+                batsmanId: currentInnings.currentStrikerId!,
+                timestamp: Date.now()
+            });
+            
+            // Add an alert message to state for the UI to display
+            state.alertMessage = `${battingTeam.teamName} has won the match by ${remainingWickets} wickets!`;
+            
+            console.log("Match completed, result set:", state.matchResult);
+            
+            // Stop processing - match is over
+            return;
+        }
+
+        // Handle ball count and over completion - only if match isn't over
         if (legalDelivery) {
             currentInnings.ballInCurrentOver += 1;
             if (currentInnings.ballInCurrentOver >= 6) {
@@ -151,6 +209,13 @@ export const scoringReducers = {
             if (outBatsman) {
                 outBatsman.isOut = true;
             }
+        }
+
+        // Check for innings completion after updating everything
+        if (!currentInnings.isCompleted) {
+            // Only run this if the innings hasn't already been marked as complete
+            // to avoid overriding the match result
+            checkInningsCompletionHelper(state);
         }
     },
 
