@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   Text,
@@ -41,9 +41,9 @@ export default function NewMatchScreen() {
     totalOvers,
   } = useSelector((state: RootState) => state.scoreboard);
 
-  const handleAdvancedSettings = () => {
-    router.push('/advancedSettings');
-  };
+  // const handleAdvancedSettings = () => {
+  //   router.push('/advancedSettings');
+  // };
 
   const handleStartMatch = () => {
     // Validate inputs
@@ -184,14 +184,14 @@ export default function NewMatchScreen() {
       />
 
       <View style={styles.buttonsRow}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.button, styles.outlineButton]}
           onPress={handleAdvancedSettings}
         >
           <Text style={[styles.buttonText, styles.outlineButtonText]}>
             Advanced settings
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={[styles.button, styles.filledButton]}
