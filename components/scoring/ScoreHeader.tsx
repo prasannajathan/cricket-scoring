@@ -102,11 +102,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#fff',
     },
-    targetText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#fff',
-    },
     matchResultContainer: {
         backgroundColor: '#4CAF50',
         paddingHorizontal: 10,
@@ -123,6 +118,7 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     targetText: {
+        fontSize: 14,
         color: '#D32F2F',
         fontWeight: 'bold',
     }

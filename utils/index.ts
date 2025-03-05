@@ -1,4 +1,4 @@
-import { Cricketer, ScoreboardState } from '@/types';
+import { Cricketer, ScoreboardState, Team } from '@/types';
 
 export const computeCRR = (runs: number, overs: number, balls: number): string => {
     const totalOvers = overs + (balls / 6);
