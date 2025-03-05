@@ -68,7 +68,7 @@ export const inningsReducers = {
         currentInnings.ballInCurrentOver = 0;
     },
     
-    setCurrentInning: (state, action: PayloadAction<number>) => {
+    setCurrentInning: (state: ScoreboardState, action: PayloadAction<1 | 2>) => {
         state.currentInning = action.payload;
     },
 

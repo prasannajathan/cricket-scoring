@@ -1,10 +1,10 @@
-import React, { memo } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Team, InningsData } from '@/types';
 
 interface ScoreHeaderProps {
-    battingTeam: Team;
-    currentInnings: InningsData;
+    battingTeam?: Team;
+    currentInnings?: InningsData;
     currentInning: number;
     targetScore?: number;
     matchResult?: string;
@@ -37,7 +37,7 @@ export default function ScoreHeader({
         <View style={styles.container}>
             <View>
                 <Text style={styles.teamScore}>
-                    {battingTeam.teamName}: {currentInnings?.totalRuns || 0}/{currentInnings?.wickets || 0}
+                    {battingTeam?.teamName}: {currentInnings?.totalRuns || 0}/{currentInnings?.wickets || 0}
                 </Text>
                 <Text style={styles.overs}>
                     ({currentInnings?.completedOvers || 0}.{currentInnings?.ballInCurrentOver || 0} overs)
