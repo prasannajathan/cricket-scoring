@@ -33,20 +33,12 @@ import {
     undoLastBall,
     swapBatsmen,
     setBowler,
-    endInnings,
+    // endInnings,
     addExtraRuns,
     setCurrentStriker,
     setCurrentNonStriker
 } from '@/store/cricket/scoreboardSlice';
 
-// Import useLocalStorage from Expo at the top of your file
-import * as SecureStore from 'expo-secure-store';
-
-// Add import
-import { showAlertOnce } from '@/utils/onceAlert';
-
-// At the top of your file, OUTSIDE of your component
-// This will persist across component remounts
 const SHOWN_MATCH_ALERTS = new Set<string>();
 
 export default function ScoringScreen() {
@@ -372,74 +364,211 @@ useEffect(() => {
     }, 500);
 }, [state.matchOver, state.matchResult, state.id]);
 
+    // Add this state for tracking active tab
+    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>('live');
+
     return (
         <SafeAreaView style={styles.safeArea}>
-            <ScrollView style={styles.container}>
-                <ScoreHeader
-                    battingTeam={battingTeam}
-                    currentInnings={currentInnings}
-                    currentInning={currentInning}
-                    targetScore={targetScore}
-                    matchResult={state.matchResult}
-                />
-
-                <View style={styles.playerInfoContainer}>
-                    <BatsmenDisplay
+            {/* Add tab navigation header */}
+            <View style={styles.tabContainer}>
+                <TouchableOpacity 
+                    style={[
+                        styles.tabButton, 
+                        activeTab === 'live' && styles.activeTabButton
+                    ]}
+                    onPress={() => setActiveTab('live')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[
+                        styles.tabText,
+                        activeTab === 'live' && styles.activeTabText
+                    ]}>
+                        Live
+                    </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                    style={[
+                        styles.tabButton, 
+                        activeTab === 'scorecard' && styles.activeTabButton
+                    ]}
+                    onPress={() => setActiveTab('scorecard')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[
+                        styles.tabText,
+                        activeTab === 'scorecard' && styles.activeTabText
+                    ]}>
+                        Scorecard
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            
+            {/* Live tab - Ball by ball */}
+            {activeTab === 'live' && (
+                <ScrollView style={styles.container}>
+                    <ScoreHeader
                         battingTeam={battingTeam}
                         currentInnings={currentInnings}
+                        currentInning={currentInning}
+                        targetScore={targetScore}
+                        matchResult={state.matchResult}
                     />
 
-                    <BowlerDisplay
-                        bowlingTeam={bowlingTeam}
-                        currentInnings={currentInnings}
-                    />
-                </View>
-                <OverRowDisplay />
-                <View style={styles.scoringContainer}>
-                    <View style={styles.togglesContainer}>
-                        <ExtrasToggle
-                            wide={wide}
-                            noBall={noBall}
-                            bye={bye}
-                            legBye={legBye}
-                            setWide={setWide}
-                            setNoBall={setNoBall}
-                            setBye={setBye}
-                            setLegBye={setLegBye}
+                    <View style={styles.playerInfoContainer}>
+                        <BatsmenDisplay
+                            battingTeam={battingTeam}
+                            currentInnings={currentInnings}
                         />
-                        <WicketToggle
-                            wicket={wicket}
-                            setWicket={setWicket}
-                            disabled={!canScore}
+
+                        <BowlerDisplay
+                            bowlingTeam={bowlingTeam}
+                            currentInnings={currentInnings}
+                        />
+                    </View>
+                    <OverRowDisplay />
+                    <View style={styles.scoringContainer}>
+                        <View style={styles.togglesContainer}>
+                            <ExtrasToggle
+                                wide={wide}
+                                noBall={noBall}
+                                bye={bye}
+                                legBye={legBye}
+                                setWide={setWide}
+                                setNoBall={setNoBall}
+                                setBye={setBye}
+                                setLegBye={setLegBye}
+                            />
+                            <WicketToggle
+                                wicket={wicket}
+                                setWicket={setWicket}
+                                disabled={!canScore}
+                            />
+                        </View>
+
+                        <ScoringButtons
+                            onScore={handleScore}
+                            canScore={canScore}
+                            onAdvancedScore={() => setShowAdvancedModal(true)}
                         />
                     </View>
 
-                    <ScoringButtons
-                        onScore={handleScore}
+                    <ActionButtons
                         canScore={canScore}
-                        onAdvancedScore={() => setShowAdvancedModal(true)}
+                        onUndo={() => dispatch(undoLastBall())}
+                        onSwap={() => dispatch(swapBatsmen())}
+                        onPartnership={() => setShowPartnershipModal(true)}
+                        onExtras={() => setShowExtrasModal(true)}
                     />
 
-                    {/* Rest of your components */}
-                </View>
+                    <TouchableOpacity 
+                        style={styles.changeBowlerButton}
+                        onPress={handleChangeBowler}
+                    >
+                        <Text style={styles.changeBowlerText}>Change Bowler</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            )}
+            
+            {/* Scorecard tab - Detailed stats */}
+            {activeTab === 'scorecard' && (
+                <ScrollView style={styles.container}>
+                    {/* Match info section */}
+                    <View style={styles.scorecardSection}>
+                        <ScoreHeader
+                            battingTeam={battingTeam}
+                            currentInnings={currentInnings}
+                            currentInning={currentInning}
+                            targetScore={targetScore}
+                            matchResult={state.matchResult}
+                        />
+                    </View>
+                    
+                    {/* Current Innings Batting */}
+                    <View style={styles.scorecardSection}>
+                        <Text style={styles.sectionHeader}>
+                            {battingTeam?.teamName} Batting
+                        </Text>
+                        <View style={styles.scoreTableHeader}>
+                            <Text style={[styles.headerCell, styles.nameCell]}>Batsman</Text>
+                            <Text style={styles.headerCell}>R</Text>
+                            <Text style={styles.headerCell}>B</Text>
+                            <Text style={styles.headerCell}>4s</Text>
+                            <Text style={styles.headerCell}>6s</Text>
+                            <Text style={styles.headerCell}>SR</Text>
+                        </View>
+                        {battingTeam?.players.filter(p => p.balls > 0).map(player => (
+                            <View key={player.id} style={styles.scoreRow}>
+                                <Text style={[styles.scoreCell, styles.nameCell]}>
+                                    {player.name}
+                                    {player.id === currentInnings?.currentStrikerId ? ' *' : ''}
+                                    {player.id === currentInnings?.currentNonStrikerId ? ' †' : ''}
+                                    {player.isOut ? ' (out)' : ''}
+                                </Text>
+                                <Text style={styles.scoreCell}>{player.runs}</Text>
+                                <Text style={styles.scoreCell}>{player.balls}</Text>
+                                <Text style={styles.scoreCell}>{player.fours}</Text>
+                                <Text style={styles.scoreCell}>{player.sixes}</Text>
+                                <Text style={styles.scoreCell}>
+                                    {player.balls > 0 ? (player.runs / player.balls * 100).toFixed(1) : '0.0'}
+                                </Text>
+                            </View>
+                        ))}
+                        <View style={styles.extrasRow}>
+                            <Text>Extras: {currentInnings?.extras || 0}</Text>
+                        </View>
+                    </View>
+                    
+                    {/* Current Innings Bowling */}
+                    <View style={styles.scorecardSection}>
+                        <Text style={styles.sectionHeader}>
+                            {bowlingTeam?.teamName} Bowling
+                        </Text>
+                        <View style={styles.scoreTableHeader}>
+                            <Text style={[styles.headerCell, styles.nameCell]}>Bowler</Text>
+                            <Text style={styles.headerCell}>O</Text>
+                            <Text style={styles.headerCell}>M</Text>
+                            <Text style={styles.headerCell}>R</Text>
+                            <Text style={styles.headerCell}>W</Text>
+                            <Text style={styles.headerCell}>Econ</Text>
+                        </View>
+                        {bowlingTeam?.players.filter(p => p.overs > 0 || p.ballsThisOver > 0).map(player => {
+                            const oversText = `${player.overs}.${player.ballsThisOver}`;
+                            const economy = player.overs > 0 ? 
+                                (player.runsConceded / player.overs).toFixed(2) : '0.00';
+                            
+                            return (
+                                <View key={player.id} style={styles.scoreRow}>
+                                    <Text style={[styles.scoreCell, styles.nameCell]}>
+                                        {player.name}
+                                        {player.id === currentInnings?.currentBowlerId ? ' *' : ''}
+                                    </Text>
+                                    <Text style={styles.scoreCell}>{oversText}</Text>
+                                    <Text style={styles.scoreCell}>{player.maidens || 0}</Text>
+                                    <Text style={styles.scoreCell}>{player.runsConceded}</Text>
+                                    <Text style={styles.scoreCell}>{player.wickets}</Text>
+                                    <Text style={styles.scoreCell}>{economy}</Text>
+                                </View>
+                            );
+                        })}
+                    </View>
+                    
+                    {/* Previous Innings Summary - if applicable */}
+                    {state.currentInning === 2 && (
+                        <View style={styles.scorecardSection}>
+                            <Text style={styles.sectionHeader}>1st Innings Summary</Text>
+                            <Text style={styles.inningsSummary}>
+                                {state.currentInning === 2 && state.teamA.id === state.innings1.battingTeamId 
+                                    ? state.teamA.teamName 
+                                    : state.teamB.teamName}: {state.innings1.totalRuns}/{state.innings1.wickets}
+                                ({state.innings1.completedOvers}.{state.innings1.ballInCurrentOver} overs)
+                            </Text>
+                        </View>
+                    )}
+                </ScrollView>
+            )}
 
-                <ActionButtons
-                    canScore={canScore}
-                    onUndo={() => dispatch(undoLastBall())}
-                    onSwap={() => dispatch(swapBatsmen())}
-                    onPartnership={() => setShowPartnershipModal(true)}
-                    onExtras={() => setShowExtrasModal(true)}
-                />
-
-                <TouchableOpacity 
-                    style={styles.changeBowlerButton}
-                    onPress={handleChangeBowler}
-                >
-                    <Text style={styles.changeBowlerText}>Change Bowler</Text>
-                </TouchableOpacity>
-            </ScrollView>
-
-            {/* Modals */}
+            {/* All your existing modals stay the same */}
             <PartnershipModal
                 visible={showPartnershipModal}
                 onClose={() => setShowPartnershipModal(false)}
@@ -523,5 +652,90 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: 'bold',
         fontSize: 16,
-    }
+    },
+    // New styles for tabs
+    tabContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        elevation: 4, // Increased for Android
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 }, // More pronounced shadow
+        shadowOpacity: 0.2, // More visible shadow
+        shadowRadius: 3,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    tabButton: {
+        flex: 1,
+        paddingVertical: 15, // Larger tap targets
+        alignItems: 'center',
+        borderBottomWidth: 3, // More noticeable indicator
+        borderBottomColor: 'transparent',
+    },
+    activeTabButton: {
+        borderBottomColor: '#1B5E20',
+    },
+    tabText: {
+        fontSize: 17, // Slightly larger
+        fontWeight: '500',
+        color: '#757575',
+    },
+    activeTabText: {
+        color: '#1B5E20',
+        fontWeight: '600',
+    },
+    
+    // New styles for scorecard
+    scorecardSection: {
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        marginBottom: 16,
+        padding: 10,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
+    },
+    sectionHeader: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 8,
+        color: '#1B5E20',
+    },
+    scoreTableHeader: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
+        backgroundColor: '#F5F5F5',
+    },
+    scoreRow: {
+        flexDirection: 'row',
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E0E0E0',
+    },
+    headerCell: {
+        flex: 1,
+        textAlign: 'center',
+        fontWeight: '600',
+        color: '#424242',
+    },
+    scoreCell: {
+        flex: 1,
+        textAlign: 'center',
+    },
+    nameCell: {
+        flex: 2,
+        textAlign: 'left',
+    },
+    extrasRow: {
+        paddingVertical: 8,
+        alignItems: 'flex-end',
+    },
+    inningsSummary: {
+        fontSize: 14,
+        color: '#424242',
+    },
 });
