@@ -60,6 +60,7 @@ export interface InningsData {
     deliveries: DeliveryEvent[];
     isCompleted: boolean;
     readyForInnings2?: boolean;
+    isAllOut?: boolean;
 }
 export interface SavedMatch {
     id: string;

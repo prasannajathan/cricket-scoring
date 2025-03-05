@@ -20,11 +20,17 @@ export const checkInningsCompletionHelper = (state: ScoreboardState) => {
   }
   
   // Check for completion conditions
-  const allOut = currentInnings.wickets >= state.totalPlayers - 1;  
+  const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+  const allOut = currentInnings.wickets >= battingTeam.players.filter(p => !p.isRetired).length - 1;
   const oversComplete = currentInnings.completedOvers >= state.totalOvers;
   const targetReached = state.currentInning === 2 && 
                         state.targetScore && 
                         currentInnings.totalRuns >= state.targetScore;
+  
+  // Set isAllOut flag if appropriate
+  if (allOut) {
+    currentInnings.isAllOut = true;
+  }
   
   if (allOut || oversComplete || targetReached) {
       if (state.currentInning === 2) {
