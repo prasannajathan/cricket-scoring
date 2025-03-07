@@ -77,29 +77,8 @@ function getCurrentOverBalls(innings: InningsData): DeliveryEvent[] {
   });
 }
 
-// Helper to format ball for display
-// function formatBallDisplay(ball: DeliveryEvent): string {
-//   if (ball.wicket) return 'W';
-  
-//   if (ball.extraType === 'wide') {
-//     return ball.runs > 1 ? `${ball.runs-1}Wd` : 'Wd';
-//   }
-  
-//   if (ball.extraType === 'no-ball') {
-//     return ball.batsmanRuns > 0 ? `${ball.batsmanRuns}Nb` : 'Nb';
-//   }
-  
-//   if (ball.extraType === 'bye') {
-//     return `${ball.runs}B`;
-//   }
-  
-//   if (ball.extraType === 'leg-bye') {
-//     return `${ball.runs}Lb`;
-//   }
-  
-//   return ball.runs.toString();
-// }
-function formatDeliveryForDisplay(delivery: DeliveryEvent) {
+// UPDATED function to correctly display wide balls
+function formatDeliveryForDisplay(delivery: DeliveryEvent): string {
   if (!delivery) return "";
 
   // Handle wickets with appropriate notation
@@ -109,17 +88,14 @@ function formatDeliveryForDisplay(delivery: DeliveryEvent) {
 
   // Handle extras
   if (delivery.extraType) {
-    const runsDisplay = delivery.runs > 0 ? delivery.runs : "";
-    
     switch (delivery.extraType) {
       case 'wide':
-        // For wides, show total runs (including penalty) followed by 'Wd'
-        // A wide with 1 extra run would be displayed as '2Wd'
-        return `${delivery.runs + 1}Wd`;
+        // For wides, total runs displayed should include the penalty run
+        return delivery.runs === 0 ? 'Wd' : `${delivery.runs}Wd`;
       
       case 'no-ball':
-        // For no-balls, show 'Nb' and any batsman runs
-        return delivery.runs > 0 ? `${runsDisplay}Nb` : 'Nb';
+        // For no-balls, show batsman runs (if any) followed by Nb
+        return delivery.runs > 0 ? `${delivery.runs}Nb` : 'Nb';
       
       case 'bye':
         return `${delivery.runs}B`;

@@ -13,13 +13,13 @@ export const scoringReducers = {
             targetScore: state.targetScore,
             matchOver: state.matchOver
         });
-        
+
         // If match is already over, don't allow more scoring
         if (state.matchOver) {
             console.log("Match already over, ignoring ball");
             return;
         }
-        
+
         // Get current innings and teams
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
         const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
@@ -57,7 +57,7 @@ export const scoringReducers = {
             if (extraType === 'wide') {
                 bowler.runsConceded += totalRuns; // Include all runs from wide
                 // Don't increment bowler's balls for wide balls (keep this behavior)
-            } 
+            }
             // Rest of your bowler stats code remains the same...
             else if (extraType === 'no-ball') {
                 bowler.runsConceded += 1; // Just the no-ball penalty
@@ -80,13 +80,13 @@ export const scoringReducers = {
                     bowler.ballsThisOver += 1;
                 }
             }
-            
+
             // Update economy rate if balls have been bowled
             const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
             if (totalBalls > 0) {
                 bowler.economy = (bowler.runsConceded / (totalBalls / 6));
             }
-            
+
             // Handle wicket attribution
             if (wicket && !['runout', 'retired'].includes(wicketType || '')) {
                 bowler.wickets += 1;
@@ -95,33 +95,33 @@ export const scoringReducers = {
 
         // Update innings total
         currentInnings.totalRuns += totalRuns;
-        
+
         // Check for target reached BEFORE handling ball count
         if (state.currentInning === 2 && state.targetScore && currentInnings.totalRuns >= state.targetScore) {
             // Match is won by the batting team
             currentInnings.isCompleted = true;
             state.matchOver = true;
-            
+
             // Calculate the margin of victory (by wickets)
             const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets);
-            
+
             // Set the match result
             state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
-            
+
             // Make sure to update the ball count for a legal delivery before ending
             if (legalDelivery) {
                 // Increment ball count
                 currentInnings.ballInCurrentOver += 1;
-                
+
                 // Check if over is complete
                 if (currentInnings.ballInCurrentOver === 6) {
                     currentInnings.completedOvers += 1;
                     currentInnings.ballInCurrentOver = 0;
-                    
+
                     // No need to swap bowlers as match is over
                 }
             }
-            
+
             // Record the delivery
             currentInnings.deliveries.push({
                 runs: extraType === 'wide' || extraType === 'no-ball' ? totalRuns - 1 : runs, // Store actual runs without penalty for display
@@ -135,12 +135,12 @@ export const scoringReducers = {
                 batsmanId: currentInnings.currentStrikerId!,
                 timestamp: Date.now()
             });
-            
+
             // Add an alert message to state for the UI to display
             state.alertMessage = `${battingTeam.teamName} has won the match by ${remainingWickets} wickets!`;
-            
+
             console.log("Match completed, result set:", state.matchResult);
-            
+
             // Stop processing - match is over
             return;
         }
@@ -182,8 +182,11 @@ export const scoringReducers = {
                 battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
             }
         } else if (extraType === 'wide' || extraType === 'no-ball') {
-            // For wides and no-balls with runs, swap if odd total
-            if (totalRuns % 2 === 1) {
+            // For wides, the batsmen should switch when ADDITIONAL runs are odd
+            // Not when total runs (including penalty) are odd
+            // For no-balls, it's the actual runs that determine if batsmen switch
+            // Penalty run doesn't count for switching
+            if (runs % 2 === 1) {  // Just check the additional runs
                 const temp = currentInnings.currentStrikerId;
                 currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
                 currentInnings.currentNonStrikerId = temp;
@@ -243,7 +246,7 @@ export const scoringReducers = {
     undoLastBall: (state: ScoreboardState) => {
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
         const lastDelivery = currentInnings.deliveries[currentInnings.deliveries.length - 1];
-        
+
         if (!lastDelivery) return;
 
         const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
@@ -306,7 +309,7 @@ export const scoringReducers = {
 
         // Undo innings stats
         currentInnings.totalRuns -= totalRunsToUndo;
-        
+
         // Fix extras count
         if (lastDelivery.extraType) {
             if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
@@ -365,7 +368,7 @@ export const scoringReducers = {
     retireBatsman: (state: ScoreboardState, action: PayloadAction<string>) => {
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
         const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-        
+
         const batsman = battingTeam.players.find(p => p.id === action.payload);
         if (batsman) {
             batsman.isRetired = true;

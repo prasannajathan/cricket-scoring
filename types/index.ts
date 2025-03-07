@@ -35,6 +35,7 @@ export interface DeliveryEvent {
     batsmanId: string;
     timestamp: number;
     fielderId?: string;
+    totalRuns?: number
 }
 
 export interface PartnershipRecord {
