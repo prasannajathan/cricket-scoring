@@ -40,8 +40,8 @@ const createInitialInnings = () => ({
 
 export const initialState: ScoreboardState = {
     id: uuidv4(),
-    teamA: { ...initialTeamState, teamName: 'team A', id: uuidv4() },
-    teamB: { ...initialTeamState, teamName: 'team B', id: uuidv4() },
+    teamA: { ...initialTeamState, teamName: 'Team A', id: uuidv4() },
+    teamB: { ...initialTeamState, teamName: 'Team B', id: uuidv4() },
     tossWinner: 'teamA',
     tossChoice: 'bat',
     totalOvers: 1,

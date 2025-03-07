@@ -12,7 +12,7 @@ export default function OverRowDisplay() {
   const currentOverBalls = getCurrentOverBalls(currentInnings);
 
   // Format the data for display
-  const formattedBalls = currentOverBalls.map(ball => formatBallDisplay(ball));
+  const formattedBalls = currentOverBalls.map(ball => formatDeliveryForDisplay(ball));
   
   return (
     <View style={styles.container}>
@@ -78,26 +78,65 @@ function getCurrentOverBalls(innings: InningsData): DeliveryEvent[] {
 }
 
 // Helper to format ball for display
-function formatBallDisplay(ball: DeliveryEvent): string {
-  if (ball.wicket) return 'W';
+// function formatBallDisplay(ball: DeliveryEvent): string {
+//   if (ball.wicket) return 'W';
   
-  if (ball.extraType === 'wide') {
-    return ball.runs > 1 ? `${ball.runs-1}Wd` : 'Wd';
+//   if (ball.extraType === 'wide') {
+//     return ball.runs > 1 ? `${ball.runs-1}Wd` : 'Wd';
+//   }
+  
+//   if (ball.extraType === 'no-ball') {
+//     return ball.batsmanRuns > 0 ? `${ball.batsmanRuns}Nb` : 'Nb';
+//   }
+  
+//   if (ball.extraType === 'bye') {
+//     return `${ball.runs}B`;
+//   }
+  
+//   if (ball.extraType === 'leg-bye') {
+//     return `${ball.runs}Lb`;
+//   }
+  
+//   return ball.runs.toString();
+// }
+function formatDeliveryForDisplay(delivery: DeliveryEvent) {
+  if (!delivery) return "";
+
+  // Handle wickets with appropriate notation
+  if (delivery.wicket) {
+    return "W";
   }
-  
-  if (ball.extraType === 'no-ball') {
-    return ball.batsmanRuns > 0 ? `${ball.batsmanRuns}Nb` : 'Nb';
+
+  // Handle extras
+  if (delivery.extraType) {
+    const runsDisplay = delivery.runs > 0 ? delivery.runs : "";
+    
+    switch (delivery.extraType) {
+      case 'wide':
+        // For wides, show total runs (including penalty) followed by 'Wd'
+        // A wide with 1 extra run would be displayed as '2Wd'
+        return `${delivery.runs + 1}Wd`;
+      
+      case 'no-ball':
+        // For no-balls, show 'Nb' and any batsman runs
+        return delivery.runs > 0 ? `${runsDisplay}Nb` : 'Nb';
+      
+      case 'bye':
+        return `${delivery.runs}B`;
+      
+      case 'leg-bye':
+        return `${delivery.runs}Lb`;
+      
+      default:
+        return `${delivery.runs}`;
+    }
   }
-  
-  if (ball.extraType === 'bye') {
-    return `${ball.runs}B`;
+
+  // Regular runs
+  if (delivery.runs === 0) {
+    return "."; // Dot ball
   }
-  
-  if (ball.extraType === 'leg-bye') {
-    return `${ball.runs}Lb`;
-  }
-  
-  return ball.runs.toString();
+  return delivery.runs.toString();
 }
 
 // Helper to get ball style based on value

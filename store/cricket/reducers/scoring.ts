@@ -50,15 +50,15 @@ export const scoringReducers = {
             currentInnings.extras += runs;
         }
 
-        // Update bowler stats - FIX HERE
+        // Update bowler stats - FIXED
         const bowler = bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId);
         if (bowler) {
-            // For wides, only count as extras, not as bowler's runs
+            // For wides, count total runs (penalty + extras) against bowler
             if (extraType === 'wide') {
-                // Don't increment bowler's runs for wide balls
-                // Don't increment bowler's balls for wide balls
+                bowler.runsConceded += totalRuns; // Include all runs from wide
+                // Don't increment bowler's balls for wide balls (keep this behavior)
             } 
-            // For no-balls, count the penalty run against the bowler
+            // Rest of your bowler stats code remains the same...
             else if (extraType === 'no-ball') {
                 bowler.runsConceded += 1; // Just the no-ball penalty
                 // Don't increment ballsThisOver for no-balls
@@ -124,8 +124,9 @@ export const scoringReducers = {
             
             // Record the delivery
             currentInnings.deliveries.push({
-                runs,
-                batsmanRuns: extraType === 'bye' || extraType === 'leg-bye' ? 0 : runs,
+                runs: extraType === 'wide' || extraType === 'no-ball' ? totalRuns - 1 : runs, // Store actual runs without penalty for display
+                totalRuns: totalRuns, // Store full total including penalties
+                batsmanRuns: extraType === 'bye' || extraType === 'leg-bye' || extraType === 'wide' ? 0 : runs,
                 extraType,
                 wicket: wicket || false,
                 outBatsmanId,
@@ -195,8 +196,9 @@ export const scoringReducers = {
 
         // Record delivery
         currentInnings.deliveries.push({
-            runs,
-            batsmanRuns: extraType === 'bye' || extraType === 'leg-bye' ? 0 : runs,
+            runs: extraType === 'wide' || extraType === 'no-ball' ? totalRuns - 1 : runs, // Store actual runs without penalty for display
+            totalRuns: totalRuns, // Store full total including penalties
+            batsmanRuns: extraType === 'bye' || extraType === 'leg-bye' || extraType === 'wide' ? 0 : runs,
             extraType,
             wicket: wicket || false,
             outBatsmanId,
@@ -217,6 +219,19 @@ export const scoringReducers = {
             }
         }
 
+        // Debug log after all updates
+        console.log("SCORING COMPLETED:", {
+            ballType: extraType || 'regular',
+            baseRuns: runs,
+            totalRuns: totalRuns,
+            currentTotal: currentInnings.totalRuns,
+            extras: currentInnings.extras,
+            bowlerConceded: bowler?.runsConceded || 0,
+            legalDelivery,
+            ballsInOver: currentInnings.ballInCurrentOver,
+            overs: `${currentInnings.completedOvers}.${currentInnings.ballInCurrentOver}`
+        });
+
         // Check for innings completion after updating everything
         if (!currentInnings.isCompleted) {
             // Only run this if the innings hasn't already been marked as complete
@@ -234,38 +249,78 @@ export const scoringReducers = {
         const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
         const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
 
+        // Calculate total runs that were scored on this delivery
+        let totalRunsToUndo = lastDelivery.runs;
+        if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
+            // For wides/no-balls, we need to also undo the penalty run
+            totalRunsToUndo += 1;
+        }
+
         // Undo batsman stats
         const striker = battingTeam.players.find(p => p.id === lastDelivery.batsmanId);
-        if (striker && (!lastDelivery.extraType || lastDelivery.extraType === 'no-ball')) {
-            striker.runs -= lastDelivery.batsmanRuns;
-            striker.balls -= 1;
-            if (lastDelivery.runs === 4) striker.fours -= 1;
-            if (lastDelivery.runs === 6) striker.sixes -= 1;
-            striker.strikeRate = striker.balls > 0 ? (striker.runs / striker.balls) * 100 : 0;
+        if (striker) {
+            // Only undo batsman's runs if it wasn't a bye/leg-bye or wide
+            if (!lastDelivery.extraType || lastDelivery.extraType === 'no-ball') {
+                striker.runs -= lastDelivery.batsmanRuns || lastDelivery.runs;
+                striker.balls -= 1;
+                if (lastDelivery.runs === 4) striker.fours -= 1;
+                if (lastDelivery.runs === 6) striker.sixes -= 1;
+                striker.strikeRate = striker.balls > 0 ? (striker.runs / striker.balls) * 100 : 0;
+            }
         }
 
         // Undo bowler stats
         const bowler = bowlingTeam.players.find(p => p.id === lastDelivery.bowlerId);
         if (bowler) {
-            bowler.runsConceded -= lastDelivery.runs;
-            if (!lastDelivery.extraType || lastDelivery.extraType === 'bye' || lastDelivery.extraType === 'leg-bye') {
+            if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
+                // For wides and no-balls, bowler concedes all runs including penalty
+                bowler.runsConceded -= totalRunsToUndo;
+            } else if (lastDelivery.extraType === 'bye' || lastDelivery.extraType === 'leg-bye') {
+                // Byes and leg byes aren't charged to the bowler
                 bowler.ballsThisOver -= 1;
-                if (bowler.ballsThisOver < 0) {
-                    bowler.overs -= 1;
-                    bowler.ballsThisOver = 5;
-                }
+            } else {
+                // Regular delivery
+                bowler.runsConceded -= lastDelivery.runs;
+                bowler.ballsThisOver -= 1;
             }
+
+            // Fix over count if needed
+            if (bowler.ballsThisOver < 0) {
+                bowler.overs -= 1;
+                bowler.ballsThisOver = 5; // Back to the last ball of previous over
+            }
+
+            // Undo wicket
             if (lastDelivery.wicket && !['runout', 'retired'].includes(lastDelivery.wicketType || '')) {
                 bowler.wickets -= 1;
+            }
+
+            // Recalculate economy rate
+            const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
+            if (totalBalls > 0) {
+                bowler.economy = (bowler.runsConceded / (totalBalls / 6));
+            } else {
+                bowler.economy = 0;
             }
         }
 
         // Undo innings stats
-        currentInnings.totalRuns -= lastDelivery.runs;
+        currentInnings.totalRuns -= totalRunsToUndo;
+        
+        // Fix extras count
         if (lastDelivery.extraType) {
-            currentInnings.extras -= lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball' ? 1 : 0;
+            if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
+                // For wides/no-balls, we need to undo both the penalty and additional runs
+                currentInnings.extras -= totalRunsToUndo;
+            } else {
+                // For byes/leg-byes, just undo the runs
+                currentInnings.extras -= lastDelivery.runs;
+            }
         }
+
+        // Fix ball count
         if (!lastDelivery.extraType || lastDelivery.extraType === 'bye' || lastDelivery.extraType === 'leg-bye') {
+            // Only legal deliveries count toward the over
             currentInnings.ballInCurrentOver -= 1;
             if (currentInnings.ballInCurrentOver < 0) {
                 currentInnings.completedOvers -= 1;
@@ -273,8 +328,25 @@ export const scoringReducers = {
             }
         }
 
+        // Undo wicket
+        if (lastDelivery.wicket) {
+            currentInnings.wickets -= 1;
+            const outBatsman = battingTeam.players.find(p => p.id === lastDelivery.outBatsmanId);
+            if (outBatsman) {
+                outBatsman.isOut = false;
+            }
+        }
+
         // Remove last delivery
         currentInnings.deliveries.pop();
+
+        // Log debug info after undo
+        console.log("After undo:", {
+            totalRuns: currentInnings.totalRuns,
+            extras: currentInnings.extras,
+            completedOvers: currentInnings.completedOvers,
+            ballInCurrentOver: currentInnings.ballInCurrentOver
+        });
     },
 
     addExtraRuns: (state: ScoreboardState, action: PayloadAction<number>) => {
