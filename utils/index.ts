@@ -34,16 +34,20 @@ export const checkInningsCompletionHelper = (state: ScoreboardState) => {
   
   if (allOut || oversComplete || targetReached) {
       if (state.currentInning === 2) {
-          state.innings2.isCompleted = true;
+          currentInnings.isCompleted = true;
           state.matchOver = true;
 
           // Set match result
           if (currentInnings.totalRuns >= (state.targetScore || 0)) {
               const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-              state.matchResult = `${battingTeam.teamName} wins by ${state.totalPlayers - 1 - currentInnings.wickets} wickets`;
+              
+              // Use the calculateRemainingWickets function for consistency
+              const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets);
+              
+              state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
           } else {
               const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-              state.matchResult = `${bowlingTeam.teamName} wins by ${state.targetScore! - currentInnings.totalRuns - 1} runs`;
+              state.matchResult = `${bowlingTeam.teamName} wins by ${(state.targetScore || 0) - currentInnings.totalRuns} runs`;
           }
       }
       // For first innings, just set a flag for the UI but don't mark as completed

@@ -336,7 +336,7 @@ export default function ScoringScreen() {
     };
 
 
-    // Replace your current alert useEffect with this much simpler version
+    // Replace the existing alert code in your useEffect
     useEffect(() => {
         // Only show if match is over and has a result
         if (!state.matchOver || !state.matchResult) {
@@ -358,27 +358,38 @@ export default function ScoringScreen() {
         console.log(`First time showing alert for match ${alertKey}, proceeding`);
 
         // Show the alert after a short delay to let UI settle
-        setTimeout(() => {
-            Alert.alert(
-                "Match Completed",
-                state.matchResult,
-                [
-                    {
-                        text: "View Scorecard",
-                        onPress: () => {
-                            setTimeout(() => {
-                                router.push('/scorecard');
-                            }, 100);
-                        }
+        Alert.alert(
+            "Match Completed",
+            state.matchResult,
+            [
+                {
+                    text: "View Scorecard",
+                    onPress: () => {
+                        // Instead of navigating, switch to scorecard tab
+                        setActiveTabPersistent('scorecard');
+                        // setTimeout(() => {
+                        //     // setActiveTabPersistent('scorecard');
+                        //     console.log("View Scorecard button pressed, tab should be set to 'scorecard'");
+                        // }, 100);
                     }
-                ],
-                { cancelable: false }
-            );
-        }, 500);
+                }
+            ],
+            { cancelable: false }
+        );
     }, [state.matchOver, state.matchResult, state.id]);
 
     // Add this state for tracking active tab
-    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>('live');
+    const activeTabRef = useRef<'live' | 'scorecard'>('live');
+
+    // Replace your activeTab state
+    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>(() => activeTabRef.current);
+
+    // Create a custom setter
+    const setActiveTabPersistent = (tab: 'live' | 'scorecard') => {
+        console.log(`Setting tab to ${tab} (current: ${activeTab})`);
+        activeTabRef.current = tab; // Update the ref
+        setActiveTab(tab); // Update the state
+    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -389,7 +400,7 @@ export default function ScoringScreen() {
                         styles.tabButton,
                         activeTab === 'live' && styles.activeTabButton
                     ]}
-                    onPress={() => setActiveTab('live')}
+                    onPress={() => setActiveTabPersistent('live')}
                     activeOpacity={0.7}
                 >
                     <Text style={[
@@ -405,7 +416,7 @@ export default function ScoringScreen() {
                         styles.tabButton,
                         activeTab === 'scorecard' && styles.activeTabButton
                     ]}
-                    onPress={() => setActiveTab('scorecard')}
+                    onPress={() => setActiveTabPersistent('scorecard')}
                     activeOpacity={0.7}
                 >
                     <Text style={[
@@ -604,7 +615,7 @@ const styles = StyleSheet.create({
         borderBottomColor: '#1B5E20',
     },
     tabText: {
-        fontSize: 17, 
+        fontSize: 17,
         fontWeight: '500',
         color: '#757575',
     },
