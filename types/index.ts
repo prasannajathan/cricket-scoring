@@ -137,3 +137,14 @@ export interface ScoreboardState {
     matchOver: boolean;
     alertMessage?: string;
 }
+
+export interface SuperOverState {
+    // teamA: Team;
+    // teamB: Team;
+    // currentInning: 1 | 2;
+    // totalOvers: number;
+    // targetScore: number;
+    // matchOver: boolean;
+    // matchResult?: string;
+    // alertMessage?: string;
+}

@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import scoreboardReducer from './cricket/scoreboardSlice';
+import scoreboardReducer, { loadSavedMatch } from './cricket/scoreboardSlice';
 import { scoreboardMiddleware } from './scoreboardMiddleware';
 
 const store = configureStore({
@@ -9,7 +9,8 @@ const store = configureStore({
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: {
-                ignoredActions: ['cricket/loadSavedMatch'],
+                // Use the actual action type instead of a hardcoded string
+                ignoredActions: [loadSavedMatch.type],
             },
         }).concat(scoreboardMiddleware),
 });

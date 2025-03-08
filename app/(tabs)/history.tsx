@@ -10,22 +10,39 @@ import { resetGame } from '@/store/cricket/scoreboardSlice';
 
 export default function HistoryScreen() {
   const [savedMatches, setSavedMatches] = useState<SavedMatch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const dispatch = useDispatch();
 
   // Load saved matches on mount
   useEffect(() => {
-    const loadSavedData = async () => {
-      const data = await getSavedMatches();
-      setSavedMatches(data);
-    };
     loadSavedData();
   }, []);
 
+  const loadSavedData = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getSavedMatches();
+      setSavedMatches(data);
+    } catch (error) {
+      console.error('Error loading matches:', error);
+      Alert.alert('Error', 'Could not load match history');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadSavedData();
+    setRefreshing(false);
+  };
+
   const handleViewScorecard = (matchId: string) => {
     router.push({
-      pathname: '/scorecard',
-      params: { matchId }
+      pathname: '/scoring',
+      params: { matchId, activeTab: 'scorecard' }
     });
   };
 
@@ -33,21 +50,21 @@ export default function HistoryScreen() {
     try {
       const matches = await getSavedMatches();
       const matchToResume = matches.find(m => m.id === matchId);
-      
+
       if (matchToResume) {
         // Reset current game state before loading saved state
         dispatch(resetGame());
-        
+
         // Load the saved match state into Redux
         dispatch({
           type: 'scoreboard/loadSavedMatch',
           payload: matchToResume
         });
 
-        // Navigate to scoring screen
+        // Navigate to scoring screen with tab param
         router.push({
           pathname: '/scoring',
-          params: { matchId }
+          params: { matchId, activeTab: 'live' }
         });
       }
     } catch (error) {
@@ -56,14 +73,22 @@ export default function HistoryScreen() {
     }
   };
 
+  const formatDate = (timestamp?: number) => {
+    if (!timestamp) return 'Unknown date';
+    return new Date(timestamp).toLocaleDateString();
+  };
+
   const renderItem = ({ item }: { item: SavedMatch }) => (
     <View style={styles.matchItem}>
       <Text style={styles.matchName}>
         {`${item.teamA.teamName} vs ${item.teamB.teamName}`}
       </Text>
+      <Text style={styles.matchDate}>
+        {formatDate(item.timestamp)}
+      </Text>
       <Text style={styles.matchDetails}>
-        {item.completed ? 
-          `${item.matchResult}` : 
+        {item.completed ?
+          `${item.matchResult}` :
           `${item.innings1.totalRuns}/${item.innings1.wickets} (${item.innings1.completedOvers}.${item.innings1.ballInCurrentOver})`
         }
       </Text>
@@ -94,6 +119,15 @@ export default function HistoryScreen() {
         renderItem={renderItem}
         style={{ width: '100%' }}
         contentContainerStyle={{ padding: 16 }}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              {isLoading ? 'Loading matches...' : 'No saved matches found'}
+            </Text>
+          </View>
+        }
       />
     </View>
   );
@@ -117,6 +151,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   matchName: { fontSize: 16, marginBottom: 8 },
+  matchDate: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4
+  },
   matchDetails: {
     fontSize: 14,
     color: '#666',
@@ -131,4 +170,12 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   buttonText: { color: '#FFF', fontWeight: '600' },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center'
+  },
+  emptyText: {
+    color: '#666',
+    fontSize: 16
+  }
 });

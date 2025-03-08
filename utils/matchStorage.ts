@@ -1,34 +1,32 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MatchState } from '@/types/scoring';
-import { SuperOverState } from '@/types';
+import { SavedMatch } from '@/types';
 
-const MATCH_STORAGE_KEY = '@cricket_scoring:matches';
+const STORAGE_KEY = 'cricket_saved_matches';
 const CURRENT_MATCH_KEY = '@cricket_scoring:current_match';
 
-AsyncStorage.clear();
-
-export interface SavedMatch extends MatchState {
-    id: string;
-    date: string;
-    completed: boolean;
-    superOver?: SuperOverState;
-}
+// AsyncStorage.clear();
 
 export const saveMatch = async (match: SavedMatch): Promise<void> => {
     try {
-        const savedMatches = await getSavedMatches();
-        const updatedMatches = savedMatches.map(m => 
-            m.id === match.id ? match : m
-        );
-
-        if (!savedMatches.find(m => m.id === match.id)) {
-            updatedMatches.push(match);
+        // Get existing saved matches
+        const existingMatchesJson = await AsyncStorage.getItem(STORAGE_KEY);
+        const existingMatches: SavedMatch[] = existingMatchesJson 
+            ? JSON.parse(existingMatchesJson) 
+            : [];
+            
+        // Find if this match already exists
+        const matchIndex = existingMatches.findIndex(m => m.id === match.id);
+        
+        if (matchIndex >= 0) {
+            // Update existing match
+            existingMatches[matchIndex] = match;
+        } else {
+            // Add new match
+            existingMatches.push(match);
         }
-
-        await AsyncStorage.setItem(
-            MATCH_STORAGE_KEY, 
-            JSON.stringify(updatedMatches)
-        );
+        
+        // Save back to storage
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(existingMatches));
 
         if (!match.completed) {
             await AsyncStorage.setItem(
@@ -44,8 +42,12 @@ export const saveMatch = async (match: SavedMatch): Promise<void> => {
 
 export const getSavedMatches = async (): Promise<SavedMatch[]> => {
     try {
-        const matches = await AsyncStorage.getItem(MATCH_STORAGE_KEY);
-        return matches ? JSON.parse(matches) : [];
+        const matchesJson = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!matchesJson) return [];
+        
+        const matches: SavedMatch[] = JSON.parse(matchesJson);
+        // Sort by timestamp descending (newest first)
+        return matches.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     } catch (error) {
         console.error('Error getting saved matches:', error);
         return [];
@@ -77,4 +79,25 @@ export const clearStorage = async () => {
     } catch (e) {
       console.error('Failed to clear storage:', e);
     }
-  };
+};
+
+export const getSavedMatch = async (matchId: string): Promise<SavedMatch | null> => {
+    try {
+        const matches = await getSavedMatches();
+        return matches.find(m => m.id === matchId) || null;
+    } catch (error) {
+        console.error('Error getting saved match:', error);
+        return null;
+    }
+};
+
+export const deleteSavedMatch = async (matchId: string): Promise<void> => {
+    try {
+        const matches = await getSavedMatches();
+        const filteredMatches = matches.filter(m => m.id !== matchId);
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filteredMatches));
+    } catch (error) {
+        console.error('Error deleting saved match:', error);
+        throw error;
+    }
+};

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+
+import { getSavedMatch } from '@/utils/matchStorage';
+import { loadSavedMatch } from '@/store/cricket/scoreboardSlice';
 import { RootState } from '@/store';
 import {
     selectCurrentInnings,
@@ -45,7 +48,7 @@ const SHOWN_MATCH_ALERTS = new Set<string>();
 export default function ScoringScreen() {
     const router = useRouter();
     const dispatch = useDispatch();
-    const { matchId } = useLocalSearchParams();
+    const { matchId, activeTab: tabParam } = useLocalSearchParams();
     const state = useSelector((state: RootState) => state.scoreboard);
 
     // Selectors
@@ -73,6 +76,41 @@ export default function ScoringScreen() {
 
     // Computed state
     const canScore = !!(currentInnings?.currentStrikerId && currentInnings?.currentBowlerId);
+
+    // Add this state for tracking active tab
+    const activeTabRef = useRef<'live' | 'scorecard'>(
+        tabParam === 'scorecard' ? 'scorecard' : 'live'
+    );
+
+    // Replace your activeTab state
+    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>(
+        activeTabRef.current
+    );
+
+    // Load specific match data if matchId is provided
+    useEffect(() => {
+        const loadMatchData = async () => {
+            if (matchId) {
+                try {
+                    const matchData = await getSavedMatch(matchId as string);
+                    if (matchData) {
+                        dispatch(loadSavedMatch(matchData));
+                    }
+                } catch (error) {
+                    console.error('Error loading match:', error);
+                }
+            }
+        };
+        
+        loadMatchData();
+    }, [matchId, dispatch]);
+
+    // Create a custom setter
+    const setActiveTabPersistent = (tab: 'live' | 'scorecard') => {
+        console.log(`Setting tab to ${tab} (current: ${activeTab})`);
+        activeTabRef.current = tab; // Update the ref
+        setActiveTab(tab); // Update the state
+    };
 
     // Reset extras state
     const resetExtrasState = () => {
@@ -180,18 +218,6 @@ export default function ScoringScreen() {
     // Add a function to change the bowler anytime
     const handleChangeBowler = () => {
         setShowBowlerModal(true);
-    };
-
-    const getBowlerName = (bowlerId?: string) => {
-        if (!bowlerId) return 'Unknown';
-        const bowler = bowlingTeam?.players.find(p => p.id === bowlerId);
-        return bowler ? bowler.name : 'Unknown';
-    };
-
-    const getFielderName = (fielderId?: string) => {
-        if (!fielderId) return 'Unknown';
-        const fielder = bowlingTeam?.players.find(p => p.id === fielderId);
-        return fielder ? fielder.name : 'Unknown';
     };
 
     // Update the bowler modal effect
@@ -378,18 +404,6 @@ export default function ScoringScreen() {
         );
     }, [state.matchOver, state.matchResult, state.id]);
 
-    // Add this state for tracking active tab
-    const activeTabRef = useRef<'live' | 'scorecard'>('live');
-
-    // Replace your activeTab state
-    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>(() => activeTabRef.current);
-
-    // Create a custom setter
-    const setActiveTabPersistent = (tab: 'live' | 'scorecard') => {
-        console.log(`Setting tab to ${tab} (current: ${activeTab})`);
-        activeTabRef.current = tab; // Update the ref
-        setActiveTab(tab); // Update the state
-    };
 
     return (
         <SafeAreaView style={styles.safeArea}>
