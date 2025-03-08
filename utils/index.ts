@@ -42,7 +42,7 @@ export const checkInningsCompletionHelper = (state: ScoreboardState) => {
               const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
               
               // Use the calculateRemainingWickets function for consistency
-              const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets);
+              const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets, state);
               
               state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
           } else {
@@ -79,16 +79,22 @@ export function createCricketer(id: string, name: string): Cricketer {
   };
 }
 
-// Add this helper function
 export const calculateRemainingWickets = (
     battingTeam: Team, 
-    wicketsFallen: number
+    wicketsFallen: number,
+    state: ScoreboardState
 ): number => {
+    // Get the total players from state instead of counting or hardcoding
+    const totalPlayers = state.totalPlayers;
+    
     // Count active (non-retired) players
-    const totalActivePlayers = battingTeam.players.filter(p => !p.isRetired).length;
+    const activePlayersCount = battingTeam.players.filter(p => !p.isRetired).length;
+    
+    // Use the minimum of totalPlayers or actual active players to be safe
+    const effectiveTotalPlayers = Math.min(totalPlayers, activePlayersCount);
     
     // In cricket, you need at least one player at each end, so max wickets is totalPlayers - 1
-    const maxWickets = Math.max(1, totalActivePlayers - 1);
+    const maxWickets = Math.max(1, effectiveTotalPlayers - 1);
     
     // Calculate remaining wickets (ensuring it's never negative)
     return Math.max(0, maxWickets - wicketsFallen);

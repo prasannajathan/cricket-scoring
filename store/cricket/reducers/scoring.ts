@@ -103,7 +103,7 @@ export const scoringReducers = {
             state.matchOver = true;
 
             // Calculate the margin of victory (by wickets)
-            const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets);
+            const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets, state);
 
             // Set the match result
             state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
