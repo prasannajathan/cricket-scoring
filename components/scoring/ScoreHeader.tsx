@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Team, InningsData } from '@/types';
 
 interface ScoreHeaderProps {
@@ -10,22 +11,24 @@ interface ScoreHeaderProps {
     matchResult?: string;
 }
 
-export default function ScoreHeader({ 
-    battingTeam, 
-    currentInnings, 
-    currentInning, 
+export default function ScoreHeader({
+    battingTeam,
+    currentInnings,
+    currentInning,
     targetScore,
-    matchResult 
+    matchResult
 }: ScoreHeaderProps) {
+    const router = useRouter();
+
     const computeRunRate = (runs: number, overs: number, balls: number) => {
         const totalOvers = overs + (balls / 6);
         return totalOvers > 0 ? (runs / totalOvers).toFixed(2) : '0.00';
     };
 
     // Make sure we're using targetScore correctly - log to debug
-    console.log("ScoreHeader render complete state:", { 
-        targetScore, 
-        currentInning, 
+    console.log("ScoreHeader render complete state:", {
+        targetScore,
+        currentInning,
         currentRunsScored: currentInnings?.totalRuns,
         totalOvers: currentInnings?.completedOvers,
         ballsInOver: currentInnings?.ballInCurrentOver,
@@ -33,8 +36,15 @@ export default function ScoreHeader({
         matchResult
     });
 
+    const handleHomeTab = () => {
+        router.push('/history');
+    };
+
     return (
         <View style={styles.container}>
+            <TouchableOpacity onPress={handleHomeTab}>
+                <Text>Go to home</Text>
+            </TouchableOpacity>
             <View>
                 <Text style={styles.teamScore}>
                     {battingTeam?.teamName}: {currentInnings?.totalRuns || 0}/{currentInnings?.wickets || 0}
@@ -43,7 +53,7 @@ export default function ScoreHeader({
                     ({currentInnings?.completedOvers || 0}.{currentInnings?.ballInCurrentOver || 0} overs)
                 </Text>
             </View>
-            
+
             <View style={styles.rateContainer}>
                 <Text style={styles.rateText}>
                     {`CRR: ${computeRunRate(
@@ -65,7 +75,7 @@ export default function ScoreHeader({
                     </>
                 )}
             </View>
-            
+
             {/* Show match result when available */}
             {matchResult && (
                 <View style={styles.matchResultContainer}>
@@ -78,19 +88,14 @@ export default function ScoreHeader({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#1B5E20',
-        padding: 16,
-        borderRadius: 8,
         marginBottom: 16,
     },
     teamScore: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#fff',
     },
     overs: {
         fontSize: 16,
-        color: '#fff',
         marginTop: 4,
     },
     rateContainer: {
@@ -100,7 +105,6 @@ const styles = StyleSheet.create({
     },
     rateText: {
         fontSize: 14,
-        color: '#fff',
     },
     matchResultContainer: {
         backgroundColor: '#4CAF50',
