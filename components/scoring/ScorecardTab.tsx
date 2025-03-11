@@ -10,11 +10,54 @@ interface ScorecardTabProps {
     currentInning: number;
     targetScore?: number;
     matchResult?: string;
-    state: ScoreboardState; // Using proper type
+    state: ScoreboardState;
+}
+
+// Type definitions for component props
+interface BatsmanRowProps {
+    player: Cricketer;
+    dismissalInfo: string;
+    isStriker?: boolean;
+    isNonStriker?: boolean;
+}
+
+interface BowlerRowProps {
+    player: Cricketer;
+    isBowling?: boolean;
+}
+
+interface InningsExtrasProps {
+    innings: InningsData;
+}
+
+interface InningsTotalProps {
+    innings: InningsData;
+}
+
+interface FallOfWicketsProps {
+    innings: InningsData;
+    state: ScoreboardState;
+}
+
+interface BattingScorecardProps {
+    innings: InningsData;
+    battingTeam: Team;
+    bowlingTeam: Team;
+    isCurrentInnings?: boolean;
+}
+
+interface BowlingScorecardProps {
+    innings: InningsData;
+    bowlingTeam: Team;
+}
+
+interface InningsSummaryProps {
+    innings: InningsData;
+    state: ScoreboardState;
 }
 
 // Component for rendering a batsman row
-const BatsmanRow = ({ player, dismissalInfo, isStriker = false, isNonStriker = false }) => (
+const BatsmanRow: React.FC<BatsmanRowProps> = ({ player, dismissalInfo, isStriker = false, isNonStriker = false }) => (
     <View style={styles.scoreRow}>
         <View style={[styles.scoreCell, styles.nameCell]}>
             <Text style={styles.playerName}>
@@ -29,13 +72,13 @@ const BatsmanRow = ({ player, dismissalInfo, isStriker = false, isNonStriker = f
         <Text style={styles.scoreCell}>{player.fours || 0}</Text>
         <Text style={styles.scoreCell}>{player.sixes || 0}</Text>
         <Text style={styles.scoreCell}>
-            {player.balls > 0 ? (player.runs / player.balls * 100).toFixed(1) : '0.0'}
+            {player.balls > 0 ? ((player.runs / player.balls) * 100).toFixed(1) : '0.0'}
         </Text>
     </View>
 );
 
 // Component for rendering a bowler row
-const BowlerRow = ({ player, isBowling = false }) => {
+const BowlerRow: React.FC<BowlerRowProps> = ({ player, isBowling = false }) => {
     const oversText = `${player.overs}.${player.ballsThisOver}`;
     const economy = player.overs > 0 ?
         (player.runsConceded / player.overs).toFixed(2) : '0.00';
@@ -56,12 +99,12 @@ const BowlerRow = ({ player, isBowling = false }) => {
 };
 
 // Component for extras and total
-const InningsExtras = ({ innings }) => (
+const InningsExtras: React.FC<InningsExtrasProps> = ({ innings }) => (
     <View style={styles.extrasRow}>
         <Text style={styles.extrasText}>
             Extras: {innings.extras || 0} (
-                b {innings.deliveries.filter(d => d.extraType === 'bye').reduce((sum, d) => sum + d.runs, 0) || 0},
-                lb {innings.deliveries.filter(d => d.extraType === 'leg-bye').reduce((sum, d) => sum + d.runs, 0) || 0},
+                b {innings.deliveries.filter(d => d.extraType === 'bye').reduce((sum, d) => sum + (d.runs || 0), 0) || 0},
+                lb {innings.deliveries.filter(d => d.extraType === 'leg-bye').reduce((sum, d) => sum + (d.runs || 0), 0) || 0},
                 w {innings.deliveries.filter(d => d.extraType === 'wide').length || 0},
                 nb {innings.deliveries.filter(d => d.extraType === 'no-ball').length || 0}
             )
@@ -70,7 +113,7 @@ const InningsExtras = ({ innings }) => (
 );
 
 // Component for total score
-const InningsTotal = ({ innings }) => (
+const InningsTotal: React.FC<InningsTotalProps> = ({ innings }) => (
     <View style={styles.totalRow}>
         <Text style={styles.totalText}>
             Total: {innings.totalRuns || 0}/{innings.wickets || 0}
@@ -80,7 +123,7 @@ const InningsTotal = ({ innings }) => (
 );
 
 // Component for fall of wickets
-const FallOfWickets = ({ innings, state }) => {
+const FallOfWickets: React.FC<FallOfWicketsProps> = ({ innings, state }) => {
     if (innings.wickets === 0) return null;
     
     const battingTeam = innings.battingTeamId === state.teamA.id ? state.teamA : state.teamB;
@@ -109,7 +152,7 @@ const FallOfWickets = ({ innings, state }) => {
                         
                         // Sum up runs to get score at dismissal
                         const runsAtDismissal = previousDeliveries.reduce(
-                            (sum, del) => sum + (del.totalRuns || del.runs), 0);
+                            (sum, del) => sum + (del.totalRuns || del.runs || 0), 0);
                         
                         return `${idx + 1}-${runsAtDismissal} (${outBatsman?.name || 'Unknown'}, ${overs}.${balls})`;
                     })
@@ -120,23 +163,23 @@ const FallOfWickets = ({ innings, state }) => {
 };
 
 // Component for batting scorecard 
-const BattingScorecard = ({ innings, battingTeam, bowlingTeam, isCurrentInnings = false }) => {
+const BattingScorecard: React.FC<BattingScorecardProps> = ({ innings, battingTeam, bowlingTeam, isCurrentInnings = false }) => {
     // Helper function to get bowler name
-    const getBowlerName = (bowlerId) => {
+    const getBowlerName = (bowlerId?: string): string => {
         if (!bowlerId) return 'Unknown';
         const bowler = bowlingTeam.players.find(p => p.id === bowlerId);
         return bowler ? bowler.name : 'Unknown';
     };
 
     // Helper function to get fielder name
-    const getFielderName = (fielderId) => {
+    const getFielderName = (fielderId?: string): string => {
         if (!fielderId) return 'Unknown';
         const fielder = bowlingTeam.players.find(p => p.id === fielderId);
         return fielder ? fielder.name : 'Unknown';
     };
     
     // Function to determine dismissal info
-    const getDismissalInfo = (player) => {
+    const getDismissalInfo = (player: Cricketer): string => {
         if (!player.isOut) {
             if (player.id === innings.currentStrikerId || player.id === innings.currentNonStrikerId) {
                 return 'not out';
@@ -172,7 +215,7 @@ const BattingScorecard = ({ innings, battingTeam, bowlingTeam, isCurrentInnings 
     };
     
     // Logic to determine which players to show
-    const shouldShowPlayer = (player) => {
+    const shouldShowPlayer = (player: Cricketer): boolean => {
         const hasPlayed = player.balls > 0 || player.isOut;
         const isAtCrease = player.id === innings.currentStrikerId || player.id === innings.currentNonStrikerId;
         
@@ -217,7 +260,7 @@ const BattingScorecard = ({ innings, battingTeam, bowlingTeam, isCurrentInnings 
 };
 
 // Component for bowling scorecard
-const BowlingScorecard = ({ innings, bowlingTeam }) => (
+const BowlingScorecard: React.FC<BowlingScorecardProps> = ({ innings, bowlingTeam }) => (
     <View style={styles.scorecardSection}>
         <Text style={styles.sectionHeader}>
             {bowlingTeam.teamName} Bowling
@@ -245,7 +288,7 @@ const BowlingScorecard = ({ innings, bowlingTeam }) => (
 );
 
 // Component for innings summary
-const InningsSummary = ({ innings, state }) => {
+const InningsSummary: React.FC<InningsSummaryProps> = ({ innings, state }) => {
     if (!innings.isCompleted) return null;
     
     const battingTeam = innings.battingTeamId === state.teamA.id ? state.teamA : state.teamB;
