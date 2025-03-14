@@ -585,7 +585,7 @@ export default function ScoringScreen() {
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#f9f9f9'
+        backgroundColor: '#ffffff'
     },
     container: {
         flex: 1,

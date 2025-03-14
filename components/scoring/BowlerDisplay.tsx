@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Team, InningsData, Cricketer } from '@/types';
-
+import styles from '@/styles/batsmanBowlerRows';
 interface BowlerDisplayProps {
   bowlingTeam: Team;
   currentInnings: InningsData;
@@ -18,60 +18,23 @@ export default function BowlerDisplay({ bowlingTeam, currentInnings }: BowlerDis
 
   return (
     <View style={styles.scorecardContainer}>
-      <View style={styles.scorecardHeaderRow}>
-        <Text style={styles.scorecardHeaderCell}>Bowler</Text>
-        <Text style={styles.scorecardHeaderCell}>O</Text>
-        <Text style={styles.scorecardHeaderCell}>M</Text>
-        <Text style={styles.scorecardHeaderCell}>R</Text>
-        <Text style={styles.scorecardHeaderCell}>W</Text>
-        <Text style={styles.scorecardHeaderCell}>Econ</Text>
+      <View style={styles.tableHeaderRow}>
+        <Text style={[styles.tableHeader, styles.playerColumn]}>Bowler</Text>
+        <Text style={styles.tableHeader}>O</Text>
+        <Text style={styles.tableHeader}>M</Text>
+        <Text style={styles.tableHeader}>R</Text>
+        <Text style={styles.tableHeader}>W</Text>
+        <Text style={[styles.tableHeader, styles.lastColumn]}>Econ</Text>
       </View>
-      <View style={[styles.scorecardRow, styles.bowlerRow]}>
-        <Text style={styles.scorecardCell}>{currentBowler.name}</Text>
-        <Text style={styles.scorecardCell}>{oversText}</Text>
+      <View style={styles.tableRow}>
+        <Text style={[styles.tableCell, styles.playerColumn]}>{currentBowler.name}</Text>
+        <Text style={styles.tableCell}>{oversText}</Text>
         {/* TODO: maiden overs */}
-        <Text style={styles.scorecardCell}>{'m'}</Text>
-        <Text style={styles.scorecardCell}>{currentBowler.runsConceded}</Text>
-        <Text style={styles.scorecardCell}>{currentBowler.wickets}</Text>
-        <Text style={styles.scorecardCell}>{economy}</Text>
+        <Text style={styles.tableCell}>{'m'}</Text>
+        <Text style={styles.tableCell}>{currentBowler.runsConceded}</Text>
+        <Text style={styles.tableCell}>{currentBowler.wickets}</Text>
+        <Text style={[styles.tableCell, styles.lastColumn]}>{economy}</Text>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  scorecardContainer: {
-    marginBottom: 16,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#eaeaea',
-    borderRadius: 4,
-  },
-  scorecardHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eaeaea',
-  },
-  scorecardHeaderCell: {
-    flex: 1,
-    textAlign: 'center',
-    paddingVertical: 8,
-    fontWeight: '600',
-    color: '#007bff',
-  },
-  scorecardRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eaeaea',
-  },
-  scorecardCell: {
-    flex: 1,
-    textAlign: 'center',
-    paddingVertical: 8,
-    color: '#333',
-  },
-  bowlerRow: {
-    backgroundColor: '#fafafa',
-  }
-});

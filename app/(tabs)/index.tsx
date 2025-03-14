@@ -81,7 +81,7 @@ export default function NewMatchScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={{ flex: 1 }}>
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.logo}>[LOGO HERE]</Text>
@@ -210,7 +210,6 @@ export default function NewMatchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F3F5',
     paddingHorizontal: 16,
     paddingTop: 10,
   },
