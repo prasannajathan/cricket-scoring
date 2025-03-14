@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import { Team, InningsData } from '@/types';
 
 interface ScoreHeaderProps {
@@ -18,15 +17,20 @@ export default function ScoreHeader({
     targetScore,
     matchResult
 }: ScoreHeaderProps) {
-    const router = useRouter();
 
     const computeRunRate = (runs: number, overs: number, balls: number) => {
         const totalOvers = overs + (balls / 6);
         return totalOvers > 0 ? (runs / totalOvers).toFixed(2) : '0.00';
     };
 
+    const computeRRR = (runsNeeded: number, oversLeft: number): string => {
+        if (oversLeft <= 0) return 'N/A';
+        return (runsNeeded / oversLeft).toFixed(2);
+    };
+
     // Make sure we're using targetScore correctly - log to debug
     console.log("ScoreHeader render complete state:", {
+        currentInnings,
         targetScore,
         currentInning,
         currentRunsScored: currentInnings?.totalRuns,
@@ -36,94 +40,92 @@ export default function ScoreHeader({
         matchResult
     });
 
-    const handleHomeTab = () => {
-        router.push('/history');
-    };
-
     return (
         <View style={styles.container}>
-            <TouchableOpacity onPress={handleHomeTab}>
-                <Text>Go to home</Text>
-            </TouchableOpacity>
-            <View>
-                <Text style={styles.teamScore}>
-                    {battingTeam?.teamName}: {currentInnings?.totalRuns || 0}/{currentInnings?.wickets || 0}
+            {currentInning === 2 && targetScore && (
+                <Text style={styles.scoreStatus}>
+                    {`${battingTeam?.teamName} Needs: ${Math.max(0, targetScore - (currentInnings?.totalRuns || 0))} runs`}
                 </Text>
-                <Text style={styles.overs}>
-                    ({currentInnings?.completedOvers || 0}.{currentInnings?.ballInCurrentOver || 0} overs)
-                </Text>
-            </View>
+            )}
+            {matchResult && (
+                <Text style={styles.scoreStatus}>{matchResult}</Text>
+            )}
 
-            <View style={styles.rateContainer}>
-                <Text style={styles.rateText}>
-                    {`CRR: ${computeRunRate(
-                        currentInnings?.totalRuns || 0,
-                        currentInnings?.completedOvers || 0,
-                        currentInnings?.ballInCurrentOver || 0
-                    )}`}
-                </Text>
+            {/* Score Details */}
+            <View style={styles.scoreDetails}>
+                <Text style={styles.teamScore}>{battingTeam?.teamName} {currentInnings?.totalRuns || 0}-{currentInnings?.wickets || 0}</Text>
+                <View style={styles.subInfo}>
+                    <Text style={styles.subInfoText}>Overs: {currentInnings?.completedOvers || 0}.{currentInnings?.ballInCurrentOver || 0}</Text>
 
-                {/* Correctly show target for second innings */}
-                {currentInning === 2 && targetScore && (
-                    <>
-                        <Text style={styles.targetText}>
+                    {currentInning === 2 && targetScore && (
+                        <Text style={styles.subInfoText}>
                             {`Target: ${targetScore}`}
                         </Text>
-                        <Text style={styles.rateText}>
-                            {`Needs: ${Math.max(0, targetScore - (currentInnings?.totalRuns || 0))} runs`}
-                        </Text>
-                    </>
-                )}
+                    )}
+                </View>
             </View>
 
-            {/* Show match result when available */}
-            {matchResult && (
-                <View style={styles.matchResultContainer}>
-                    <Text style={styles.matchResultText}>{matchResult}</Text>
-                </View>
-            )}
+            {/* Partnership Info (CRR, REQ, Partnership) */}
+            <View style={styles.partnershipInfo}>
+                <Text style={styles.infoItem}>{`CRR: ${computeRunRate(
+                    currentInnings?.totalRuns || 0,
+                    currentInnings?.completedOvers || 0,
+                    currentInnings?.ballInCurrentOver || 0
+                )}`}</Text>
+                <Text style={styles.infoItem}>
+                    {currentInning === 2 && targetScore && (
+                        <>{`REQ ${computeRRR(targetScore, currentInnings?.completedOvers || 0)}`}</>
+                    )}
+                </Text>
+                {/* TODO: Implement partnership */}
+                <Text style={styles.infoItem}>P'SHIP 9(14)</Text>
+            </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+        backgroundColor: '#fefefe',
+        padding: 16,
+    },
+    /* Score Status */
+    scoreStatus: {
+        fontWeight: 'bold',
+        color: '#d00000',
+        marginBottom: 12,
+        fontSize: 16,
+    },
+
+    /* Score Details */
+    scoreDetails: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 16,
     },
     teamScore: {
         fontSize: 24,
-        fontWeight: 'bold',
+        fontWeight: '700',
+        color: '#333',
     },
-    overs: {
-        fontSize: 16,
-        marginTop: 4,
+    subInfo: {
+        alignItems: 'flex-end',
     },
-    rateContainer: {
+    subInfoText: {
+        color: '#555',
+        fontSize: 14,
+    },
+
+    /* Partnership and run-rate info */
+    partnershipInfo: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 8,
+        marginBottom: 16,
     },
-    rateText: {
+    infoItem: {
         fontSize: 14,
+        color: '#666',
     },
-    matchResultContainer: {
-        backgroundColor: '#4CAF50',
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 4,
-        marginTop: 5,
-    },
-    matchResultText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 14,
-    },
-    targetContainer: {
-        marginTop: 5,
-    },
-    targetText: {
-        fontSize: 14,
-        color: '#D32F2F',
-        fontWeight: 'bold',
-    }
 });

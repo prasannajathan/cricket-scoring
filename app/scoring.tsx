@@ -101,7 +101,7 @@ export default function ScoringScreen() {
                 }
             }
         };
-        
+
         loadMatchData();
     }, [matchId, dispatch]);
 
@@ -404,10 +404,16 @@ export default function ScoringScreen() {
         );
     }, [state.matchOver, state.matchResult, state.id]);
 
+    const handleHomeTab = () => {
+        router.push('/history');
+    }
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            {/* Tab navigation header */}
+            <TouchableOpacity onPress={handleHomeTab}>
+                <Text>back</Text>
+            </TouchableOpacity>
+
             <View style={styles.tabContainer}>
                 <TouchableOpacity
                     style={[
@@ -453,17 +459,17 @@ export default function ScoringScreen() {
                         matchResult={state.matchResult}
                     />
 
-                    <View style={styles.playerInfoContainer}>
-                        <BatsmenDisplay
-                            battingTeam={battingTeam}
-                            currentInnings={currentInnings}
-                        />
+                    <View style={styles.playerInfoContainer}></View>
+                    <BatsmenDisplay
+                        battingTeam={battingTeam}
+                        currentInnings={currentInnings}
+                    />
 
-                        <BowlerDisplay
-                            bowlingTeam={bowlingTeam}
-                            currentInnings={currentInnings}
-                        />
-                    </View>
+                    <BowlerDisplay
+                        bowlingTeam={bowlingTeam}
+                        currentInnings={currentInnings}
+                    />
+
                     <OverRowDisplay />
                     <View style={styles.scoringContainer}>
                         <View style={styles.togglesContainer}>

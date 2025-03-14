@@ -2,26 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Team, InningsData, Cricketer } from '@/types';
 
-interface BowlerRowProps {
-  bowler: Cricketer;
-}
-
-const BowlerRow: React.FC<BowlerRowProps> = ({ bowler }) => {
-  const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
-  const oversText = `${Math.floor(totalBalls / 6)}.${totalBalls % 6}`;
-  const economy = totalBalls > 0 ? ((bowler.runsConceded / totalBalls) * 6).toFixed(2) : '0.00';
-
-  return (
-    <View style={styles.rowContainer}>
-      <Text style={styles.name}>{bowler.name}</Text>
-      <Text style={styles.stat}>O: {oversText}</Text>
-      <Text style={styles.stat}>R: {bowler.runsConceded}</Text>
-      <Text style={styles.stat}>W: {bowler.wickets}</Text>
-      <Text style={styles.stat}>Eco: {economy}</Text>
-    </View>
-  );
-};
-
 interface BowlerDisplayProps {
   bowlingTeam: Team;
   currentInnings: InningsData;
@@ -37,92 +17,61 @@ export default function BowlerDisplay({ bowlingTeam, currentInnings }: BowlerDis
   const economy = currentBowler.economy.toFixed(2);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Current Bowler</Text>
-      <View style={styles.header}>
-        <Text style={[styles.headerCell, styles.nameCell]}>Bowler</Text>
-        <Text style={styles.headerCell}>O</Text>
-        <Text style={styles.headerCell}>R</Text>
-        <Text style={styles.headerCell}>W</Text>
-        <Text style={styles.headerCell}>Econ</Text>
+    <View style={styles.scorecardContainer}>
+      <View style={styles.scorecardHeaderRow}>
+        <Text style={styles.scorecardHeaderCell}>Bowler</Text>
+        <Text style={styles.scorecardHeaderCell}>O</Text>
+        <Text style={styles.scorecardHeaderCell}>M</Text>
+        <Text style={styles.scorecardHeaderCell}>R</Text>
+        <Text style={styles.scorecardHeaderCell}>W</Text>
+        <Text style={styles.scorecardHeaderCell}>Econ</Text>
       </View>
-      <View style={styles.bowlerRow}>
-        <Text style={[styles.bowlerStat, styles.nameCell]}>{currentBowler.name}</Text>
-        <Text style={styles.bowlerStat}>{oversText}</Text>
-        <Text style={styles.bowlerStat}>{currentBowler.runsConceded}</Text>
-        <Text style={styles.bowlerStat}>{currentBowler.wickets}</Text>
-        <Text style={styles.bowlerStat}>{economy}</Text>
+      <View style={[styles.scorecardRow, styles.bowlerRow]}>
+        <Text style={styles.scorecardCell}>{currentBowler.name}</Text>
+        <Text style={styles.scorecardCell}>{oversText}</Text>
+        {/* TODO: maiden overs */}
+        <Text style={styles.scorecardCell}>{'m'}</Text>
+        <Text style={styles.scorecardCell}>{currentBowler.runsConceded}</Text>
+        <Text style={styles.scorecardCell}>{currentBowler.wickets}</Text>
+        <Text style={styles.scorecardCell}>{economy}</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  rowContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 8,
-    marginVertical: 4,
-    borderRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
-  },
-  name: { 
-    fontWeight: 'bold', 
-    width: '25%' 
-  },
-  stat: { 
-    width: '15%', 
-    textAlign: 'center' 
-  },
-  playerRow: {
-    marginVertical: 4,
-    width: '100%'
-  },
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
+  scorecardContainer: {
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eaeaea',
+    borderRadius: 4,
   },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#1B5E20',
-    padding: 8,
-  },
-  header: {
+  scorecardHeaderRow: {
     flexDirection: 'row',
-    backgroundColor: '#E8F5E9',
-    padding: 8,
+    backgroundColor: '#f5f5f5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
   },
-  headerCell: {
+  scorecardHeaderCell: {
     flex: 1,
-    fontSize: 12,
-    fontWeight: 'bold',
     textAlign: 'center',
-    color: '#1B5E20',
+    paddingVertical: 8,
+    fontWeight: '600',
+    color: '#007bff',
   },
-  nameCell: {
-    flex: 2,
-    textAlign: 'left',
+  scorecardRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eaeaea',
+  },
+  scorecardCell: {
+    flex: 1,
+    textAlign: 'center',
+    paddingVertical: 8,
+    color: '#333',
   },
   bowlerRow: {
-    flexDirection: 'row',
-    padding: 8,
-  },
-  bowlerStat: {
-    flex: 1,
-    fontSize: 14,
-    textAlign: 'center',
-  },
+    backgroundColor: '#fafafa',
+  }
 });
