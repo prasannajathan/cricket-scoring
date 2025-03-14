@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, TouchableOpacity, Text, Alert } from 'react-native';
+import { ScrollView, StyleSheet, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
@@ -11,6 +11,12 @@ import {
     selectBattingTeam,
     selectBowlingTeam,
 } from '@/store/cricket/selectors';
+import {
+    colors,
+    spacing,
+    typography,
+    commonStyles
+} from '@/constants/theme';
 
 // Import components
 import ScoreHeader from '@/components/scoring/ScoreHeader';
@@ -216,9 +222,9 @@ export default function ScoringScreen() {
     };
 
     // Add a function to change the bowler anytime
-    const handleChangeBowler = () => {
-        setShowBowlerModal(true);
-    };
+    // const handleChangeBowler = () => {
+    //     setShowBowlerModal(true);
+    // };
 
     // Update the bowler modal effect
     useEffect(() => {
@@ -404,15 +410,19 @@ export default function ScoringScreen() {
         );
     }, [state.matchOver, state.matchResult, state.id]);
 
-    const handleHomeTab = () => {
-        router.push('/history');
-    }
+    // const handleHomeTab = () => {
+    //     router.push('/history');
+    // }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <TouchableOpacity onPress={handleHomeTab}>
-                <Text>back</Text>
-            </TouchableOpacity>
+        <ScrollView style={styles.safeArea}>
+            <ScoreHeader
+                battingTeam={battingTeam}
+                currentInnings={currentInnings}
+                currentInning={currentInning}
+                targetScore={targetScore}
+                matchResult={state.matchResult}
+            />
 
             <View style={styles.tabContainer}>
                 <TouchableOpacity
@@ -450,16 +460,7 @@ export default function ScoringScreen() {
 
             {/* Live tab - Ball by ball */}
             {activeTab === 'live' && (
-                <ScrollView style={styles.container}>
-                    <ScoreHeader
-                        battingTeam={battingTeam}
-                        currentInnings={currentInnings}
-                        currentInning={currentInning}
-                        targetScore={targetScore}
-                        matchResult={state.matchResult}
-                    />
-
-                    <View style={styles.playerInfoContainer}></View>
+                <View style={styles.container}>
                     <BatsmenDisplay
                         battingTeam={battingTeam}
                         currentInnings={currentInnings}
@@ -470,48 +471,39 @@ export default function ScoringScreen() {
                         currentInnings={currentInnings}
                     />
 
-                    <OverRowDisplay />
-                    <View style={styles.scoringContainer}>
-                        <View style={styles.togglesContainer}>
-                            <ExtrasToggle
-                                wide={wide}
-                                noBall={noBall}
-                                bye={bye}
-                                legBye={legBye}
-                                setWide={setWide}
-                                setNoBall={setNoBall}
-                                setBye={setBye}
-                                setLegBye={setLegBye}
-                            />
-                            <WicketToggle
-                                wicket={wicket}
-                                setWicket={setWicket}
-                                disabled={!canScore}
-                            />
-                        </View>
 
-                        <ScoringButtons
-                            onScore={handleScore}
-                            canScore={canScore}
-                            onAdvancedScore={() => setShowAdvancedModal(true)}
-                        />
-                    </View>
+                    <OverRowDisplay />
+
+                    <ExtrasToggle
+                        wide={wide}
+                        noBall={noBall}
+                        bye={bye}
+                        legBye={legBye}
+                        setWide={setWide}
+                        setNoBall={setNoBall}
+                        setBye={setBye}
+                        setLegBye={setLegBye}
+                    />
+
+                    <WicketToggle
+                        wicket={wicket}
+                        setWicket={setWicket}
+                        disabled={!canScore}
+                    />
+
+                    <ScoringButtons
+                        onScore={handleScore}
+                        canScore={canScore}
+                    />
 
                     <ActionButtons
-                        canScore={canScore}
                         onUndo={() => dispatch(undoLastBall())}
                         onSwap={() => dispatch(swapBatsmen())}
                         onPartnership={() => setShowPartnershipModal(true)}
                         onExtras={() => setShowExtrasModal(true)}
+                        onAdvancedScore={() => setShowAdvancedModal(true)}
                     />
-
-                    <TouchableOpacity
-                        style={styles.changeBowlerButton}
-                        onPress={handleChangeBowler}
-                    >
-                        <Text style={styles.changeBowlerText}>Change Bowler</Text>
-                    </TouchableOpacity>
-                </ScrollView>
+                </View>
             )}
 
             {/* Scorecard tab - Detailed stats */}
@@ -578,69 +570,47 @@ export default function ScoringScreen() {
                 onClose={() => setShowEndInningsModal(false)}
                 onConfirm={handleEndInningsConfirm}
             />
-        </SafeAreaView>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#ffffff'
+        backgroundColor: colors.white
     },
     container: {
-        flex: 1,
-        padding: 12,
-    },
-    playerInfoContainer: {
-        marginVertical: 8,
-    },
-    scoringContainer: {
-        marginVertical: 8,
-    },
-    togglesContainer: {
-        marginVertical: 8,
-    },
-    changeBowlerButton: {
-        marginTop: 10,
-        padding: 12,
-        backgroundColor: '#1B5E20',
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    changeBowlerText: {
-        color: '#fff',
-        fontWeight: 'bold',
-        fontSize: 16,
+        padding: spacing.md,
     },
     // New styles for tabs
     tabContainer: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
+        backgroundColor: colors.white,
         elevation: 4, // Increased for Android
-        shadowColor: '#000',
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 2 }, // More pronounced shadow
         shadowOpacity: 0.2, // More visible shadow
         shadowRadius: 3,
         borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
+        borderBottomColor: colors.brandLight// '#e0e0e0',
     },
     tabButton: {
         flex: 1,
-        paddingVertical: 15, // Larger tap targets
+        paddingVertical: spacing.lg, // Larger tap targets
         alignItems: 'center',
         borderBottomWidth: 3, // More noticeable indicator
         borderBottomColor: 'transparent',
     },
     activeTabButton: {
-        borderBottomColor: '#1B5E20',
+        borderBottomColor: colors.brandBlue,
     },
     tabText: {
-        fontSize: 17,
+        fontSize: typography.sizeMD,
         fontWeight: '500',
-        color: '#757575',
+        color: colors.brandDark,
     },
     activeTabText: {
-        color: '#1B5E20',
+        color: colors.brandBlue,
         fontWeight: '600',
     },
 });

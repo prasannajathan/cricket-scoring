@@ -55,7 +55,12 @@ function RootLayoutNav() {
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="scoring" options={{ headerShown: false }} />
+          <Stack.Screen name="scoring" options={{ 
+            title: 'Live Score',
+            headerBackTitleVisible: false,
+            headerTintColor: '#fff', // changes arrow & text color
+            headerStyle: { backgroundColor: '#1570BF' }, 
+            }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>
       </ThemeProvider>

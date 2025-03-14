@@ -1,6 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-
+import {
+  colors,
+  spacing,
+  typography, radius, commonStyles
+} from '@/constants/theme';
+import sStyles from '@/styles/overExtraWicketRows';
 interface WicketToggleProps {
   wicket: boolean;
   setWicket: (value: boolean) => void;
@@ -9,11 +14,11 @@ interface WicketToggleProps {
 
 export default function WicketToggle({ wicket, setWicket, disabled = false }: WicketToggleProps) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Wicket:</Text>
+    <View style={sStyles.sectionHeaderRow}>
+      <Text style={commonStyles.sectionTitle}>Wicket</Text>
       <TouchableOpacity
         style={[
-          styles.toggle,
+          styles.wicketBox,
           wicket ? styles.activeToggle : null,
           disabled ? styles.disabledToggle : null
         ]}
@@ -21,7 +26,7 @@ export default function WicketToggle({ wicket, setWicket, disabled = false }: Wi
         disabled={disabled}
       >
         <Text style={[
-          styles.toggleText,
+          styles.wicketBoxText,
           wicket ? styles.activeText : null,
           disabled ? styles.disabledText : null
         ]}>
@@ -33,42 +38,28 @@ export default function WicketToggle({ wicket, setWicket, disabled = false }: Wi
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginRight: 8,
-  },
-  toggle: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#D32F2F',
-    borderRadius: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    marginRight: 8,
+  wicketBox: {
+    borderWidth: 1,
+    borderColor: colors.brandRed,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   activeToggle: {
-    backgroundColor: '#D32F2F',
-  },
-  toggleText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#D32F2F',
+    backgroundColor: colors.black,
   },
   activeText: {
-    color: '#fff',
+    color: colors.white,
+  },
+  wicketBoxText: {
+    color: colors.brandRed,
+    fontWeight: typography.weightBold,
   },
   disabledToggle: {
-    borderColor: '#ccc',
-    backgroundColor: '#f5f5f5',
+    borderColor: colors.ccc,
+    backgroundColor: colors.brandLight,
   },
   disabledText: {
-    color: '#ccc',
+    color: colors.ccc,
   }
 });

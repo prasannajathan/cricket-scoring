@@ -1,22 +1,21 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { colors, spacing, radius, typography } from '@/constants/theme';
 
 interface ScoringButtonsProps {
     onScore: (runs: number) => void;
     canScore: boolean;
-    onAdvancedScore: () => void;
 }
 
-export default function ScoringButtons({ 
-    onScore, 
-    canScore, 
-    onAdvancedScore
+export default function ScoringButtons({
+    onScore,
+    canScore
 }: ScoringButtonsProps) {
     const runButtons = [0, 1, 2, 3, 4, 6];
 
     return (
-        <View style={styles.container}>
-            <View style={styles.runsContainer}>
+        <View>
+            <View style={styles.scoringRow}>
                 {runButtons.map((runs) => (
                     <TouchableOpacity
                         key={runs}
@@ -30,7 +29,7 @@ export default function ScoringButtons({
                         disabled={!canScore}
                     >
                         <Text style={[
-                            styles.runText, 
+                            styles.runText,
                             (runs === 4 || runs === 6) ? styles.boundaryText : null,
                             !canScore ? styles.disabledText : null
                         ]}>
@@ -39,65 +38,51 @@ export default function ScoringButtons({
                     </TouchableOpacity>
                 ))}
             </View>
-            
-            <TouchableOpacity
-                style={[styles.runButton, styles.advancedButton]}
-                onPress={onAdvancedScore}
-            >
-                <Text style={styles.runText}>Penalty</Text>
-            </TouchableOpacity>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        marginVertical: 8,
-    },
-    runsContainer: {
+    scoringRow: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         justifyContent: 'space-between',
-        marginBottom: 8,
     },
     runButton: {
-        width: '31%',  // Three buttons per row
-        aspectRatio: 1.5,
-        backgroundColor: '#1B5E20',
-        justifyContent: 'center',
+        flex: 1,
+        marginRight: spacing.xs,
+        borderRadius: radius.sm,
+        paddingVertical: spacing.md,
         alignItems: 'center',
-        borderRadius: 8,
-        marginBottom: 8,
+        justifyContent: 'center',
+        backgroundColor: colors.brandBlue,
     },
     runText: {
-        color: 'white',
-        fontSize: 20,
-        fontWeight: 'bold',
+        color: colors.white,
+        fontFamily: typography.fontFamilyBold,
+        fontSize: typography.sizeMD,
     },
     fourButton: {
-        backgroundColor: '#FFEB3B',
+        backgroundColor: colors.brandGreen,
     },
     sixButton: {
-        backgroundColor: '#F44336',
+        backgroundColor: colors.brandRed,
     },
     boundaryText: {
-        color: '#000',
+        fontWeight: typography.weightBold,
     },
+
+    
     wicketButton: {
         backgroundColor: '#D32F2F',
     },
     wicketText: {
         color: 'white',
     },
-    advancedButton: {
-        width: '100%',
-        aspectRatio: 5,
-        backgroundColor: '#2E7D32',
-    },
+
     disabledButton: {
-        backgroundColor: '#E0E0E0',
+        backgroundColor: colors.ccc,
     },
     disabledText: {
-        color: '#9E9E9E',
+        color: colors.brandDark,
     }
 });

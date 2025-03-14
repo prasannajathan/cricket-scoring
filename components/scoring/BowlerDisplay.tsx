@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Team, InningsData, Cricketer } from '@/types';
 import styles from '@/styles/batsmanBowlerRows';
 interface BowlerDisplayProps {
@@ -27,7 +27,9 @@ export default function BowlerDisplay({ bowlingTeam, currentInnings }: BowlerDis
         <Text style={[styles.tableHeader, styles.lastColumn]}>Econ</Text>
       </View>
       <View style={styles.tableRow}>
-        <Text style={[styles.tableCell, styles.playerColumn]}>{currentBowler.name}</Text>
+        <Text style={[styles.tableCell, styles.playerColumn]}>
+          {currentBowler.name}
+        </Text>
         <Text style={styles.tableCell}>{oversText}</Text>
         {/* TODO: maiden overs */}
         <Text style={styles.tableCell}>{'m'}</Text>

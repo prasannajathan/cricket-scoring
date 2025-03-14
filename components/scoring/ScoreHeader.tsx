@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, StatusBar } from 'react-native';
 import { Team, InningsData } from '@/types';
 import {
     colors,
@@ -49,6 +49,7 @@ export default function ScoreHeader({
 
     return (
         <View style={styles.heroContainer}>
+            {/* <StatusBar barStyle="light-content" /> */}
             <ImageBackground
                 source={require('@/assets/images/stadium-1.png')}
                 style={styles.heroImage}
@@ -106,14 +107,14 @@ export default function ScoreHeader({
 const styles = StyleSheet.create({
     /* Hero Scoreboard */
     heroContainer: {
-        borderRadius: radius.md,
+        // borderRadius: radius.md,
         overflow: 'hidden',
         // marginBottom: spacing.xs,
         ...shadows.card,
     },
     heroImage: {
         width: '100%',
-        height: 140,
+        height: 160,
         justifyContent: 'flex-end',
     },
     heroImageStyle: {
