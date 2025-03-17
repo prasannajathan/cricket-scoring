@@ -20,6 +20,7 @@ export const scoreboardSlice = createSlice({
 // Export all actions
 export const {
     setTeamName,
+    setTeam,
     setTossWinner,
     setTossChoice,
     setTotalOvers,

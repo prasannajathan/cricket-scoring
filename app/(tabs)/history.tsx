@@ -3,12 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useRouter } from 'expo-router';
-import { getSavedMatches } from '@/utils/matchStorage';
+import { getSavedMatches, deleteSavedMatch } from '@/utils/matchStorage';
 import { SavedMatch } from '@/types';
 import { useDispatch } from 'react-redux';
 import { resetGame } from '@/store/cricket/scoreboardSlice';
 import { FontAwesome } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HistoryScreen() {
   const [savedMatches, setSavedMatches] = useState<SavedMatch[]>([]);
@@ -90,21 +89,25 @@ export default function HistoryScreen() {
             text: 'Delete',
             style: 'destructive',
             onPress: async () => {
-              // Filter out the match to delete
-              const updatedMatches = savedMatches.filter(match => match.id !== matchId);
-              
-              // Save updated matches back to storage
-              await AsyncStorage.setItem('cricket_saved_matches', JSON.stringify(updatedMatches));
-              
-              // Update state
-              setSavedMatches(updatedMatches);
+              try {
+                // Use the utility function from matchStorage
+                await deleteSavedMatch(matchId);
+                
+                // Update state after successful deletion
+                setSavedMatches(prevMatches => 
+                  prevMatches.filter(match => match.id !== matchId)
+                );
+              } catch (error) {
+                console.error('Error in delete operation:', error);
+                Alert.alert('Error', 'Failed to delete match');
+              }
             }
           }
         ]
       );
     } catch (error) {
-      console.error('Error deleting match:', error);
-      Alert.alert('Error', 'Could not delete match');
+      console.error('Error showing delete confirmation:', error);
+      Alert.alert('Error', 'Could not process delete request');
     }
   };
 

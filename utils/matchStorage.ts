@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { SavedMatch } from '@/types';
+import { SavedMatch, Team } from '@/types';
 
 const STORAGE_KEY = 'cricket_saved_matches';
 const CURRENT_MATCH_KEY = '@cricket_scoring:current_match';
+const TEAMS_STORAGE_KEY = 'saved_teams';
 
 // AsyncStorage.clear();
 
@@ -100,4 +101,98 @@ export const deleteSavedMatch = async (matchId: string): Promise<void> => {
         console.error('Error deleting saved match:', error);
         throw error;
     }
+};
+
+export const getAllTeams = async (): Promise<Team[]> => {
+  try {
+    let teams: Team[] = [];
+    
+    // First try to load from saved_teams
+    const savedTeamsJson = await AsyncStorage.getItem(TEAMS_STORAGE_KEY);
+    if (savedTeamsJson) {
+      teams = JSON.parse(savedTeamsJson);
+    }
+    
+    // Next, extract teams from matches if any
+    const savedMatches = await getSavedMatches();
+    const matchTeamsMap = new Map<string, Team>();
+    
+    // Extract unique teams from matches
+    savedMatches.forEach(match => {
+      if (match.teamA && !matchTeamsMap.has(match.teamA.id)) {
+        matchTeamsMap.set(match.teamA.id, match.teamA);
+      }
+      if (match.teamB && !matchTeamsMap.has(match.teamB.id)) {
+        matchTeamsMap.set(match.teamB.id, match.teamB);
+      }
+    });
+    
+    // Add unique teams from matches to our saved teams
+    Array.from(matchTeamsMap.values()).forEach(team => {
+      if (!teams.some(t => t.id === team.id)) {
+        teams.push(team);
+      }
+    });
+    
+    // Sort teams alphabetically
+    teams.sort((a, b) => a.teamName.localeCompare(b.teamName));
+    
+    return teams;
+  } catch (error) {
+    console.error('Error loading teams:', error);
+    return [];
+  }
+};
+
+export const saveTeam = async (team: Team): Promise<void> => {
+  try {
+    // Get all existing teams
+    const existingTeams = await getAllTeams();
+    
+    // Check if team already exists
+    const teamIndex = existingTeams.findIndex(t => t.id === team.id);
+    
+    if (teamIndex >= 0) {
+      // Update existing team
+      existingTeams[teamIndex] = team;
+    } else {
+      // Add new team
+      existingTeams.push(team);
+    }
+    
+    // Sort teams alphabetically
+    existingTeams.sort((a, b) => a.teamName.localeCompare(b.teamName));
+    
+    // Save back to storage
+    await AsyncStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(existingTeams));
+  } catch (error) {
+    console.error('Error saving team:', error);
+    throw error;
+  }
+};
+
+export const deleteTeam = async (teamId: string): Promise<void> => {
+  try {
+    // Get all teams
+    const teams = await getAllTeams();
+    
+    // Filter out the team to delete
+    const filteredTeams = teams.filter(team => team.id !== teamId);
+    
+    // Save back to storage
+    await AsyncStorage.setItem(TEAMS_STORAGE_KEY, JSON.stringify(filteredTeams));
+  } catch (error) {
+    console.error('Error deleting team:', error);
+    throw error;
+  }
+};
+
+export const getTeam = async (teamId: string): Promise<Team | null> => {
+  try {
+    const teams = await getAllTeams();
+    return teams.find(team => team.id === teamId) || null;
+  } catch (error) {
+    console.error('Error getting team:', error);
+    return null;
+  }
 };

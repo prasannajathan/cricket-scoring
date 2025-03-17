@@ -1,11 +1,16 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { initialState } from '@/store/cricket/initialState';
-import { ScoreboardState, SavedMatch } from '@/types';
+import { ScoreboardState, SavedMatch, Team } from '@/types';
 
 export const matchSetupReducers = {
     setTeamName: (state: ScoreboardState, action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>) => {
         state[action.payload.team].teamName = action.payload.name;
     },
+
+    setTeam: (state: ScoreboardState, action: PayloadAction<{ team: 'teamA' | 'teamB', teamData: Team }>) => {
+        const { team, teamData } = action.payload;
+        state[team] = teamData;
+      },
 
     setTossWinner: (state: ScoreboardState, action: PayloadAction<'teamA' | 'teamB'>) => {
         state.tossWinner = action.payload;
