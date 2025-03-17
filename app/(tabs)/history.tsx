@@ -7,6 +7,8 @@ import { getSavedMatches } from '@/utils/matchStorage';
 import { SavedMatch } from '@/types';
 import { useDispatch } from 'react-redux';
 import { resetGame } from '@/store/cricket/scoreboardSlice';
+import { FontAwesome } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HistoryScreen() {
   const [savedMatches, setSavedMatches] = useState<SavedMatch[]>([]);
@@ -73,6 +75,39 @@ export default function HistoryScreen() {
     }
   };
 
+  const deleteMatch = async (matchId: string) => {
+    try {
+      // Show confirmation dialog
+      Alert.alert(
+        'Delete Match',
+        'Are you sure you want to delete this match? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              // Filter out the match to delete
+              const updatedMatches = savedMatches.filter(match => match.id !== matchId);
+              
+              // Save updated matches back to storage
+              await AsyncStorage.setItem('cricket_saved_matches', JSON.stringify(updatedMatches));
+              
+              // Update state
+              setSavedMatches(updatedMatches);
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting match:', error);
+      Alert.alert('Error', 'Could not delete match');
+    }
+  };
+
   const formatDate = (timestamp?: number) => {
     if (!timestamp) return 'Unknown date';
     return new Date(timestamp).toLocaleDateString();
@@ -80,9 +115,17 @@ export default function HistoryScreen() {
 
   const renderItem = ({ item }: { item: SavedMatch }) => (
     <View style={styles.matchItem}>
-      <Text style={styles.matchName}>
-        {`${item.teamA.teamName} vs ${item.teamB.teamName}`}
-      </Text>
+      <View style={styles.matchHeader}>
+        <Text style={styles.matchName}>
+          {`${item.teamA.teamName} vs ${item.teamB.teamName}`}
+        </Text>
+        <TouchableOpacity
+          style={styles.deleteIcon}
+          onPress={() => deleteMatch(item.id)}
+        >
+          <FontAwesome name="trash-o" size={20} color="#F44336" />
+        </TouchableOpacity>
+      </View>
       <Text style={styles.matchDate}>
         {formatDate(item.timestamp)}
       </Text>
@@ -149,6 +192,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 2.22,
     elevation: 3,
+  },
+  matchHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  deleteIcon: {
+    padding: 5,
   },
   matchName: { fontSize: 16, marginBottom: 8 },
   matchDate: {
