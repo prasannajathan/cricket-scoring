@@ -414,6 +414,35 @@ export default function ScoringScreen() {
     //     router.push('/history');
     // }
 
+    // Add a useEffect to log batsmen positions on every state change
+    useEffect(() => {
+        if (currentInnings && battingTeam) {
+            console.log("UI COMPONENT - Current batsmen state:", {
+                striker: battingTeam.players.find(p => p.id === currentInnings.currentStrikerId)?.name,
+                nonStriker: battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId)?.name,
+                inningsStriker: currentInnings.currentStrikerId,
+                inningsNonStriker: currentInnings.currentNonStrikerId,
+                teamStriker: battingTeam.currentStrikerId, 
+                teamNonStriker: battingTeam.currentNonStrikerId
+            });
+        }
+    }, [
+        currentInnings?.currentStrikerId, 
+        currentInnings?.currentNonStrikerId,
+        battingTeam?.currentStrikerId,
+        battingTeam?.currentNonStrikerId
+    ]);
+
+    // When rendering batsmen, prioritize innings state over team state:
+    const strikerName = battingTeam.players.find(
+        p => p.id === currentInnings.currentStrikerId
+    )?.name || "Striker";
+
+    const nonStrikerName = battingTeam.players.find(
+        p => p.id === currentInnings.currentNonStrikerId
+    )?.name || "Non-striker";
+
+
     return (
         <ScrollView style={styles.safeArea}>
             <ScoreHeader
@@ -570,6 +599,7 @@ export default function ScoringScreen() {
                 onClose={() => setShowEndInningsModal(false)}
                 onConfirm={handleEndInningsConfirm}
             />
+
         </ScrollView>
     );
 }
@@ -611,6 +641,18 @@ const styles = StyleSheet.create({
     },
     activeTabText: {
         color: colors.brandBlue,
+        fontWeight: '600',
+    },
+    debugButton: {
+        backgroundColor: colors.brandBlue,
+        padding: spacing.md,
+        borderRadius: 5,
+        alignItems: 'center',
+        marginTop: spacing.lg,
+    },
+    debugButtonText: {
+        color: colors.white,
+        fontSize: typography.sizeMD,
         fontWeight: '600',
     },
 });

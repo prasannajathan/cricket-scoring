@@ -2,6 +2,25 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import { ScoreboardState, ScoreBallPayload } from '@/types';
 import { checkInningsCompletionHelper, calculateRemainingWickets } from '@/utils';
 
+// Add this helper function to your scoreboardSlice.ts
+const updateBatsmenPositions = (state: ScoreboardState, strikerId: string | undefined, nonStrikerId: string | undefined) => {
+    const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
+    
+    // Update innings state
+    currentInnings.currentStrikerId = strikerId;
+    currentInnings.currentNonStrikerId = nonStrikerId;
+    
+    // Update team state
+    const battingTeamKey = currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB';
+    state[battingTeamKey].currentStrikerId = strikerId;
+    state[battingTeamKey].currentNonStrikerId = nonStrikerId;
+    
+    console.log("Batsmen positions updated:", {
+        striker: strikerId,
+        nonStriker: nonStrikerId
+    });
+};
+
 export const scoringReducers = {
     scoreBall: (state: ScoreboardState, action: PayloadAction<ScoreBallPayload>) => {
         console.log("scoreBall action:", {
@@ -28,6 +47,12 @@ export const scoringReducers = {
         const { runs, extraType, wicket, outBatsmanId, wicketType } = action.payload;
         let totalRuns = runs;
         let legalDelivery = true;
+
+        // Add this near the beginning of your scoreBall function
+        if (currentInnings.ballInCurrentOver >= 6) {
+            console.warn("WARNING: Ball count is already at or over 6, this shouldn't happen!");
+            currentInnings.ballInCurrentOver = 5; // Cap it at 5 to make sure next ball completes the over
+        }
 
         // Update batsman stats - CORRECTED
         const striker = battingTeam.players.find(p => p.id === currentInnings.currentStrikerId);
@@ -163,19 +188,29 @@ export const scoringReducers = {
         // Handle ball count and over completion - only if match isn't over
         if (legalDelivery) {
             currentInnings.ballInCurrentOver += 1;
-            if (currentInnings.ballInCurrentOver >= 6) {
+            if (currentInnings.ballInCurrentOver === 6) {
                 currentInnings.completedOvers += 1;
                 currentInnings.ballInCurrentOver = 0;
                 currentInnings.lastOverBowlerId = currentInnings.currentBowlerId;
 
-                // Always swap batsmen at end of over
-                const temp = currentInnings.currentStrikerId;
-                currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
-                currentInnings.currentNonStrikerId = temp;
+                console.log("END OF OVER - Before swap:", {
+                    striker: battingTeam.players.find(p => p.id === currentInnings.currentStrikerId)?.name,
+                    nonStriker: battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId)?.name,
+                    strikerID: currentInnings.currentStrikerId,
+                    nonStrikerID: currentInnings.currentNonStrikerId
+                });
 
-                // Update team state as well
-                battingTeam.currentStrikerId = currentInnings.currentStrikerId;
-                battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+                // Always swap batsmen at end of over
+                updateBatsmenPositions(state, currentInnings.currentNonStrikerId, currentInnings.currentStrikerId);
+
+                console.log("END OF OVER - After swap:", {
+                    striker: battingTeam.players.find(p => p.id === currentInnings.currentStrikerId)?.name,
+                    nonStriker: battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId)?.name,
+                    strikerID: currentInnings.currentStrikerId,
+                    nonStrikerID: currentInnings.currentNonStrikerId,
+                    teamStriker: battingTeam.currentStrikerId,
+                    teamNonStriker: battingTeam.currentNonStrikerId
+                });
 
                 if (bowler) {
                     bowler.overs += 1;
@@ -188,13 +223,7 @@ export const scoringReducers = {
                 }
             } else if (runs % 2 === 1) {
                 // Swap for odd runs on legal deliveries
-                const temp = currentInnings.currentStrikerId;
-                currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
-                currentInnings.currentNonStrikerId = temp;
-
-                // Update team state as well
-                battingTeam.currentStrikerId = currentInnings.currentStrikerId;
-                battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+                updateBatsmenPositions(state, currentInnings.currentNonStrikerId, currentInnings.currentStrikerId);
             }
         } else if (extraType === 'wide' || extraType === 'no-ball') {
             // For wides, the batsmen should switch when ADDITIONAL runs are odd
@@ -202,13 +231,7 @@ export const scoringReducers = {
             // For no-balls, it's the actual runs that determine if batsmen switch
             // Penalty run doesn't count for switching
             if (runs % 2 === 1) {  // Just check the additional runs
-                const temp = currentInnings.currentStrikerId;
-                currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
-                currentInnings.currentNonStrikerId = temp;
-
-                // Update team state as well
-                battingTeam.currentStrikerId = currentInnings.currentStrikerId;
-                battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+                updateBatsmenPositions(state, currentInnings.currentNonStrikerId, currentInnings.currentStrikerId);
             }
         }
 
@@ -299,8 +322,11 @@ export const scoringReducers = {
         // Undo bowler stats
         const bowler = bowlingTeam.players.find(p => p.id === lastDelivery.bowlerId);
         if (bowler) {
-            if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
-                // For wides and no-balls, bowler concedes all runs including penalty
+            if (lastDelivery.extraType === 'wide') {
+                // FIXED: For wides, don't deduct runs from bowler's personal stats
+                // since we don't add them in scoring
+            } else if (lastDelivery.extraType === 'no-ball') {
+                // For no-balls, undo all runs including penalty
                 bowler.runsConceded -= totalRunsToUndo;
             } else if (lastDelivery.extraType === 'bye' || lastDelivery.extraType === 'leg-bye') {
                 // Byes and leg byes aren't charged to the bowler, but count as legal deliveries
@@ -374,43 +400,20 @@ export const scoringReducers = {
             console.log("Undoing end of over - swapping batsmen back");
             
             // Swap batsmen back
-            const temp = currentInnings.currentStrikerId;
-            currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
-            currentInnings.currentNonStrikerId = temp;
+            updateBatsmenPositions(state, currentInnings.currentNonStrikerId, currentInnings.currentStrikerId);
             
             // Reset lastOverBowlerId since we're going back to the previous over
             currentInnings.lastOverBowlerId = undefined;
-            
-            // Also update the status in the batting team for consistency
-            if (currentInnings.battingTeamId === state.teamA.id) {
-                state.teamA.currentStrikerId = currentInnings.currentStrikerId;
-                state.teamA.currentNonStrikerId = currentInnings.currentNonStrikerId;
-            } else {
-                state.teamB.currentStrikerId = currentInnings.currentStrikerId;
-                state.teamB.currentNonStrikerId = currentInnings.currentNonStrikerId;
-            }
         }
         // Case 2: Odd runs on legal delivery
         else if (wasLegalDelivery && wasOddRuns) {
             // Swap batsmen back
-            const temp = currentInnings.currentStrikerId;
-            currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
-            currentInnings.currentNonStrikerId = temp;
-            
-            // Update team state as well
-            battingTeam.currentStrikerId = currentInnings.currentStrikerId;
-            battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+            updateBatsmenPositions(state, currentInnings.currentNonStrikerId, currentInnings.currentStrikerId);
         }
         // Case 3: Odd runs on wide/no-ball
         else if ((lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') && wasOddRuns) {
             // Swap batsmen back
-            const temp = currentInnings.currentStrikerId;
-            currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
-            currentInnings.currentNonStrikerId = temp;
-            
-            // Update team state as well
-            battingTeam.currentStrikerId = currentInnings.currentStrikerId;
-            battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+            updateBatsmenPositions(state, currentInnings.currentNonStrikerId, currentInnings.currentStrikerId);
         }
         
         // Reset match status if undoing match-winning delivery
@@ -466,14 +469,7 @@ export const scoringReducers = {
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
         
         // Swap batsmen in the innings
-        const temp = currentInnings.currentStrikerId;
-        currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
-        currentInnings.currentNonStrikerId = temp;
-        
-        // Find the batting team and update its state too
-        const battingTeamKey = currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB';
-        state[battingTeamKey].currentStrikerId = currentInnings.currentStrikerId;
-        state[battingTeamKey].currentNonStrikerId = currentInnings.currentNonStrikerId;
+        updateBatsmenPositions(state, currentInnings.currentNonStrikerId, currentInnings.currentStrikerId);
         
         console.log("Manually swapped batsmen:", {
             striker: currentInnings.currentStrikerId,
