@@ -245,33 +245,42 @@ export const scoringReducers = {
 
     undoLastBall: (state: ScoreboardState) => {
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
+        
+        // If no deliveries to undo, return early
+        if (!currentInnings.deliveries.length) return;
+        
         const lastDelivery = currentInnings.deliveries[currentInnings.deliveries.length - 1];
-
-        if (!lastDelivery) return;
-
+        
         const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
         const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-
+        
+        // Store original state values to determine switching needs
+        const wasLastBallOfOver = currentInnings.ballInCurrentOver === 0 && currentInnings.completedOvers > 0;
+        const wasOddRuns = lastDelivery.runs % 2 === 1;
+        const wasLegalDelivery = !lastDelivery.extraType || 
+                                lastDelivery.extraType === 'bye' || 
+                                lastDelivery.extraType === 'leg-bye';
+        const wasMatchWinningDelivery = state.matchOver && 
+                                       state.currentInning === 2 && 
+                                       currentInnings.deliveries.length === 
+                                       currentInnings.deliveries.indexOf(lastDelivery) + 1;
+        
         // Calculate total runs that were scored on this delivery
-        let totalRunsToUndo = lastDelivery.runs;
-        if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
-            // For wides/no-balls, we need to also undo the penalty run
-            totalRunsToUndo += 1;
-        }
-
+        let totalRunsToUndo = lastDelivery.totalRuns || 0;
+        
         // Undo batsman stats
         const striker = battingTeam.players.find(p => p.id === lastDelivery.batsmanId);
         if (striker) {
             // Only undo batsman's runs if it wasn't a bye/leg-bye or wide
             if (!lastDelivery.extraType || lastDelivery.extraType === 'no-ball') {
-                striker.runs -= lastDelivery.batsmanRuns || lastDelivery.runs;
+                striker.runs -= lastDelivery.batsmanRuns || 0;
                 striker.balls -= 1;
                 if (lastDelivery.runs === 4) striker.fours -= 1;
                 if (lastDelivery.runs === 6) striker.sixes -= 1;
                 striker.strikeRate = striker.balls > 0 ? (striker.runs / striker.balls) * 100 : 0;
             }
         }
-
+        
         // Undo bowler stats
         const bowler = bowlingTeam.players.find(p => p.id === lastDelivery.bowlerId);
         if (bowler) {
@@ -279,25 +288,25 @@ export const scoringReducers = {
                 // For wides and no-balls, bowler concedes all runs including penalty
                 bowler.runsConceded -= totalRunsToUndo;
             } else if (lastDelivery.extraType === 'bye' || lastDelivery.extraType === 'leg-bye') {
-                // Byes and leg byes aren't charged to the bowler
+                // Byes and leg byes aren't charged to the bowler, but count as legal deliveries
                 bowler.ballsThisOver -= 1;
             } else {
                 // Regular delivery
                 bowler.runsConceded -= lastDelivery.runs;
                 bowler.ballsThisOver -= 1;
             }
-
+            
             // Fix over count if needed
             if (bowler.ballsThisOver < 0) {
                 bowler.overs -= 1;
                 bowler.ballsThisOver = 5; // Back to the last ball of previous over
             }
-
+            
             // Undo wicket
             if (lastDelivery.wicket && !['runout', 'retired'].includes(lastDelivery.wicketType || '')) {
                 bowler.wickets -= 1;
             }
-
+            
             // Recalculate economy rate
             const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
             if (totalBalls > 0) {
@@ -306,31 +315,33 @@ export const scoringReducers = {
                 bowler.economy = 0;
             }
         }
-
+        
         // Undo innings stats
         currentInnings.totalRuns -= totalRunsToUndo;
-
+        
         // Fix extras count
         if (lastDelivery.extraType) {
             if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
-                // For wides/no-balls, we need to undo both the penalty and additional runs
                 currentInnings.extras -= totalRunsToUndo;
             } else {
-                // For byes/leg-byes, just undo the runs
                 currentInnings.extras -= lastDelivery.runs;
             }
         }
-
+        
         // Fix ball count
-        if (!lastDelivery.extraType || lastDelivery.extraType === 'bye' || lastDelivery.extraType === 'leg-bye') {
-            // Only legal deliveries count toward the over
+        if (wasLegalDelivery) {
             currentInnings.ballInCurrentOver -= 1;
             if (currentInnings.ballInCurrentOver < 0) {
                 currentInnings.completedOvers -= 1;
                 currentInnings.ballInCurrentOver = 5;
+                
+                // Reset lastOverBowlerId if we're undoing across overs
+                if (wasLastBallOfOver) {
+                    currentInnings.lastOverBowlerId = undefined;
+                }
             }
         }
-
+        
         // Undo wicket
         if (lastDelivery.wicket) {
             currentInnings.wickets -= 1;
@@ -339,16 +350,81 @@ export const scoringReducers = {
                 outBatsman.isOut = false;
             }
         }
-
+        
+        // Handle batsmen switching
+        // Case 1: End of over switch (legal delivery and last ball of over)
+        if (wasLastBallOfOver && wasLegalDelivery) {
+            // Swap batsmen back
+            const temp = currentInnings.currentStrikerId;
+            currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
+            currentInnings.currentNonStrikerId = temp;
+            
+            // Update team state as well
+            battingTeam.currentStrikerId = currentInnings.currentStrikerId;
+            battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+        }
+        // Case 2: Odd runs on legal delivery
+        else if (wasLegalDelivery && wasOddRuns) {
+            // Swap batsmen back
+            const temp = currentInnings.currentStrikerId;
+            currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
+            currentInnings.currentNonStrikerId = temp;
+            
+            // Update team state as well
+            battingTeam.currentStrikerId = currentInnings.currentStrikerId;
+            battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+        }
+        // Case 3: Odd runs on wide/no-ball
+        else if ((lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') && wasOddRuns) {
+            // Swap batsmen back
+            const temp = currentInnings.currentStrikerId;
+            currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
+            currentInnings.currentNonStrikerId = temp;
+            
+            // Update team state as well
+            battingTeam.currentStrikerId = currentInnings.currentStrikerId;
+            battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+        }
+        
+        // Reset match status if undoing match-winning delivery
+        if (wasMatchWinningDelivery) {
+            state.matchOver = false;
+            state.matchResult = undefined;
+            currentInnings.isCompleted = false;
+            state.alertMessage = undefined;
+        }
+        
+        // Reset innings completion status if appropriate
+        if (currentInnings.isCompleted) {
+            // Only reset if this undo would make the innings incomplete
+            if (
+                // For first innings: if now below total overs
+                (state.currentInning === 1 && currentInnings.completedOvers < state.totalOvers) ||
+                // For second innings: if now below target and still have wickets
+                (state.currentInning === 2 && 
+                 state.targetScore && 
+                 currentInnings.totalRuns < state.targetScore &&
+                 currentInnings.wickets < battingTeam.players.length - 1)
+            ) {
+                currentInnings.isCompleted = false;
+            }
+        }
+        
         // Remove last delivery
         currentInnings.deliveries.pop();
-
+        
         // Log debug info after undo
         console.log("After undo:", {
             totalRuns: currentInnings.totalRuns,
             extras: currentInnings.extras,
             completedOvers: currentInnings.completedOvers,
-            ballInCurrentOver: currentInnings.ballInCurrentOver
+            ballInCurrentOver: currentInnings.ballInCurrentOver,
+            wasLastBallOfOver,
+            wasOddRuns,
+            wasLegalDelivery,
+            wasMatchWinningDelivery,
+            currentStriker: battingTeam.players.find(p => p.id === currentInnings.currentStrikerId)?.name,
+            currentNonStriker: battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId)?.name
         });
     },
 
