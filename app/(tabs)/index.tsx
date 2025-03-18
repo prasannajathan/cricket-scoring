@@ -192,7 +192,7 @@ export default function NewMatchScreen() {
                       </TouchableOpacity>
                     ))
                   ) : (
-                    <Text style={styles.noSuggestionsText}>No teams found</Text>
+                    <Text></Text>
                   )}
                 </View>
               )}

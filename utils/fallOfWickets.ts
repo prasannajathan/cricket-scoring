@@ -2,7 +2,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { DeliveryDetails } from '@/types/scoring';
 
-import { BALLS_PER_OVER } from '@/constants/scoring';
+import { getMatchRules } from '@/constants/scoring';
 
 export interface WicketFall {
     score: number;
@@ -18,12 +18,14 @@ export interface WicketFall {
 }
 
 export const trackFallOfWickets = (deliveries: DeliveryDetails[]): WicketFall[] => {
-    
+    const state = useSelector((state: RootState) => state.scoreboard)
+
     const fowList: WicketFall[] = [];
     let currentScore = 0;
     let partnershipRuns = 0;
     let partnershipBalls = 0;
 
+    const rules = getMatchRules(state)
     deliveries.forEach(delivery => {
         const isLegal = !delivery.extraType || 
                        delivery.extraType === 'bye' || 
@@ -34,8 +36,8 @@ export const trackFallOfWickets = (deliveries: DeliveryDetails[]): WicketFall[] 
         if (isLegal) partnershipBalls++;
 
         if (delivery.wicket && delivery.outBatsmanId) {
-            const overs = Math.floor(deliveries.length / BALLS_PER_OVER);
-            const balls = deliveries.length % BALLS_PER_OVER;
+            const overs = Math.floor(deliveries.length / rules.BALLS_PER_OVER);
+            const balls = deliveries.length % rules.BALLS_PER_OVER;
 
             fowList.push({
                 score: currentScore,

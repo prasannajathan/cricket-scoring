@@ -1,7 +1,8 @@
+import { useSelector } from 'react-redux';
 import { DeliveryDetails, PowerPlay, BatsmanStats, BowlerStats } from '@/types/scoring';
-import { BALLS_PER_OVER } from '@/constants/scoring';
+import { getMatchRules } from '@/constants/scoring';
 import { isPowerPlayOver } from '@/utils/powerPlay';
-
+import { RootState } from '@/store';
 interface Partnership {
     runs: number;
     balls: number;
@@ -9,12 +10,17 @@ interface Partnership {
     endIndex: number;
 }
 
+const state = useSelector((state: RootState) => state.scoreboard)
+const rules = getMatchRules(state)
+
 const calculatePowerPlayScore = (
-    deliveries: DeliveryDetails[], 
+    deliveries: DeliveryDetails[],
     powerPlays: PowerPlay[]
 ): number => {
+
+
     return deliveries.reduce((total, delivery, index) => {
-        const overNumber = Math.floor(index / BALLS_PER_OVER);
+        const overNumber = Math.floor(index / rules.BALLS_PER_OVER);
         if (isPowerPlayOver(overNumber, powerPlays)) {
             return total + delivery.runs;
         }
@@ -22,9 +28,9 @@ const calculatePowerPlayScore = (
     }, 0);
 };
 
-export const calculatePartnershipStats = (deliveries: DeliveryDetails[]): { 
-    highest: number; 
-    average: number; 
+export const calculatePartnershipStats = (deliveries: DeliveryDetails[]): {
+    highest: number;
+    average: number;
 } => {
     const partnerships: Partnership[] = [];
     let currentPartnership: Partnership = {
@@ -57,8 +63,8 @@ export const calculatePartnershipStats = (deliveries: DeliveryDetails[]): {
     }
 
     const highest = Math.max(...partnerships.map(p => p.runs), 0);
-    const average = partnerships.length > 0 
-        ? partnerships.reduce((sum, p) => sum + p.runs, 0) / partnerships.length 
+    const average = partnerships.length > 0
+        ? partnerships.reduce((sum, p) => sum + p.runs, 0) / partnerships.length
         : 0;
 
     return {
@@ -91,7 +97,7 @@ export const calculateMatchSummary = (
     const summary = deliveries.reduce((acc, delivery) => {
         const runs = delivery.runs;
         const isExtra = !!delivery.extraType;
-        
+
         return {
             totalRuns: acc.totalRuns + runs,
             wickets: acc.wickets + (delivery.wicket ? 1 : 0),
@@ -110,8 +116,8 @@ export const calculateMatchSummary = (
         dotBalls: 0
     });
 
-    const overs = deliveries.length / BALLS_PER_OVER;
-    
+    const overs = deliveries.length / rules.BALLS_PER_OVER;
+
     return {
         ...summary,
         runRate: summary.totalRuns / overs,

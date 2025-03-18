@@ -37,6 +37,10 @@ export interface BowlerStats {
     dotBalls: number;
 }
 
+export interface PowerPlay {
+    startOver: number;
+    endOver: number;
+}
 export interface Partnership {
     player1Id: string;
     player2Id: string;

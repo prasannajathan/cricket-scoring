@@ -29,56 +29,71 @@ export const scoringReducers = {
         let totalRuns = runs;
         let legalDelivery = true;
 
-        // Update batsman stats
-        if (!extraType || extraType === 'no-ball') {
-            const striker = battingTeam.players.find(p => p.id === currentInnings.currentStrikerId);
-            if (striker) {
+        // Update batsman stats - CORRECTED
+        const striker = battingTeam.players.find(p => p.id === currentInnings.currentStrikerId);
+        if (striker) {
+            // Only count runs for batsman on regular deliveries or no-balls (not byes/leg-byes/wides)
+            if (!extraType || extraType === 'no-ball') {
                 striker.runs += runs;
-                striker.balls += 1;
                 if (runs === 4) striker.fours += 1;
                 if (runs === 6) striker.sixes += 1;
+            }
+            
+            // Count the ball for the batsman for all legal deliveries
+            // Legal deliveries are regular, bye, leg-bye (not wide or no-ball)
+            if (!extraType || extraType === 'bye' || extraType === 'leg-bye') {
+                striker.balls += 1;
+            }
+            
+            // Update strike rate
+            if (striker.balls > 0) {
                 striker.strikeRate = (striker.runs / striker.balls) * 100;
             }
         }
 
         // Handle extras
         if (extraType === 'wide' || extraType === 'no-ball') {
-            totalRuns += 1;
-            currentInnings.extras += 1;
+            totalRuns += 1; // Add penalty run
+            currentInnings.extras += 1; // Count penalty run as extra
+            
+            // For wide and no-ball, the additional runs (beyond the penalty) are also extras
+            if (runs > 0) {
+                currentInnings.extras += runs;
+            }
+            
             legalDelivery = false;
         } else if (extraType === 'bye' || extraType === 'leg-bye') {
-            currentInnings.extras += runs;
+            currentInnings.extras += runs; // All bye/leg-bye runs count as extras
         }
 
-        // Update bowler stats - FIXED
+        // Update bowler stats - CORRECTED
         const bowler = bowlingTeam.players.find(p => p.id === currentInnings.currentBowlerId);
         if (bowler) {
-            // For wides, count total runs (penalty + extras) against bowler
             if (extraType === 'wide') {
-                bowler.runsConceded += totalRuns; // Include all runs from wide
-                // Don't increment bowler's balls for wide balls (keep this behavior)
+                // CORRECTED: Wides don't count against bowler's personal runs conceded stat
+                // Don't increment bowler.runsConceded
+                // Don't increment bowler's balls for wide balls (already correct)
             }
-            // Rest of your bowler stats code remains the same...
             else if (extraType === 'no-ball') {
-                bowler.runsConceded += 1; // Just the no-ball penalty
-                // Don't increment ballsThisOver for no-balls
-                // If there are batsman runs on a no-ball, add them separately
+                // No-ball penalty counts against bowler
+                bowler.runsConceded += 1;
+                
+                // If there are batsman runs on a no-ball, add them to the bowler too
                 if (runs > 0) {
                     bowler.runsConceded += runs;
                 }
+                
+                // No-balls don't count as balls bowled
             }
-            // For byes/leg-byes, count the ball but not the runs
             else if (extraType === 'bye' || extraType === 'leg-bye') {
                 // Count the ball but not the runs
                 bowler.ballsThisOver += 1;
-                // Don't add runs to bowler's runsConceded
+                // Don't add runs to bowler's runsConceded for byes/leg-byes
             }
-            // For regular deliveries or batsman runs off no-balls
             else {
-                bowler.runsConceded += totalRuns;
-                if (legalDelivery) {
-                    bowler.ballsThisOver += 1;
-                }
+                // Regular delivery - add runs and count the ball
+                bowler.runsConceded += runs;
+                bowler.ballsThisOver += 1;
             }
 
             // Update economy rate if balls have been bowled
@@ -319,11 +334,13 @@ export const scoringReducers = {
         // Undo innings stats
         currentInnings.totalRuns -= totalRunsToUndo;
         
-        // Fix extras count
+        // Fix extras count - CORRECTED
         if (lastDelivery.extraType) {
             if (lastDelivery.extraType === 'wide' || lastDelivery.extraType === 'no-ball') {
+                // For wides and no-balls, subtract all runs as extras
                 currentInnings.extras -= totalRunsToUndo;
-            } else {
+            } else if (lastDelivery.extraType === 'bye' || lastDelivery.extraType === 'leg-bye') {
+                // For byes and leg-byes, just subtract the runs
                 currentInnings.extras -= lastDelivery.runs;
             }
         }
@@ -354,14 +371,24 @@ export const scoringReducers = {
         // Handle batsmen switching
         // Case 1: End of over switch (legal delivery and last ball of over)
         if (wasLastBallOfOver && wasLegalDelivery) {
+            console.log("Undoing end of over - swapping batsmen back");
+            
             // Swap batsmen back
             const temp = currentInnings.currentStrikerId;
             currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
             currentInnings.currentNonStrikerId = temp;
             
-            // Update team state as well
-            battingTeam.currentStrikerId = currentInnings.currentStrikerId;
-            battingTeam.currentNonStrikerId = currentInnings.currentNonStrikerId;
+            // Reset lastOverBowlerId since we're going back to the previous over
+            currentInnings.lastOverBowlerId = undefined;
+            
+            // Also update the status in the batting team for consistency
+            if (currentInnings.battingTeamId === state.teamA.id) {
+                state.teamA.currentStrikerId = currentInnings.currentStrikerId;
+                state.teamA.currentNonStrikerId = currentInnings.currentNonStrikerId;
+            } else {
+                state.teamB.currentStrikerId = currentInnings.currentStrikerId;
+                state.teamB.currentNonStrikerId = currentInnings.currentNonStrikerId;
+            }
         }
         // Case 2: Odd runs on legal delivery
         else if (wasLegalDelivery && wasOddRuns) {
@@ -435,10 +462,23 @@ export const scoringReducers = {
     },
 
     swapBatsmen: (state: ScoreboardState) => {
+        // Get the current innings
         const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
+        
+        // Swap batsmen in the innings
         const temp = currentInnings.currentStrikerId;
         currentInnings.currentStrikerId = currentInnings.currentNonStrikerId;
         currentInnings.currentNonStrikerId = temp;
+        
+        // Find the batting team and update its state too
+        const battingTeamKey = currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB';
+        state[battingTeamKey].currentStrikerId = currentInnings.currentStrikerId;
+        state[battingTeamKey].currentNonStrikerId = currentInnings.currentNonStrikerId;
+        
+        console.log("Manually swapped batsmen:", {
+            striker: currentInnings.currentStrikerId,
+            nonStriker: currentInnings.currentNonStrikerId
+        });
     },
 
     retireBatsman: (state: ScoreboardState, action: PayloadAction<string>) => {

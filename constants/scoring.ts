@@ -2,7 +2,7 @@ import { WicketType, ExtraType } from '@/types/scoring';
 import { ScoreboardState } from '@/types';
 import { initialState } from '@/store/cricket/initialState';
 
-export const BALLS_PER_OVER = 6;
+const BALLS_PER_OVER = 6
 
 export const getMatchRules = (state: ScoreboardState) => {
     const { totalOvers, totalPlayers } = state;
