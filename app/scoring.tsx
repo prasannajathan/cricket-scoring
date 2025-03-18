@@ -113,7 +113,6 @@ export default function ScoringScreen() {
 
     // Create a custom setter
     const setActiveTabPersistent = (tab: 'live' | 'scorecard') => {
-        console.log(`Setting tab to ${tab} (current: ${activeTab})`);
         activeTabRef.current = tab; // Update the ref
         setActiveTab(tab); // Update the state
     };
@@ -174,7 +173,7 @@ export default function ScoringScreen() {
         if (state.currentInning === 2 && state.targetScore) {
             const currentTotal = currentInnings?.totalRuns || 0;
             if (currentTotal + runs >= state.targetScore && !wicket) {
-                console.log("This will win the match!");
+                // console.log("This will win the match!");
             }
         }
 
@@ -220,11 +219,6 @@ export default function ScoringScreen() {
             dispatch(setCurrentNonStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
         }
     };
-
-    // Add a function to change the bowler anytime
-    // const handleChangeBowler = () => {
-    //     setShowBowlerModal(true);
-    // };
 
     // Update the bowler modal effect
     useEffect(() => {
@@ -353,7 +347,6 @@ export default function ScoringScreen() {
 
     // Update handleEndInningsConfirm to use the flag
     const handleEndInningsConfirm = () => {
-        console.log('End innings confirmed - navigating to openingPlayers');
 
         // Close the modal
         setShowEndInningsModal(false);
@@ -380,14 +373,14 @@ export default function ScoringScreen() {
 
         // Check if we've already shown this alert during this app session
         if (SHOWN_MATCH_ALERTS.has(alertKey)) {
-            console.log(`Alert for match ${alertKey} already shown in this app session, skipping`);
+            // console.log(`Alert for match ${alertKey} already shown in this app session, skipping`);
             return;
         }
 
         // Mark as shown IMMEDIATELY before any async operations
         SHOWN_MATCH_ALERTS.add(alertKey);
 
-        console.log(`First time showing alert for match ${alertKey}, proceeding`);
+        // console.log(`First time showing alert for match ${alertKey}, proceeding`);
 
         // Show the alert after a short delay to let UI settle
         Alert.alert(
@@ -409,38 +402,6 @@ export default function ScoringScreen() {
             { cancelable: false }
         );
     }, [state.matchOver, state.matchResult, state.id]);
-
-    // const handleHomeTab = () => {
-    //     router.push('/history');
-    // }
-
-    // Add a useEffect to log batsmen positions on every state change
-    useEffect(() => {
-        if (currentInnings && battingTeam) {
-            console.log("UI COMPONENT - Current batsmen state:", {
-                striker: battingTeam.players.find(p => p.id === currentInnings.currentStrikerId)?.name,
-                nonStriker: battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId)?.name,
-                inningsStriker: currentInnings.currentStrikerId,
-                inningsNonStriker: currentInnings.currentNonStrikerId,
-                teamStriker: battingTeam.currentStrikerId, 
-                teamNonStriker: battingTeam.currentNonStrikerId
-            });
-        }
-    }, [
-        currentInnings?.currentStrikerId, 
-        currentInnings?.currentNonStrikerId,
-        battingTeam?.currentStrikerId,
-        battingTeam?.currentNonStrikerId
-    ]);
-
-    // When rendering batsmen, prioritize innings state over team state:
-    const strikerName = battingTeam.players.find(
-        p => p.id === currentInnings.currentStrikerId
-    )?.name || "Striker";
-
-    const nonStrikerName = battingTeam.players.find(
-        p => p.id === currentInnings.currentNonStrikerId
-    )?.name || "Non-striker";
 
 
     return (
@@ -499,7 +460,6 @@ export default function ScoringScreen() {
                         bowlingTeam={bowlingTeam}
                         currentInnings={currentInnings}
                     />
-
 
                     <OverRowDisplay />
 
@@ -599,6 +559,31 @@ export default function ScoringScreen() {
                 onClose={() => setShowEndInningsModal(false)}
                 onConfirm={handleEndInningsConfirm}
             />
+
+            <TouchableOpacity
+                style={styles.debugButton}
+                onPress={() => {
+                    const currentInnings = state.currentInning === 1
+                        ? state.innings1
+                        : state.innings2;
+                    const battingTeam = currentInnings.battingTeamId === state.teamA.id
+                        ? state.teamA
+                        : state.teamB;
+
+                    console.log("CURRENT STATE:", {
+                        completedOvers: currentInnings.completedOvers,
+                        ballInCurrentOver: currentInnings.ballInCurrentOver,
+                        inningsStriker: currentInnings.currentStrikerId,
+                        inningsNonStriker: currentInnings.currentNonStrikerId,
+                        teamStriker: battingTeam.currentStrikerId,
+                        teamNonStriker: battingTeam.currentNonStrikerId,
+                        strikerName: battingTeam.players.find(p => p.id === currentInnings.currentStrikerId)?.name,
+                        nonStrikerName: battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId)?.name
+                    });
+                }}
+            >
+                <Text style={styles.debugButtonText}>Debug</Text>
+            </TouchableOpacity>
 
         </ScrollView>
     );

@@ -36,46 +36,70 @@ export default function OverRowDisplay() {
   );
 }
 
-// Helper to get current over balls
+// Improved function to correctly identify current over balls
 function getCurrentOverBalls(innings: InningsData): DeliveryEvent[] {
   if (!innings || !innings.deliveries || innings.deliveries.length === 0) {
     return [];
   }
 
-  // If we have balls in the current over, show this over
-  // Otherwise, show the previous over
-  const overNumber = innings.ballInCurrentOver > 0 ?
-    innings.completedOvers :
-    innings.completedOvers - 1;
+  // IMPROVED LOGIC: We need to identify the current over more reliably
+  // by looking at deliveries and completed overs together
+  
+  // First, calculate which over number each delivery belongs to
+  const deliveriesWithOverNumber: Array<{delivery: DeliveryEvent, overNumber: number}> = [];
+  let currentOver = 0;
+  let legalDeliveriesInCurrentOver = 0;
 
-  // Ensure we don't go below 0
-  const overToShow = Math.max(0, overNumber);
+  // Assign over numbers to each delivery
+  innings.deliveries.forEach(delivery => {
+    const isLegalDelivery = !delivery.extraType || 
+                           delivery.extraType === 'bye' || 
+                           delivery.extraType === 'leg-bye';
 
-  // Get the balls from this over
-  return innings.deliveries.filter(delivery => {
-    // First, we need to tag each delivery with its over number
-    let overCount = 0;
-    let ballCount = 0;
+    // Add this delivery with its calculated over number
+    deliveriesWithOverNumber.push({
+      delivery,
+      overNumber: currentOver
+    });
 
-    // Find this delivery's index
-    const index = innings.deliveries.indexOf(delivery);
-
-    // Count legal balls up to this delivery to determine its over
-    for (let i = 0; i <= index; i++) {
-      const d = innings.deliveries[i];
-      const isLegal = !d.extraType || (d.extraType !== 'wide' && d.extraType !== 'no-ball');
-
-      if (isLegal) {
-        ballCount++;
-        if (ballCount > 6) {
-          overCount++;
-          ballCount = 1;
-        }
+    // Update over counter if needed
+    if (isLegalDelivery) {
+      legalDeliveriesInCurrentOver++;
+      
+      // Check if this completes an over
+      if (legalDeliveriesInCurrentOver === 6) {
+        currentOver++;
+        legalDeliveriesInCurrentOver = 0;
       }
     }
-
-    return overCount === overToShow;
   });
+
+  // Now determine which over to show - IMPROVED LOGIC
+  let overToShow: number;
+  
+  // If we have at least one delivery
+  if (deliveriesWithOverNumber.length > 0) {
+    // Look at the last delivery to determine current over
+    const lastDeliveryOver = deliveriesWithOverNumber[deliveriesWithOverNumber.length - 1].overNumber;
+    
+    // This is the current over we're in (regardless of legal/illegal deliveries)
+    overToShow = lastDeliveryOver;
+  } else {
+    // No deliveries yet, show over 0
+    overToShow = 0;
+  }
+
+  console.log("Over display debug:", {
+    completedOvers: innings.completedOvers,
+    ballInCurrentOver: innings.ballInCurrentOver,
+    calculatedOverToShow: overToShow,
+    deliveriesInOver: deliveriesWithOverNumber.filter(item => item.overNumber === overToShow).length
+  });
+
+  // Filter and return only the deliveries from our target over
+  return deliveriesWithOverNumber
+    .filter(item => item.overNumber === overToShow)
+    .map(item => item.delivery);
 }
 
 // UPDATED function to correctly display wide balls
@@ -91,12 +115,18 @@ function formatDeliveryForDisplay(delivery: DeliveryEvent): string {
   if (delivery.extraType) {
     switch (delivery.extraType) {
       case 'wide':
-        // For wides, total runs displayed should include the penalty run
-        return delivery.runs === 0 ? 'Wd' : `${delivery.runs}Wd`;
+        // For wides, show total runs including the penalty
+        // For a standard wide (1 run), just show "Wd"
+        // For a wide with additional runs, show the total: "2Wd", "3Wd", etc.
+        if (delivery.totalRuns === 1) {
+          return 'Wd';
+        } else {
+          return `${delivery.totalRuns}Wd`;
+        }
 
       case 'no-ball':
         // For no-balls, show batsman runs (if any) followed by Nb
-        return delivery.runs > 0 ? `${delivery.runs}Nb` : 'Nb';
+        return delivery.batsmanRuns > 0 ? `${delivery.batsmanRuns}Nb` : 'Nb';
 
       case 'bye':
         return `${delivery.runs}B`;
@@ -111,7 +141,7 @@ function formatDeliveryForDisplay(delivery: DeliveryEvent): string {
 
   // Regular runs
   if (delivery.runs === 0) {
-    return "."; // Dot ball
+    return "0"; // Dot ball
   }
   return delivery.runs.toString();
 }
@@ -162,45 +192,4 @@ const styles = StyleSheet.create({
   sixBall: {
     backgroundColor: '#4CAF50',
   },
-  // container: {
-  //   backgroundColor: '#fff',
-  //   borderRadius: 8,
-  //   padding: 10,
-  //   marginBottom: 12,
-  //   elevation: 2,
-  //   shadowColor: '#000',
-  //   shadowOffset: { width: 0, height: 1 },
-  //   shadowOpacity: 0.2,
-  //   shadowRadius: 1,
-  // },
-  // title: {
-  //   fontSize: 14,
-  //   fontWeight: 'bold',
-  //   color: '#1B5E20',
-  //   marginBottom: 6,
-  // },
-  // ballsContainer: {
-  //   flexDirection: 'row',
-  //   flexWrap: 'wrap',
-  //   alignItems: 'center',
-  //   justifyContent: 'flex-start',
-  // },
-  // ballCircle: {
-  //   width: 32,
-  //   height: 32,
-  //   borderRadius: 16,
-  //   justifyContent: 'center',
-  //   alignItems: 'center',
-  //   marginRight: 6,
-  //   marginBottom: 4,
-  // },
-  // ballText: {
-  //   color: '#fff',
-  //   fontWeight: 'bold',
-  //   fontSize: 12,
-  // },
-  // noBallsText: {
-  //   fontStyle: 'italic',
-  //   color: '#9E9E9E',
-  // },
 });

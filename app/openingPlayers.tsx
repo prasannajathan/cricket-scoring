@@ -40,22 +40,8 @@ export default function OpeningPlayersScreen() {
     if (isSecondInnings) {
         // Explicitly set currentInning to 2 and start the second innings
         if (scoreboard.currentInning !== 2 || !scoreboard.targetScore) {
-            console.log("Initializing second innings and setting target score");
             dispatch({ type: 'scoreboard/startInnings2' });
         }
-        
-        // Log the team info to confirm correct assignments
-        console.log('Second innings teams status:', {
-            batting: battingTeam.teamName,
-            bowling: bowlingTeam.teamName,
-            battingId: battingTeam.id,
-            bowlingId: bowlingTeam.id,
-            teamABatting: scoreboard.teamA.isBatting,
-            teamBBatting: scoreboard.teamB.isBatting,
-            players: battingTeam.players.length,
-            currentInning: scoreboard.currentInning,
-            targetScore: scoreboard.targetScore
-        });
     }
   }, [isSecondInnings, battingTeam.id, bowlingTeam.id, scoreboard.currentInning, scoreboard.targetScore]);
 
@@ -148,7 +134,6 @@ export default function OpeningPlayersScreen() {
                     type: 'scoreboard/setTargetScore', 
                     payload: targetScore
                 });
-                console.log("Force setting target score to:", targetScore);
             }
         }
 

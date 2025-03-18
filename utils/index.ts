@@ -57,6 +57,45 @@ export const checkInningsCompletionHelper = (state: ScoreboardState) => {
   }
 };
 
+// Add this helper function to your scoreboardSlice.ts
+export const updateBatsmenPositions = (
+  state: ScoreboardState,
+  newStrikerId: string | undefined,
+  newNonStrikerId: string | undefined,
+) => {
+  // Get the current innings
+  const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
+  
+  // Debug the update
+  console.log("UPDATING BATSMEN POSITIONS - Before:", {
+    inningsStriker: currentInnings.currentStrikerId,
+    inningsNonStriker: currentInnings.currentNonStrikerId
+  });
+  
+  // Update the innings state
+  currentInnings.currentStrikerId = newStrikerId;
+  currentInnings.currentNonStrikerId = newNonStrikerId;
+  
+  // Find the batting team and update its state too
+  if (currentInnings.battingTeamId === state.teamA.id) {
+    state.teamA.currentStrikerId = newStrikerId;
+    state.teamA.currentNonStrikerId = newNonStrikerId;
+  } else {
+    state.teamB.currentStrikerId = newStrikerId;
+    state.teamB.currentNonStrikerId = newNonStrikerId;
+  }
+  
+  // Debug the update
+  console.log("UPDATING BATSMEN POSITIONS - After:", {
+    inningsStriker: currentInnings.currentStrikerId,
+    inningsNonStriker: currentInnings.currentNonStrikerId,
+    teamAStriker: state.teamA.currentStrikerId,
+    teamANonStriker: state.teamA.currentNonStrikerId,
+    teamBStriker: state.teamB.currentStrikerId,
+    teamBNonStriker: state.teamB.currentNonStrikerId
+  });
+};
+
 /** Helper to create a minimal Cricketer object */
 export function createCricketer(id: string, name: string): Cricketer {
   return {
