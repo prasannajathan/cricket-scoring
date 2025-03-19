@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Team, SavedMatch } from '@/types';
+import { Team } from '@/types';
 import { FontAwesome } from '@expo/vector-icons';
 import { getSavedMatches } from '@/utils/matchStorage';
 

@@ -1,16 +1,5 @@
 import { Cricketer, ScoreboardState, Team } from '@/types';
 
-export const computeCRR = (runs: number, overs: number, balls: number): string => {
-    const totalOvers = overs + (balls / 6);
-    if (totalOvers === 0) return '0.00';
-    return (runs / totalOvers).toFixed(2);
-};
-
-export const computeRRR = (runsNeeded: number, oversLeft: number): string => {
-    if (oversLeft <= 0) return 'N/A';
-    return (runsNeeded / oversLeft).toFixed(2);
-};
-
 export const checkInningsCompletionHelper = (state: ScoreboardState) => {
   const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
   
