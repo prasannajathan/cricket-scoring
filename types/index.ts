@@ -33,11 +33,12 @@ export interface DeliveryEvent {
     wicket: boolean;
     wicketType?: string;
     outBatsmanId?: string;
+    nextBatsmanId?: string;
     bowlerId: string;
     batsmanId: string;
-    timestamp: number;
     fielderId?: string;
     totalRuns?: number
+    timestamp: number;
 }
 
 export interface PartnershipRecord {

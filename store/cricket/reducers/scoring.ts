@@ -16,8 +16,9 @@ export const scoringReducers = {
             currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'
         ];
 
-        const { runs, extraType, wicket, outBatsmanId, wicketType } = action.payload;
+        const { runs, extraType, wicket, outBatsmanId, wicketType, nextBatsmanId } = action.payload;
         const preSwitchStrikerId = currentInnings.currentStrikerId;
+
         let totalRuns = runs;
         let isLegalDelivery = true;
 
@@ -54,7 +55,7 @@ export const scoringReducers = {
             handleMatchVictory(state, currentInnings, battingTeam, isLegalDelivery);
 
             // Record the delivery
-            recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType);
+            recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType, preSwitchStrikerId, nextBatsmanId);
 
             return; // Match is over
         }
@@ -63,7 +64,7 @@ export const scoringReducers = {
         handleBallAndOverCount(state, currentInnings, bowlingTeam, runs, isLegalDelivery, extraType);
 
         // Record the delivery
-        recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType);
+        recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType, preSwitchStrikerId, nextBatsmanId);
 
         // Handle wicket
         if (wicket) {
@@ -80,9 +81,9 @@ export const scoringReducers = {
             // 2) Insert the new batter in place of the out batsman
             //    (We assume you passed nextBatsmanId in your payload)
             if (outBatsman?.id === currentInnings.currentStrikerId) {
-                currentInnings.currentStrikerId = action.payload.nextBatsmanId;
+                currentInnings.currentStrikerId = nextBatsmanId;
             } else if (outBatsman?.id === currentInnings.currentNonStrikerId) {
-                currentInnings.currentNonStrikerId = action.payload.nextBatsmanId;
+                currentInnings.currentNonStrikerId = nextBatsmanId;
             }
 
             // 3) If this wicket fell on the last ball of the over AND runs are even,
@@ -115,14 +116,8 @@ export const scoringReducers = {
         const lastDelivery =
             currentInnings.deliveries[currentInnings.deliveries.length - 1];
 
-        const battingTeam =
-            state[
-            currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'
-            ];
-        const bowlingTeam =
-            state[
-            currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'
-            ];
+        const battingTeam = state[ currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+        const bowlingTeam = state[ currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
 
         // Determine the context of the last delivery
         const wasLastBallOfOver =
@@ -423,7 +418,9 @@ function recordDelivery(
     runs: number,
     wicket: boolean | undefined,
     outBatsmanId: string | undefined,
-    wicketType: any
+    wicketType: any,
+    batsmanId: string | undefined,
+    nextBatsmanId?: string
 ) {
     currentInnings.deliveries.push({
         runs: extraType === 'wide' || extraType === 'no-ball' ? totalRuns - 1 : runs,
@@ -434,7 +431,8 @@ function recordDelivery(
         outBatsmanId,
         wicketType,
         bowlerId: currentInnings.currentBowlerId!,
-        batsmanId: currentInnings.currentStrikerId!,
+        batsmanId: batsmanId!,
+        nextBatsmanId,
         timestamp: Date.now()
     });
 }
@@ -556,14 +554,39 @@ function revertWicket(
 ) {
     if (lastDelivery.wicket) {
         currentInnings.wickets -= 1;
+        // Revert the outBatsman from isOut = true
         const outBatsman = battingTeam.players.find(
             p => p.id === lastDelivery.outBatsmanId
         );
         if (outBatsman) {
             outBatsman.isOut = false;
         }
+        // If a new batsman was assigned, revert that assignment
+        if (lastDelivery.nextBatsmanId) {
+            // If nextBatsmanId is currently striker, swap it back to outBatsmanId
+            if (currentInnings.currentStrikerId === lastDelivery.nextBatsmanId) {
+                currentInnings.currentStrikerId = lastDelivery.outBatsmanId;
+            } else if (currentInnings.currentNonStrikerId === lastDelivery.nextBatsmanId) {
+                currentInnings.currentNonStrikerId = lastDelivery.outBatsmanId;
+            }
+        }
     }
 }
+
+function revertBowlerChange(
+    currentInnings: InningsData,
+    bowlingTeam: Team,
+    lastDelivery: any
+  ) {
+    if (lastDelivery.changedBowlerId) {
+      // Switch back to oldBowlerId
+      if (lastDelivery.oldBowlerId) {
+        currentInnings.currentBowlerId = lastDelivery.oldBowlerId;
+      } else {
+        currentInnings.currentBowlerId = undefined;
+      }
+    }
+  }
 
 function revertBatsmenSwitchingIfNeeded(
     state: ScoreboardState,
