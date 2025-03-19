@@ -188,37 +188,25 @@ export default function ScoringScreen() {
         fielderId?: string;
         fielderName?: string;
         nextBatsmanId: string;
-    }) => {
-        // Prevent if match is over
+      }) => {
         if (state.matchOver) {
-            setShowWicketModal(false);
-            Alert.alert("Match Completed", "The match is already over.");
-            return;
+          setShowWicketModal(false);
+          Alert.alert("Match Completed", "The match is already over.");
+          return;
         }
-
-        // Close the wicket modal
+      
         setShowWicketModal(false);
-
-        // Record the wicket in the scoreboard with runs included
+      
         dispatch(scoreBall({
-            runs: tempRuns, // These are the runs we saved earlier
-            wicket: true,
-            wicketType: wicketData.wicketType,
-            outBatsmanId: wicketData.outBatsmanId,
-            fielderId: wicketData.fielderId,
-            // fielderName: wicketData.fielderName,
+          runs: tempRuns,
+          wicket: true,
+          wicketType: wicketData.wicketType,
+          outBatsmanId: wicketData.outBatsmanId,
+          nextBatsmanId: wicketData.nextBatsmanId,
+          fielderId: wicketData.fielderId,
+          fielderName: wicketData.fielderName,
         }));
-
-        // Update the new batsman directly
-        const teamKey = battingTeam.id === state.teamA.id ? 'teamA' : 'teamB';
-        const isStriker = wicketData.outBatsmanId === currentInnings?.currentStrikerId;
-
-        if (isStriker) {
-            dispatch(setCurrentStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
-        } else {
-            dispatch(setCurrentNonStriker({ team: teamKey, playerId: wicketData.nextBatsmanId }));
-        }
-    };
+      };
 
     // Update the bowler modal effect
     useEffect(() => {

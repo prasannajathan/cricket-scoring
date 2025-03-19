@@ -21,7 +21,9 @@ export interface ScoreBallPayload {
     wicket?: boolean;
     wicketType?: string;
     outBatsmanId?: string;
+    nextBatsmanId?: string;
     fielderId?: string; 
+    fielderName?: string;
 }
 
 export interface DeliveryEvent {

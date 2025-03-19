@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Modal, 
-    View, 
-    Text, 
-    StyleSheet, 
-    TouchableOpacity, 
+import {
+    Modal,
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
     ScrollView,
     TextInput,
     KeyboardAvoidingView,
     Platform
 } from 'react-native';
-import { Team, Cricketer } from '@/types';
+import { Team } from '@/types';
 import { Dropdown } from 'react-native-element-dropdown';
 import { useDispatch } from 'react-redux';
 import { addPlayer } from '@/store/cricket/scoreboardSlice';
@@ -46,7 +46,7 @@ export default function WicketModal({
     battingTeamKey
 }: WicketModalProps) {
     const dispatch = useDispatch();
-    
+
     const [wicketType, setWicketType] = useState('bowled');
     const [outBatsmanId, setOutBatsmanId] = useState(currentStrikerId);
     const [fielderId, setFielderId] = useState<string | undefined>(undefined);
@@ -54,7 +54,7 @@ export default function WicketModal({
     const [nextBatsmanId, setNextBatsmanId] = useState<string | undefined>(undefined);
     const [newBatsmanName, setNewBatsmanName] = useState('');
     const [isFocus, setIsFocus] = useState(false);
-    
+
     const wicketTypes = [
         'bowled',
         'caught',
@@ -70,13 +70,14 @@ export default function WicketModal({
         'obstructing the field',
         'hit the ball twice',
     ];
-    
+
+    // Mapped data for <Dropdown>
     const wicketTypeData = wicketTypes.map(type => ({
         label: type,
         value: type
     }));
-    
-    // Reset when modal opens
+
+    // Reset each time the modal opens
     useEffect(() => {
         if (visible) {
             setWicketType('bowled');
@@ -95,9 +96,9 @@ export default function WicketModal({
     }, [wicketType]);
 
     const needsFielder = wicketType === 'caught' || wicketType === 'run out' || wicketType === 'stumped';
-    
+
     const getFielderLabel = () => {
-        switch(wicketType) {
+        switch (wicketType) {
             case 'caught': return 'Caught by';
             case 'stumped': return 'Stumped by';
             case 'run out': return 'Run out by';
@@ -105,29 +106,32 @@ export default function WicketModal({
         }
     };
 
-    const availableBatsmen = battingTeam.players.filter(
-        player => !player.isOut && 
-                 !player.isRetired && 
-                 player.id !== currentStrikerId && 
-                 player.id !== currentNonStrikerId
-    );
-    
+    // The out-batsman can only be the current striker or non-striker
     const batsmenData = [
-        { 
-            label: battingTeam.players.find(p => p.id === currentStrikerId)?.name || 'Striker', 
-            value: currentStrikerId 
+        {
+            label: battingTeam.players.find(p => p.id === currentStrikerId)?.name || 'Striker',
+            value: currentStrikerId
         },
-        { 
-            label: battingTeam.players.find(p => p.id === currentNonStrikerId)?.name || 'Non-striker', 
-            value: currentNonStrikerId 
+        {
+            label: battingTeam.players.find(p => p.id === currentNonStrikerId)?.name || 'Non-striker',
+            value: currentNonStrikerId
         }
     ];
-    
+    // Next batsmen are those who are not out, not retired, and not currently on strike
+    const availableBatsmen = battingTeam.players.filter(
+        player =>
+            !player.isOut &&
+            !player.isRetired &&
+            player.id !== currentStrikerId &&
+            player.id !== currentNonStrikerId
+    );
+
     const nextBatsmenData = availableBatsmen.map(p => ({
         label: p.name,
         value: p.id
     }));
-    
+
+    // Fielder can be any bowler team player or a custom name
     const fielderData = [
         { label: 'Select fielder', value: '' },
         ...bowlingTeam.players.map(p => ({
@@ -136,27 +140,30 @@ export default function WicketModal({
         }))
     ];
 
+    // Final step: confirm the wicket
     const handleConfirm = () => {
-        // If a new batsman name is provided, add them first
+        // 1) If new batsman name is provided, create the new player on the fly
         let finalNextBatsmanId = nextBatsmanId;
-        
-        if (newBatsmanName.trim() && !nextBatsmanId) {
+        if (newBatsmanName.trim() && !finalNextBatsmanId) {
             const newId = uuidv4();
-            
+
             dispatch(addPlayer({
                 team: battingTeamKey,
                 player: createCricketer(newId, newBatsmanName.trim())
             }));
-            
+
             finalNextBatsmanId = newId;
         }
-        
-        // Validate required inputs
-        if (!outBatsmanId || (!finalNextBatsmanId && !newBatsmanName.trim())) return;
-        
-        // Check if fielder is required but not provided
-        if (needsFielder && !fielderId && !fielderName) return;
-        
+
+        // 2) Basic validations
+        if (!outBatsmanId || (!finalNextBatsmanId && !newBatsmanName.trim())) {
+            return; // Must pick or create a next batsman
+        }
+        if (needsFielder && !fielderId && !fielderName) {
+            return; // Must pick or provide a fielder
+        }
+
+        // 3) Pass everything up so the parent can dispatch properly
         onConfirm({
             wicketType,
             outBatsmanId,
@@ -169,18 +176,18 @@ export default function WicketModal({
     return (
         <Modal
             visible={visible}
-            transparent={true}
+            transparent
             animationType="slide"
         >
-            <KeyboardAvoidingView 
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.modalContainer}
             >
                 <View style={styles.modalContent}>
                     <Text style={styles.title}>Wicket Details</Text>
-                    
+
                     <ScrollView style={styles.formContainer}>
-                        {/* OUT BATSMAN SECTION */}
+                        {/* Out Batsman */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Who is out?</Text>
                             <Dropdown
@@ -202,7 +209,7 @@ export default function WicketModal({
                             />
                         </View>
 
-                        {/* WICKET TYPE SECTION */}
+                        {/* Wicket Type */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>How was the batsman dismissed?</Text>
                             <Dropdown
@@ -224,7 +231,7 @@ export default function WicketModal({
                             />
                         </View>
 
-                        {/* FIELDER SECTION (if needed) */}
+                        {/* Fielder (if needed) */}
                         {needsFielder && (
                             <View style={styles.section}>
                                 <Text style={styles.sectionTitle}>{getFielderLabel()}</Text>
@@ -248,14 +255,14 @@ export default function WicketModal({
                                         setIsFocus(false);
                                     }}
                                 />
-                                
+
                                 <Text style={styles.orText}>OR</Text>
-                                
+
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Enter fielder name"
                                     value={fielderName}
-                                    onChangeText={(text) => {
+                                    onChangeText={text => {
                                         setFielderName(text);
                                         setFielderId(undefined);
                                     }}
@@ -263,10 +270,9 @@ export default function WicketModal({
                             </View>
                         )}
 
-                        {/* NEXT BATSMAN SECTION */}
+                        {/* Next Batsman */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Select next batsman</Text>
-                            
                             {availableBatsmen.length > 0 ? (
                                 <Dropdown
                                     style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
@@ -282,25 +288,25 @@ export default function WicketModal({
                                     onBlur={() => setIsFocus(false)}
                                     onChange={item => {
                                         setNextBatsmanId(item.value);
-                                        setNewBatsmanName(''); // Clear new name when selecting from dropdown
+                                        setNewBatsmanName(''); // Clear new name if a dropdown option is chosen
                                         setIsFocus(false);
                                     }}
                                 />
                             ) : (
                                 <Text style={styles.noPlayersText}>No available batsmen</Text>
                             )}
-                            
+
                             <Text style={styles.orText}>OR</Text>
-                            
+
                             <View style={styles.newBatsmanContainer}>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="New batsman name"
                                     value={newBatsmanName}
-                                    onChangeText={(text) => {
+                                    onChangeText={text => {
                                         setNewBatsmanName(text);
                                         if (text.trim()) {
-                                            setNextBatsmanId(undefined); // Clear selected batsman when typing
+                                            setNextBatsmanId(undefined);
                                         }
                                     }}
                                 />
@@ -308,24 +314,27 @@ export default function WicketModal({
                         </View>
                     </ScrollView>
 
+                    {/* Modal Buttons */}
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity 
-                            style={[styles.button, styles.cancelButton]} 
+                        <TouchableOpacity
+                            style={[styles.button, styles.cancelButton]}
                             onPress={onClose}
                         >
                             <Text style={styles.cancelText}>Cancel</Text>
                         </TouchableOpacity>
-                        
-                        <TouchableOpacity 
+
+                        <TouchableOpacity
                             style={[
-                                styles.button, 
+                                styles.button,
                                 styles.confirmButton,
-                                ((!nextBatsmanId && !newBatsmanName.trim()) || 
-                                (needsFielder && !fielderId && !fielderName)) && styles.disabledButton
-                            ]} 
+                                ((!nextBatsmanId && !newBatsmanName.trim()) ||
+                                    (needsFielder && !fielderId && !fielderName)) && styles.disabledButton
+                            ]}
                             onPress={handleConfirm}
-                            disabled={(!nextBatsmanId && !newBatsmanName.trim()) || 
-                                     (needsFielder && !fielderId && !fielderName)}
+                            disabled={
+                                (!nextBatsmanId && !newBatsmanName.trim()) ||
+                                (needsFielder && !fielderId && !fielderName)
+                            }
                         >
                             <Text style={styles.confirmText}>Confirm</Text>
                         </TouchableOpacity>
