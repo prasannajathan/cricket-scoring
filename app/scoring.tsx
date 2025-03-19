@@ -2,23 +2,26 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-
-import { getSavedMatch } from '@/utils/matchStorage';
-import { loadSavedMatch } from '@/store/cricket/scoreboardSlice';
 import { RootState } from '@/store';
+
 import {
     selectCurrentInnings,
     selectBattingTeam,
     selectBowlingTeam,
 } from '@/store/cricket/selectors';
 import {
-    colors,
-    spacing,
-    typography,
-    commonStyles
-} from '@/constants/theme';
+    scoreBall,
+    undoLastBall,
+    swapBatsmen,
+    setBowler
+} from '@/store/cricket/scoreboardSlice';
 
-// Import components
+// Hooks
+import { useLoadMatch } from '@/hooks/useLoadMatch';
+import { useScoringState } from '@/hooks/useScoringState';
+import { useInningsStatus } from '@/hooks/useInningsStatus';
+
+// UI + Components
 import ScoreHeader from '@/components/scoring/ScoreHeader';
 import BatsmenDisplay from '@/components/scoring/BatsmenDisplay';
 import BowlerDisplay from '@/components/scoring/BowlerDisplay';
@@ -28,51 +31,30 @@ import ActionButtons from '@/components/scoring/ActionButtons';
 import WicketToggle from '@/components/scoring/WicketToggle';
 import OverRowDisplay from '@/components/scoring/OverRowDisplay';
 import ScorecardTab from '@/components/scoring/ScorecardTab';
-
-// Import modals
-import PartnershipModal from '@/components/scoring/modals/PartnershipModal';
-import ExtrasModal from '@/components/scoring/modals/ExtrasModal';
-import AdvancedScoringModal from '@/components/scoring/modals/AdvancedScoringModal';
-import NextBowlerModal from '@/components/scoring/modals/NextBowlerModal';
-import WicketModal from '@/components/scoring/modals/WicketModal';
-import EndInningsModal from '@/components/scoring/modals/EndInningsModal';
-
-// Import actions
-import {
-    scoreBall,
-    undoLastBall,
-    swapBatsmen,
-    setBowler,
-    // endInnings,
-    addExtraRuns,
-    setCurrentStriker,
-    setCurrentNonStriker
-} from '@/store/cricket/scoreboardSlice';
+import { ScoreModals } from '@/components/scoring/ScoreModals';
+import { colors, spacing, typography } from '@/constants/theme';
 
 const SHOWN_MATCH_ALERTS = new Set<string>();
 
 export default function ScoringScreen() {
-    const router = useRouter();
     const dispatch = useDispatch();
+    const router = useRouter();
     const { matchId, activeTab: tabParam } = useLocalSearchParams();
-    const state = useSelector((state: RootState) => state.scoreboard);
 
-    // Selectors
+    // 1) Load match data
+    useLoadMatch(matchId as string);
+
+    // 2) Grab scoreboard state and selectors
+    const state = useSelector((s: RootState) => s.scoreboard);
     const currentInnings = useSelector(selectCurrentInnings);
     const battingTeam = useSelector(selectBattingTeam);
     const bowlingTeam = useSelector(selectBowlingTeam);
-    const currentInning = useSelector((state: RootState) => state.scoreboard.currentInning);
-    const targetScore = useSelector((state: RootState) => state.scoreboard.targetScore);
 
-    // Local state for scoring
-    const [wide, setWide] = useState(false);
-    const [noBall, setNoBall] = useState(false);
-    const [bye, setBye] = useState(false);
-    const [legBye, setLegBye] = useState(false);
-    const [wicket, setWicket] = useState(false);
-    const [tempRuns, setTempRuns] = useState(0);
+    // 3) Manage local scoring state with custom hook
+    const { scoringState, setScoringState, resetExtras, resetAll } = useScoringState();
+    const { wide, noBall, bye, legBye, wicket, tempRuns } = scoringState;
 
-    // Modal states
+    // 4) Local modals state
     const [showPartnershipModal, setShowPartnershipModal] = useState(false);
     const [showExtrasModal, setShowExtrasModal] = useState(false);
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
@@ -80,316 +62,147 @@ export default function ScoringScreen() {
     const [showWicketModal, setShowWicketModal] = useState(false);
     const [showEndInningsModal, setShowEndInningsModal] = useState(false);
 
-    // Computed state
-    const canScore = !!(currentInnings?.currentStrikerId && currentInnings?.currentBowlerId);
-
-    // Add this state for tracking active tab
+    // 5) Manage tabs
     const activeTabRef = useRef<'live' | 'scorecard'>(
         tabParam === 'scorecard' ? 'scorecard' : 'live'
     );
+    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>(activeTabRef.current);
 
-    // Replace your activeTab state
-    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>(
-        activeTabRef.current
-    );
-
-    // Load specific match data if matchId is provided
-    useEffect(() => {
-        const loadMatchData = async () => {
-            if (matchId) {
-                try {
-                    const matchData = await getSavedMatch(matchId as string);
-                    if (matchData) {
-                        dispatch(loadSavedMatch(matchData));
-                    }
-                } catch (error) {
-                    console.error('Error loading match:', error);
-                }
-            }
-        };
-
-        loadMatchData();
-    }, [matchId, dispatch]);
-
-    // Create a custom setter
     const setActiveTabPersistent = (tab: 'live' | 'scorecard') => {
-        activeTabRef.current = tab; // Update the ref
-        setActiveTab(tab); // Update the state
+        activeTabRef.current = tab;
+        setActiveTab(tab);
     };
 
-    // Reset extras state
-    const resetExtrasState = () => {
-        setWide(false);
-        setNoBall(false);
-        setBye(false);
-        setLegBye(false);
-    };
+    // 6) Use the innings status logic in a custom hook
+    useInningsStatus({
+        state,
+        currentInnings,
+        battingTeam,
+        showEndInningsModal,
+        setShowEndInningsModal,
+        debugInningsStatus: () => {
+            console.log('DEBUG: ', {
+                matchOver: state.matchOver,
+                currentInning: state.currentInning,
+                isCompleted: currentInnings?.isCompleted,
+                readyForInnings2: currentInnings?.readyForInnings2,
+                wickets: currentInnings?.wickets,
+                completedOvers: currentInnings?.completedOvers
+            });
+        }
+    });
+    
+    // 6.5) Show NextBowlerModal automatically when a new over starts
+    useEffect(() => {
+        // If we just finished an over:
+        //   ballInCurrentOver = 0
+        //   completedOvers > 0
+        // and the innings/match isn't over
+        if (
+            currentInnings?.ballInCurrentOver === 0 &&
+            (currentInnings?.completedOvers || 0) > 0 &&
+            !currentInnings?.readyForInnings2 &&
+            !currentInnings?.isCompleted &&
+            !state.matchOver
+        ) {
+            setShowBowlerModal(true);
+        }
+    }, [
+        currentInnings?.ballInCurrentOver,
+        currentInnings?.completedOvers,
+        currentInnings?.readyForInnings2,
+        currentInnings?.isCompleted,
+        state.matchOver
+    ]);
 
-    // Add a reset function at the top of your component
-    const resetScoringState = () => {
-        resetExtrasState();
-        setWicket(false);
-        setTempRuns(0);
-        setShowPartnershipModal(false);
-        setShowExtrasModal(false);
-        setShowAdvancedModal(false);
-        setShowBowlerModal(false);
-        setShowWicketModal(false);
-        setShowEndInningsModal(false);
-    };
-
-    // Scoring handler
+    // 7) Scoring handler
+    const canScore = !!(currentInnings?.currentStrikerId && currentInnings.currentBowlerId);
     const handleScore = (runs: number) => {
-        // Prevent scoring if match is over
         if (state.matchOver) {
-            Alert.alert("Match Completed", "The match is already over.");
+            Alert.alert('Match Completed', 'The match is already over.');
             return;
         }
-
         if (!canScore) {
             setShowBowlerModal(true);
             return;
         }
 
+        // If a wicket toggle is ON, show the wicket modal with these runs
         if (wicket) {
-            // Save runs for use in wicket modal
-            setTempRuns(runs);
-
-            // Show wicket modal (with runs already attached)
+            setScoringState(prev => ({ ...prev, tempRuns: runs }));
             setShowWicketModal(true);
         } else if (wide || noBall || bye || legBye) {
-            // Handle extras
-            dispatch(scoreBall({
-                runs,
-                extraType: wide ? 'wide' : noBall ? 'no-ball' : bye ? 'bye' : 'leg-bye',
-            }));
-            resetExtrasState();
+            dispatch(
+                scoreBall({
+                    runs,
+                    extraType: wide
+                        ? 'wide'
+                        : noBall
+                            ? 'no-ball'
+                            : bye
+                                ? 'bye'
+                                : 'leg-bye'
+                })
+            );
+            resetExtras(); // only reset extras
         } else {
-            // Regular run scoring
+            // Normal run scoring
             dispatch(scoreBall({ runs }));
         }
-
-        // Calculate and check if this scoring action will win the match
-        if (state.currentInning === 2 && state.targetScore) {
-            const currentTotal = currentInnings?.totalRuns || 0;
-            if (currentTotal + runs >= state.targetScore && !wicket) {
-                // console.log("This will win the match!");
-            }
-        }
-
-        // Reset wicket toggle after handling
-        setWicket(false);
+        // Clear the wicket toggle
+        setScoringState(prev => ({ ...prev, wicket: false }));
     };
 
-    // Update the handleWicketConfirm function to include fielderName and better handle the next batsman
-    const handleWicketConfirm = (wicketData: {
+    // 8) Wicket confirm
+    const handleWicketConfirm = (wkData: {
         wicketType: string;
         outBatsmanId: string;
         fielderId?: string;
         fielderName?: string;
         nextBatsmanId: string;
-      }) => {
+    }) => {
         if (state.matchOver) {
-          setShowWicketModal(false);
-          Alert.alert("Match Completed", "The match is already over.");
-          return;
+            setShowWicketModal(false);
+            Alert.alert('Match Completed', 'The match is already over.');
+            return;
         }
-      
         setShowWicketModal(false);
-      
-        dispatch(scoreBall({
-          runs: tempRuns,
-          wicket: true,
-          wicketType: wicketData.wicketType,
-          outBatsmanId: wicketData.outBatsmanId,
-          nextBatsmanId: wicketData.nextBatsmanId,
-          fielderId: wicketData.fielderId,
-          fielderName: wicketData.fielderName,
-        }));
-      };
 
-    // Update the bowler modal effect
-    useEffect(() => {
-        // Only show bowler modal for new over if:
-        // 1. The over is complete (ballInCurrentOver === 0 and completedOvers > 0)
-        // 2. AND the innings is not complete (not readyForInnings2)
-        // 3. AND the match is not over
-        if (currentInnings?.ballInCurrentOver === 0 &&
-            currentInnings?.completedOvers > 0 &&
-            !currentInnings?.readyForInnings2 &&
-            !currentInnings?.isCompleted &&
-            !state.matchOver) {  // Add this condition
-            setShowBowlerModal(true);
-        }
-    }, [currentInnings?.ballInCurrentOver, currentInnings?.completedOvers,
-    currentInnings?.readyForInnings2, currentInnings?.isCompleted, state.matchOver]);
-
-    // Check for innings completion
-    const [isComponentMounted, setIsComponentMounted] = useState(false);
-
-    // Mark the component as mounted after the initial render
-    useEffect(() => {
-        setIsComponentMounted(true);
-        return () => setIsComponentMounted(false);
-    }, []);
-
-    // Add this useEffect to reset state when the component mounts or the innings changes
-    useEffect(() => {
-        resetScoringState();
-    }, [state.currentInning]);
-
-    // Add this debugging function to your component
-    const debugInningsStatus = () => {
-        console.log('Current status:', {
-            inning: state.currentInning,
-            battingTeam: battingTeam?.teamName,
-            bowlingTeam: bowlingTeam?.teamName,
-            isCompleted: currentInnings?.isCompleted,
-            readyForInnings2: currentInnings?.readyForInnings2,
-            wickets: currentInnings?.wickets,
-            completedOvers: currentInnings?.completedOvers,
-            totalOvers: state.totalOvers,
-            showEndInningsModal
-        });
+        dispatch(
+            scoreBall({
+                runs: tempRuns,
+                wicket: true,
+                wicketType: wkData.wicketType,
+                outBatsmanId: wkData.outBatsmanId,
+                nextBatsmanId: wkData.nextBatsmanId,
+                fielderId: wkData.fielderId,
+                fielderName: wkData.fielderName
+            })
+        );
     };
 
-    // Modify this useEffect to handle both conditions properly
-    useEffect(() => {
-        // Only run this effect if the component is fully mounted
-        if (!isComponentMounted) return;
-
-        const checkInningsStatus = () => {
-            if (!currentInnings) return;
-
-            // Debug the current status
-            debugInningsStatus();
-
-            // First check if match is over - this takes precedence
-            if (state.matchOver) {
-                // Hide the end innings modal if showing
-                if (showEndInningsModal) {
-                    setShowEndInningsModal(false);
-                }
-                return;
-            }
-
-            // Handle second innings completion - navigate to scorecard
-            if (state.currentInning === 2 && currentInnings.isCompleted) {
-                // This will be handled by the matchOver effect now
-                return;
-            }
-
-            // Handle first innings readiness for transitioning to second innings
-            // Add a navigation status flag to prevent double navigation
-            if (state.currentInning === 1 &&
-                currentInnings.readyForInnings2 &&
-                !showEndInningsModal &&
-                !isNavigating.current) {
-
-                // Close any other open modals
-                setShowBowlerModal(false);
-                setShowWicketModal(false);
-                setShowPartnershipModal(false);
-                setShowExtrasModal(false);
-                setShowAdvancedModal(false);
-
-                // Show the end innings modal
-                setShowEndInningsModal(true);
-                return;
-            }
-
-            // Check if first innings should be marked as ready for innings 2
-            if (state.currentInning === 1 &&
-                currentInnings.battingTeamId &&
-                currentInnings.currentStrikerId) {
-
-                const allOut = currentInnings.wickets >= battingTeam.players.filter(p => !p.isRetired).length - 1;
-                const oversComplete = currentInnings.completedOvers >= state.totalOvers;
-
-                if ((allOut || oversComplete) && !currentInnings.readyForInnings2) {
-                    // Use checkInningsCompletion instead of endInnings
-                    dispatch({ type: 'scoreboard/checkInningsCompletion' });
-                }
-            }
-        };
-
-        // Use a shorter timeout
-        const timer = setTimeout(checkInningsStatus, 150);
-        return () => clearTimeout(timer);
-
-    }, [
-        isComponentMounted,
-        currentInnings?.isCompleted,
-        currentInnings?.readyForInnings2,
-        currentInnings?.wickets,
-        currentInnings?.completedOvers,
-        state.currentInning,
-        currentInnings?.battingTeamId,
-        currentInnings?.currentStrikerId,
-        showEndInningsModal,
-        state.matchOver
-    ]);
-
-    // Add a navigation flag using useRef at the top of your component
-    const isNavigating = useRef(false);
-
-    // Update handleEndInningsConfirm to use the flag
+    // 9) End innings confirm
     const handleEndInningsConfirm = () => {
-
-        // Close the modal
         setShowEndInningsModal(false);
-
-        // Set the navigation flag to prevent duplicate navigation
-        isNavigating.current = true;
-
-        // Navigate after a short delay
         setTimeout(() => {
             router.push('/openingPlayers?innings=2');
         }, 150);
     };
 
-
-    // Replace the existing alert code in your useEffect
+    // 10) Provide user a match-completed alert
     useEffect(() => {
-        // Only show if match is over and has a result
-        if (!state.matchOver || !state.matchResult) {
-            return;
-        }
-
-        // Create a key for this specific match alert
+        if (!state.matchOver || !state.matchResult) return;
         const alertKey = `match-${state.id}-completed`;
-
-        // Check if we've already shown this alert during this app session
-        if (SHOWN_MATCH_ALERTS.has(alertKey)) {
-            // console.log(`Alert for match ${alertKey} already shown in this app session, skipping`);
-            return;
-        }
-
-        // Mark as shown IMMEDIATELY before any async operations
+        if (SHOWN_MATCH_ALERTS.has(alertKey)) return;
         SHOWN_MATCH_ALERTS.add(alertKey);
 
-        // console.log(`First time showing alert for match ${alertKey}, proceeding`);
-
-        // Show the alert after a short delay to let UI settle
-        Alert.alert(
-            "Match Completed",
-            state.matchResult,
-            [
-                {
-                    text: "View Scorecard",
-                    onPress: () => {
-                        // Instead of navigating, switch to scorecard tab
-                        setActiveTabPersistent('scorecard');
-                        // setTimeout(() => {
-                        //     // setActiveTabPersistent('scorecard');
-                        //     console.log("View Scorecard button pressed, tab should be set to 'scorecard'");
-                        // }, 100);
-                    }
-                }
-            ],
-            { cancelable: false }
-        );
-    }, [state.matchOver, state.matchResult, state.id]);
+        Alert.alert('Match Completed', state.matchResult, [
+            {
+                text: 'View Scorecard',
+                onPress: () => setActiveTabPersistent('scorecard')
+            }
+        ]);
+    }, [state.matchOver, state.matchResult]);
 
 
     return (
@@ -397,8 +210,8 @@ export default function ScoringScreen() {
             <ScoreHeader
                 battingTeam={battingTeam}
                 currentInnings={currentInnings}
-                currentInning={currentInning}
-                targetScore={targetScore}
+                currentInning={state.currentInning}
+                targetScore={state.targetScore}
                 matchResult={state.matchResult}
             />
 
@@ -439,15 +252,8 @@ export default function ScoringScreen() {
             {/* Live tab - Ball by ball */}
             {activeTab === 'live' && (
                 <View style={styles.container}>
-                    <BatsmenDisplay
-                        battingTeam={battingTeam}
-                        currentInnings={currentInnings}
-                    />
-
-                    <BowlerDisplay
-                        bowlingTeam={bowlingTeam}
-                        currentInnings={currentInnings}
-                    />
+                    <BatsmenDisplay battingTeam={battingTeam} currentInnings={currentInnings} />
+                    <BowlerDisplay bowlingTeam={bowlingTeam} currentInnings={currentInnings} />
 
                     <OverRowDisplay />
 
@@ -456,22 +262,19 @@ export default function ScoringScreen() {
                         noBall={noBall}
                         bye={bye}
                         legBye={legBye}
-                        setWide={setWide}
-                        setNoBall={setNoBall}
-                        setBye={setBye}
-                        setLegBye={setLegBye}
+                        setWide={(v) => setScoringState(prev => ({ ...prev, wide: v }))}
+                        setNoBall={(v) => setScoringState(prev => ({ ...prev, noBall: v }))}
+                        setBye={(v) => setScoringState(prev => ({ ...prev, bye: v }))}
+                        setLegBye={(v) => setScoringState(prev => ({ ...prev, legBye: v }))}
                     />
 
                     <WicketToggle
                         wicket={wicket}
-                        setWicket={setWicket}
+                        setWicket={(v) => setScoringState(prev => ({ ...prev, wicket: v }))}
                         disabled={!canScore}
                     />
 
-                    <ScoringButtons
-                        onScore={handleScore}
-                        canScore={canScore}
-                    />
+                    <ScoringButtons onScore={handleScore} canScore={canScore} />
 
                     <ActionButtons
                         onUndo={() => dispatch(undoLastBall())}
@@ -489,36 +292,23 @@ export default function ScoringScreen() {
                     battingTeam={battingTeam}
                     bowlingTeam={bowlingTeam}
                     currentInnings={currentInnings}
-                    currentInning={currentInning}
-                    targetScore={targetScore}
+                    currentInning={state.currentInning}
+                    targetScore={state.targetScore}
                     matchResult={state.matchResult}
                     state={state}
                 />
             )}
 
-            {/* All your existing modals stay the same */}
-            <PartnershipModal
-                visible={showPartnershipModal}
-                onClose={() => setShowPartnershipModal(false)}
-                battingTeam={battingTeam}
-                currentInnings={currentInnings}
-            />
-
-            <ExtrasModal
-                visible={showExtrasModal}
-                onClose={() => setShowExtrasModal(false)}
-                onAddExtras={(runs) => dispatch(addExtraRuns(runs))}
-            />
-
-            <AdvancedScoringModal
-                visible={showAdvancedModal}
-                onClose={() => setShowAdvancedModal(false)}
-                onScore={handleScore}
-            />
-
-            <NextBowlerModal
-                visible={showBowlerModal}
-                onClose={() => setShowBowlerModal(false)}
+            {/* Our new consolidated modals */}
+            <ScoreModals
+                showPartnershipModal={showPartnershipModal}
+                setShowPartnershipModal={setShowPartnershipModal}
+                showExtrasModal={showExtrasModal}
+                setShowExtrasModal={setShowExtrasModal}
+                showAdvancedModal={showAdvancedModal}
+                setShowAdvancedModal={setShowAdvancedModal}
+                showBowlerModal={showBowlerModal}
+                setShowBowlerModal={setShowBowlerModal}
                 bowlingTeam={bowlingTeam}
                 currentBowlerId={currentInnings?.currentBowlerId}
                 lastOverBowlerId={currentInnings?.lastOverBowlerId}
@@ -529,44 +319,28 @@ export default function ScoringScreen() {
                     }));
                     setShowBowlerModal(false);
                 }}
-            />
-
-            <WicketModal
-                visible={showWicketModal}
-                onClose={() => setShowWicketModal(false)}
-                onConfirm={handleWicketConfirm}
+                showWicketModal={showWicketModal}
+                setShowWicketModal={setShowWicketModal}
+                handleWicketConfirm={handleWicketConfirm}
                 battingTeam={battingTeam}
-                bowlingTeam={bowlingTeam}
                 currentStrikerId={currentInnings?.currentStrikerId || ''}
                 currentNonStrikerId={currentInnings?.currentNonStrikerId || ''}
                 battingTeamKey={battingTeam.id === state.teamA.id ? 'teamA' : 'teamB'}
-            />
-
-            <EndInningsModal
-                visible={showEndInningsModal}
-                onClose={() => setShowEndInningsModal(false)}
-                onConfirm={handleEndInningsConfirm}
+                showEndInningsModal={showEndInningsModal}
+                setShowEndInningsModal={setShowEndInningsModal}
+                handleEndInningsConfirm={handleEndInningsConfirm}
+                currentInnings={currentInnings}
             />
 
             <TouchableOpacity
                 style={styles.debugButton}
                 onPress={() => {
-                    const currentInnings = state.currentInning === 1
-                        ? state.innings1
-                        : state.innings2;
-                    const battingTeam = currentInnings.battingTeamId === state.teamA.id
-                        ? state.teamA
-                        : state.teamB;
-
-                    console.log("CURRENT STATE:", {
-                        completedOvers: currentInnings.completedOvers,
-                        ballInCurrentOver: currentInnings.ballInCurrentOver,
-                        inningsStriker: currentInnings.currentStrikerId,
-                        inningsNonStriker: currentInnings.currentNonStrikerId,
-                        teamStriker: battingTeam.currentStrikerId,
-                        teamNonStriker: battingTeam.currentNonStrikerId,
-                        strikerName: battingTeam.players.find(p => p.id === currentInnings.currentStrikerId)?.name,
-                        nonStrikerName: battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId)?.name
+                    // Debug info
+                    console.log('DEBUG CURRENT STATE:', {
+                        completedOvers: currentInnings?.completedOvers,
+                        ballInCurrentOver: currentInnings?.ballInCurrentOver,
+                        inningsStriker: currentInnings?.currentStrikerId,
+                        inningsNonStriker: currentInnings?.currentNonStrikerId
                     });
                 }}
             >
