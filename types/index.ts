@@ -37,7 +37,8 @@ export interface DeliveryEvent {
     bowlerId: string;
     batsmanId: string;
     fielderId?: string;
-    totalRuns?: number
+    totalRuns?: number;
+    preSwitchStrikerId?: string;
     timestamp: number;
 }
 

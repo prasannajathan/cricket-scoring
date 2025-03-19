@@ -158,7 +158,6 @@ export default function ScoringScreen() {
         wicketType: string;
         outBatsmanId: string;
         fielderId?: string;
-        fielderName?: string;
         nextBatsmanId: string;
     }) => {
         if (state.matchOver) {
@@ -175,8 +174,7 @@ export default function ScoringScreen() {
                 wicketType: wkData.wicketType,
                 outBatsmanId: wkData.outBatsmanId,
                 nextBatsmanId: wkData.nextBatsmanId,
-                fielderId: wkData.fielderId,
-                fielderName: wkData.fielderName
+                fielderId: wkData.fielderId
             })
         );
     };

@@ -35,18 +35,6 @@ export default function ScoreHeader({
         return (runsNeeded / oversLeft).toFixed(2);
     };
 
-    // Make sure we're using targetScore correctly - log to debug
-    console.log("ScoreHeader render complete state:", {
-        currentInnings,
-        targetScore,
-        currentInning,
-        currentRunsScored: currentInnings?.totalRuns,
-        totalOvers: currentInnings?.completedOvers,
-        ballsInOver: currentInnings?.ballInCurrentOver,
-        battingTeam: battingTeam?.teamName,
-        matchResult
-    });
-
     return (
         <View style={styles.heroContainer}>
             {/* <StatusBar barStyle="light-content" /> */}

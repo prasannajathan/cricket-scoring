@@ -116,8 +116,8 @@ export const scoringReducers = {
         const lastDelivery =
             currentInnings.deliveries[currentInnings.deliveries.length - 1];
 
-        const battingTeam = state[ currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-        const bowlingTeam = state[ currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+        const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+        const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
 
         // Determine the context of the last delivery
         const wasLastBallOfOver =
@@ -419,7 +419,7 @@ function recordDelivery(
     wicket: boolean | undefined,
     outBatsmanId: string | undefined,
     wicketType: any,
-    batsmanId: string | undefined,
+    preSwitchStrikerId: string | undefined,
     nextBatsmanId?: string
 ) {
     currentInnings.deliveries.push({
@@ -431,7 +431,8 @@ function recordDelivery(
         outBatsmanId,
         wicketType,
         bowlerId: currentInnings.currentBowlerId!,
-        batsmanId: batsmanId!,
+        batsmanId: currentInnings.currentStrikerId!,
+        preSwitchStrikerId,
         nextBatsmanId,
         timestamp: Date.now()
     });
@@ -577,16 +578,16 @@ function revertBowlerChange(
     currentInnings: InningsData,
     bowlingTeam: Team,
     lastDelivery: any
-  ) {
+) {
     if (lastDelivery.changedBowlerId) {
-      // Switch back to oldBowlerId
-      if (lastDelivery.oldBowlerId) {
-        currentInnings.currentBowlerId = lastDelivery.oldBowlerId;
-      } else {
-        currentInnings.currentBowlerId = undefined;
-      }
+        // Switch back to oldBowlerId
+        if (lastDelivery.oldBowlerId) {
+            currentInnings.currentBowlerId = lastDelivery.oldBowlerId;
+        } else {
+            currentInnings.currentBowlerId = undefined;
+        }
     }
-  }
+}
 
 function revertBatsmenSwitchingIfNeeded(
     state: ScoreboardState,
