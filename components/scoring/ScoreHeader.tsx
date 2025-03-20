@@ -15,6 +15,7 @@ interface ScoreHeaderProps {
     currentInning: number;
     targetScore?: number;
     matchResult?: string;
+    totalOvers?: number;
 }
 
 export default function ScoreHeader({
@@ -22,7 +23,8 @@ export default function ScoreHeader({
     currentInnings,
     currentInning,
     targetScore,
-    matchResult
+    matchResult,
+    totalOvers,
 }: ScoreHeaderProps) {
 
     const computeRunRate = (runs: number, overs: number, balls: number) => {
@@ -35,6 +37,15 @@ export default function ScoreHeader({
         return (runsNeeded / oversLeft).toFixed(2);
     };
 
+    const calculateRemainingBalls = () => {
+        if (!currentInnings || !totalOvers) return 0;
+        const totalBalls = totalOvers * 6;
+        const usedBalls = (currentInnings.completedOvers * 6) + currentInnings.ballInCurrentOver;
+        return totalBalls - usedBalls;
+    };
+    const remainingBalls = calculateRemainingBalls();
+    const partnership = currentInnings?.currentPartnership || { runs: 0, balls: 0 };
+
     return (
         <View style={styles.heroContainer}>
             {/* <StatusBar barStyle="light-content" /> */}
@@ -46,9 +57,14 @@ export default function ScoreHeader({
                 <View style={styles.heroOverlay} />
                 <View style={styles.heroContent}>
                     {currentInning === 2 && targetScore && (
-                        <Text style={styles.scoreStatus}>
-                            {`${battingTeam?.teamName} Needs: ${Math.max(0, targetScore - (currentInnings?.totalRuns || 0))} runs`}
-                        </Text>
+                        <>
+                            {/* <Text style={styles.scoreStatus}>
+                                {`${battingTeam?.teamName} Needs: ${Math.max(0, targetScore - (currentInnings?.totalRuns || 0))} runs`}
+                            </Text> */}
+                            <Text style={styles.scoreStatus}>
+                            {`Target: ${targetScore} (${Math.max(0, targetScore - (currentInnings?.totalRuns || 0))} needed from ${remainingBalls} balls)`}
+                            </Text>
+                        </>
                     )}
                     {matchResult && (
                         <Text style={styles.scoreStatus}>{matchResult}</Text>
@@ -83,7 +99,9 @@ export default function ScoreHeader({
                             )}
                         </Text>
                         {/* TODO: Implement partnership */}
-                        <Text style={styles.subInfoText}>P'SHIP 0(2)</Text>
+                        <Text style={styles.subInfoText}>
+                        P'SHIP {partnership.runs}({partnership.balls})
+                        </Text>
                     </View>
 
                 </View>

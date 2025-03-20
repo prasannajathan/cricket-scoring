@@ -18,19 +18,11 @@ export default function PartnershipModal({
     const striker = battingTeam.players.find(p => p.id === currentInnings.currentStrikerId);
     const nonStriker = battingTeam.players.find(p => p.id === currentInnings.currentNonStrikerId);
 
-    const calculatePartnership = () => {
-        let runs = 0;
-        let balls = 0;
-
-        if (striker && nonStriker) {
-            runs = striker.runs + nonStriker.runs;
-            balls = striker.balls + nonStriker.balls;
-        }
-
-        return { runs, balls };
+    // Get partnership data from the innings
+    const partnership = currentInnings.currentPartnership || {
+        runs: 0,
+        balls: 0
     };
-
-    const { runs, balls } = calculatePartnership();
 
     return (
         <Modal
@@ -42,10 +34,10 @@ export default function PartnershipModal({
                 <View style={styles.modalContent}>
                     <Text style={styles.title}>Current Partnership</Text>
                     <Text style={styles.partnershipText}>
-                        {`${runs} runs from ${balls} balls`}
+                        {`${partnership.runs} runs from ${partnership.balls} balls`}
                     </Text>
                     <Text style={styles.runRate}>
-                        {`Run Rate: ${balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00'}`}
+                        {`Run Rate: ${partnership.balls > 0 ? ((partnership.runs / partnership.balls) * 6).toFixed(2) : '0.00'}`}
                     </Text>
                     
                     <View style={styles.playerDetails}>

@@ -38,9 +38,10 @@ export const scoringReducers = {
 
         // Update batsman stats
         updateBatsmanStats(battingTeam, currentInnings, runs, extraType);
-
         // Update bowler stats
         updateBowlerStats(bowlingTeam, currentInnings, runs, extraType, wicket, wicketType);
+        // Update partnership stats
+        updatePartnershipStats(currentInnings, totalRuns, isLegalDelivery);
 
         // Update innings total
         currentInnings.totalRuns += totalRuns;
@@ -70,6 +71,33 @@ export const scoringReducers = {
         if (wicket) {
             currentInnings.wickets += 1;
 
+            // Handle partnerships when a wicket falls
+            if (currentInnings.currentPartnership) {
+                // Initialize partnerships array if it doesn't exist
+                if (!currentInnings.partnerships) {
+                    currentInnings.partnerships = [];
+                }
+
+                // Add current partnership to history
+                currentInnings.partnerships.push({
+                    ...currentInnings.currentPartnership,
+                    isActive: false
+                });
+
+                // Start a new partnership with the new batsman
+                currentInnings.currentPartnership = {
+                    player1Id: outBatsmanId === currentInnings.currentStrikerId
+                        ? (nextBatsmanId || '')
+                        : (currentInnings.currentStrikerId || ''),
+                    player2Id: outBatsmanId === currentInnings.currentNonStrikerId
+                        ? (nextBatsmanId || '')
+                        : (currentInnings.currentNonStrikerId || ''),
+                    runs: 0,
+                    balls: 0,
+                    startTime: Date.now()
+                };
+            }
+
             // 1) Mark old batter as out
             const outBatsman = battingTeam.players.find(
                 p => p.id === (outBatsmanId || preSwitchStrikerId)
@@ -88,7 +116,9 @@ export const scoringReducers = {
 
             // 3) If this wicket fell on the last ball of the over AND runs are even,
             //    you still do the normal end-of-over strike swap.
-            const isLastBallOfOver = currentInnings.ballInCurrentOver === 6;
+            // const isLastBallOfOver = currentInnings.ballInCurrentOver === 6;
+            const isLastBallOfOver = currentInnings.ballInCurrentOver === 5 ||
+                (isLegalDelivery && currentInnings.ballInCurrentOver + 1 === 6);
             const isOddRun = runs % 2 === 1;
 
             if (isLastBallOfOver && !isOddRun) {
@@ -170,6 +200,9 @@ export const scoringReducers = {
 
         // 8) Possibly revert innings completion
         revertInningsCompletionIfNeeded(state, currentInnings, battingTeam);
+
+        // 9) revert partnership stats
+        revertPartnershipStats(currentInnings, lastDelivery);
 
         // Finally, remove the last delivery
         currentInnings.deliveries.pop();
@@ -309,12 +342,35 @@ function updateBowlerStats(
     // Update economy
     const totalBalls = bowler.overs * 6 + bowler.ballsThisOver;
     if (totalBalls > 0) {
-        bowler.economy = bowler.runsConceded / (totalBalls / 6);
+        bowler.economy = +(bowler.runsConceded / (totalBalls / 6)).toFixed(2);
     }
 
     // If it's a wicket of type other than runout/retired, increment bowler's wickets
     if (wicket && !['runout', 'retired'].includes(wicketType || '')) {
         bowler.wickets += 1;
+    }
+}
+
+function updatePartnershipStats(
+    currentInnings: InningsData,
+    runs: number,
+    isLegalDelivery: boolean
+) {
+    // Initialize partnership if it doesn't exist
+    if (!currentInnings.currentPartnership) {
+        currentInnings.currentPartnership = {
+            player1Id: currentInnings.currentStrikerId || '',
+            player2Id: currentInnings.currentNonStrikerId || '',
+            runs: 0,
+            balls: 0,
+            startTime: Date.now()
+        };
+    }
+
+    // Update partnership stats
+    currentInnings.currentPartnership.runs += runs;
+    if (isLegalDelivery) {
+        currentInnings.currentPartnership.balls += 1;
     }
 }
 
@@ -328,12 +384,20 @@ function handleBallAndOverCount(
 ) {
     // If it's not a legal delivery, only switch strike for odd runs from wide/no-ball
     if (!isLegalDelivery) {
+        // For wides and no-balls, switch strike if:
+        // 1. The runs are odd, OR
+        // 2. It's the last ball of an over (even for 0 runs)
         if ((extraType === 'wide' || extraType === 'no-ball') && runs % 2 === 1) {
-            updateBatsmenPositions(
-                state,
-                currentInnings.currentNonStrikerId,
-                currentInnings.currentStrikerId
-            );
+            const isOddRun = runs % 2 === 1;
+            const isLastBallOfOver = currentInnings.ballInCurrentOver === 5; // Checking current ball before increment
+
+            if (isOddRun || isLastBallOfOver) {
+                updateBatsmenPositions(
+                    state,
+                    currentInnings.currentNonStrikerId,
+                    currentInnings.currentStrikerId
+                );
+            }
         }
         return;
     }
@@ -359,6 +423,15 @@ function handleBallAndOverCount(
                 currentInnings.currentNonStrikerId,
                 currentInnings.currentStrikerId
             );
+        }
+
+        const currentOverDeliveries = currentInnings.deliveries.slice(-6);
+        const isMaiden = currentOverDeliveries.every(d =>
+            d.batsmanRuns === 0 // Only care about runs from the bat
+        );
+
+        if (isMaiden && bowler) {
+            bowler.maidens += 1;
         }
 
         if (bowler) {
@@ -623,6 +696,36 @@ function revertBatsmenSwitchingIfNeeded(
             currentInnings.currentNonStrikerId,
             currentInnings.currentStrikerId
         );
+    }
+}
+
+function revertPartnershipStats(
+    currentInnings: InningsData,
+    lastDelivery: any
+) {
+    if (!currentInnings.currentPartnership) return;
+
+    // Undo runs from partnership
+    currentInnings.currentPartnership.runs -= lastDelivery.totalRuns || 0;
+
+    // Undo ball count if it was a legal delivery
+    if (!lastDelivery.extraType ||
+        lastDelivery.extraType === 'bye' ||
+        lastDelivery.extraType === 'leg-bye') {
+        currentInnings.currentPartnership.balls -= 1;
+    }
+
+    // If this was a wicket, we need to restore the previous partnership
+    if (lastDelivery.wicket && currentInnings.partnerships && currentInnings.partnerships.length > 0) {
+        // Get the last partnership
+        const lastPartnership = currentInnings.partnerships.pop();
+        if (lastPartnership) {
+            // Restore it as the current partnership
+            currentInnings.currentPartnership = {
+                ...lastPartnership,
+                isActive: true
+            };
+        }
     }
 }
 

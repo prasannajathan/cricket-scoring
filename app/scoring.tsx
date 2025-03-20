@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { RootState } from '@/store';
 
-import { selectCurrentInnings, selectBattingTeam, selectBowlingTeam} from '@/store/cricket/selectors';
+import { selectCurrentInnings, selectBattingTeam, selectBowlingTeam } from '@/store/cricket/selectors';
 import { scoreBall, undoLastBall, swapBatsmen, setBowler } from '@/store/cricket/scoreboardSlice';
 
 // Hooks
@@ -22,6 +22,7 @@ import ActionButtons from '@/components/scoring/ActionButtons';
 import WicketToggle from '@/components/scoring/WicketToggle';
 import OverRowDisplay from '@/components/scoring/OverRowDisplay';
 import ScorecardTab from '@/components/scoring/ScorecardTab';
+import CommentaryFeed from '@/components/scoring/CommentaryFeed';
 import { ScoreModals } from '@/components/scoring/ScoreModals';
 import { colors, spacing, typography } from '@/constants/theme';
 
@@ -82,7 +83,7 @@ export default function ScoringScreen() {
             });
         }
     });
-    
+
     // 6.5) Show NextBowlerModal automatically when a new over starts
     useEffect(() => {
         // If we just finished an over:
@@ -202,6 +203,7 @@ export default function ScoringScreen() {
                 currentInning={state.currentInning}
                 targetScore={state.targetScore}
                 matchResult={state.matchResult}
+                totalOvers={state.totalOvers}
             />
 
             <View style={styles.tabContainer}>
@@ -245,6 +247,12 @@ export default function ScoringScreen() {
                     <BowlerDisplay bowlingTeam={bowlingTeam} currentInnings={currentInnings} />
 
                     <OverRowDisplay />
+
+                    <CommentaryFeed
+                        innings={currentInnings}
+                        battingTeam={battingTeam}
+                        bowlingTeam={bowlingTeam}
+                    />
 
                     <ExtrasToggle
                         wide={wide}

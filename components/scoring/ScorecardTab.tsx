@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import {
     Team,
@@ -181,7 +181,7 @@ interface BatsmanRowProps {
     state
   }) => {
     // 1) Build a batting order from the deliveries
-    const battingOrder = getBattingOrder(innings);
+    const battingOrder = useMemo(() => getBattingOrder(innings), [innings]);
   
     // 2) Possibly add any players who might have faced a ball or are out
     //    but didn't appear in `battingOrder` for some reason.
@@ -206,7 +206,7 @@ interface BatsmanRowProps {
       return fielder ? fielder.name : 'Unknown';
     };
   
-    const getDismissalInfo = (player: Cricketer): string => {
+    const getDismissalInfo = useMemo(() => (player: Cricketer): string => {
       if (!player.isOut) {
         // If not out, either "not out", "did not bat", or blank
         const isAtCrease =
@@ -239,7 +239,7 @@ interface BatsmanRowProps {
         default:
           return del.wicketType || 'out';
       }
-    };
+    }, [innings.deliveries, bowlingTeam.players]);
   
     return (
       <View style={styles.scorecardSection}>
@@ -278,7 +278,9 @@ interface BatsmanRowProps {
         {/* Extras, Total, FallOfWickets inline */}
         <InningsExtras innings={innings} />
         <InningsTotal innings={innings} />
+        <PartnershipHistory innings={innings} battingTeam={battingTeam} />
         <FallOfWickets innings={innings} state={state} />
+
       </View>
     );
   };
@@ -317,6 +319,31 @@ interface BatsmanRowProps {
               isBowling={bowler.id === innings.currentBowlerId}
             />
           ))}
+      </View>
+    );
+  };
+
+  interface PartnershipHistoryProps {
+    innings: InningsData;
+    battingTeam: Team;
+  }
+  
+  const PartnershipHistory: React.FC<PartnershipHistoryProps> = ({ innings, battingTeam }) => {
+    if (!innings.partnerships || innings.partnerships.length === 0) return null;
+    
+    return (
+      <View style={styles.scorecardSection}>
+        <Text style={styles.sectionHeader}>Partnerships</Text>
+        {innings.partnerships.map((p, index) => {
+          const player1 = battingTeam.players.find(player => player.id === p.player1Id);
+          const player2 = battingTeam.players.find(player => player.id === p.player2Id);
+          
+          return (
+            <Text key={index} style={styles.partnershipText}>
+              {player1?.name || 'Unknown'} & {player2?.name || 'Unknown'}: {p.runs} runs ({p.balls} balls)
+            </Text>
+          );
+        })}
       </View>
     );
   };
@@ -506,6 +533,10 @@ interface BatsmanRowProps {
       fontWeight: 'bold',
       color: '#1B5E20',
       textAlign: 'center'
+    },
+    partnershipText: {
+      fontSize: 13,
+      color: '#555'
     }
   });
   

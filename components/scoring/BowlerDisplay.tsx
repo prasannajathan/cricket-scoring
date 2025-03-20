@@ -13,8 +13,9 @@ export default function BowlerDisplay({ bowlingTeam, currentInnings }: BowlerDis
   if (!currentBowler) return null;
 
   const oversText = `${currentBowler.overs}.${currentBowler.ballsThisOver}`;
-
-  const economy = currentBowler.economy.toFixed(2);
+  const totalOvers = currentBowler.overs + (currentBowler.ballsThisOver / 6);
+  const economy = totalOvers > 0 ? (currentBowler.runsConceded / totalOvers).toFixed(2) : '0.00';
+  // const economy = currentBowler.economy.toFixed(2);
 
   return (
     <View style={styles.scorecardContainer}>
@@ -32,7 +33,7 @@ export default function BowlerDisplay({ bowlingTeam, currentInnings }: BowlerDis
         </Text>
         <Text style={styles.tableCell}>{oversText}</Text>
         {/* TODO: maiden overs */}
-        <Text style={styles.tableCell}>{'m'}</Text>
+        <Text style={styles.tableCell}>{currentBowler.maidens || 0}</Text>
         <Text style={styles.tableCell}>{currentBowler.runsConceded}</Text>
         <Text style={styles.tableCell}>{currentBowler.wickets}</Text>
         <Text style={[styles.tableCell, styles.lastColumn]}>{economy}</Text>

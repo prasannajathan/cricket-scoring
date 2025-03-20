@@ -62,7 +62,15 @@ export interface InningsData {
     currentStrikerId?: string;
     currentNonStrikerId?: string;
     lastOverBowlerId?: string;
-    partnerships: PartnershipRecord[];
+    currentPartnership?: {
+        player1Id: string;
+        player2Id: string;
+        runs: number;
+        balls: number;
+        isActive?: boolean;
+        startTime?: number;
+    };
+    partnerships?: PartnershipRecord[];
     deliveries: DeliveryEvent[];
     isCompleted: boolean;
     readyForInnings2?: boolean;
