@@ -4,17 +4,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { RootState } from '@/store';
 
-import {
-    selectCurrentInnings,
-    selectBattingTeam,
-    selectBowlingTeam,
-} from '@/store/cricket/selectors';
-import {
-    scoreBall,
-    undoLastBall,
-    swapBatsmen,
-    setBowler
-} from '@/store/cricket/scoreboardSlice';
+import { selectCurrentInnings, selectBattingTeam, selectBowlingTeam} from '@/store/cricket/selectors';
+import { scoreBall, undoLastBall, swapBatsmen, setBowler } from '@/store/cricket/scoreboardSlice';
 
 // Hooks
 import { useLoadMatch } from '@/hooks/useLoadMatch';

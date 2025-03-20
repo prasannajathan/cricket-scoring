@@ -16,7 +16,7 @@ export const scoringReducers = {
             currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'
         ];
 
-        const { runs, extraType, wicket, outBatsmanId, wicketType, nextBatsmanId } = action.payload;
+        const { runs, extraType, wicket, outBatsmanId, wicketType, nextBatsmanId, fielderId } = action.payload;
         const preSwitchStrikerId = currentInnings.currentStrikerId;
 
         let totalRuns = runs;
@@ -55,7 +55,7 @@ export const scoringReducers = {
             handleMatchVictory(state, currentInnings, battingTeam, isLegalDelivery);
 
             // Record the delivery
-            recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType, preSwitchStrikerId, nextBatsmanId);
+            recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType, preSwitchStrikerId, nextBatsmanId, fielderId);
 
             return; // Match is over
         }
@@ -64,7 +64,7 @@ export const scoringReducers = {
         handleBallAndOverCount(state, currentInnings, bowlingTeam, runs, isLegalDelivery, extraType);
 
         // Record the delivery
-        recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType, preSwitchStrikerId, nextBatsmanId);
+        recordDelivery(currentInnings, extraType, totalRuns, runs, wicket, outBatsmanId, wicketType, preSwitchStrikerId, nextBatsmanId, fielderId);
 
         // Handle wicket
         if (wicket) {
@@ -420,7 +420,8 @@ function recordDelivery(
     outBatsmanId: string | undefined,
     wicketType: any,
     preSwitchStrikerId: string | undefined,
-    nextBatsmanId?: string
+    nextBatsmanId?: string,
+    fielderId?: string
 ) {
     currentInnings.deliveries.push({
         runs: extraType === 'wide' || extraType === 'no-ball' ? totalRuns - 1 : runs,
@@ -434,6 +435,7 @@ function recordDelivery(
         batsmanId: currentInnings.currentStrikerId!,
         preSwitchStrikerId,
         nextBatsmanId,
+        fielderId,
         timestamp: Date.now()
     });
 }

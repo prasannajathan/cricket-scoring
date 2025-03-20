@@ -229,6 +229,8 @@ interface BatsmanRowProps {
           return `c ${getFielderName(del.fielderId)} b ${getBowlerName(del.bowlerId)}`;
         case 'lbw':
           return `lbw b ${getBowlerName(del.bowlerId)}`;
+        case 'caught & bowled':
+          return `c&b b ${getBowlerName(del.bowlerId)}`;
         case 'runout':
         case 'run out':
           return `run out (${getFielderName(del.fielderId)})`;
@@ -345,18 +347,14 @@ interface BatsmanRowProps {
     // We detect if we are missing any core data
     const isLoading = !battingTeam || !bowlingTeam || !currentInnings;
   
-    const firstInnings = state.innings1; // Indian Royals if they batted first
+    const firstInnings = state.innings1; // if they batted first
     const secondInnings = state.innings2;
   
-    const firstInningsBattingTeam =
-      firstInnings.battingTeamId === state.teamA.id ? state.teamA : state.teamB;
-    const firstInningsBowlingTeam =
-      firstInnings.bowlingTeamId === state.teamA.id ? state.teamA : state.teamB;
+    const firstInningsBattingTeam = firstInnings.battingTeamId === state.teamA.id ? state.teamA : state.teamB;
+    const firstInningsBowlingTeam = firstInnings.bowlingTeamId === state.teamA.id ? state.teamA : state.teamB;
   
-    const secondInningsBattingTeam =
-      secondInnings.battingTeamId === state.teamA.id ? state.teamA : state.teamB;
-    const secondInningsBowlingTeam =
-      secondInnings.bowlingTeamId === state.teamA.id ? state.teamA : state.teamB;
+    const secondInningsBattingTeam = secondInnings.battingTeamId === state.teamA.id ? state.teamA : state.teamB;
+    const secondInningsBowlingTeam = secondInnings.bowlingTeamId === state.teamA.id ? state.teamA : state.teamB;
   
     return (
       <ScrollView style={styles.container}>

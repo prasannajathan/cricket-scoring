@@ -33,6 +33,7 @@ interface WicketModalProps {
     currentStrikerId: string;
     currentNonStrikerId: string;
     battingTeamKey: 'teamA' | 'teamB';
+    currentBowlerId?: string;
 }
 
 export default function WicketModal({
@@ -43,7 +44,8 @@ export default function WicketModal({
     bowlingTeam,
     currentStrikerId,
     currentNonStrikerId,
-    battingTeamKey
+    battingTeamKey,
+    currentBowlerId
 }: WicketModalProps) {
     const dispatch = useDispatch();
 
@@ -58,11 +60,11 @@ export default function WicketModal({
     const wicketTypes = [
         'bowled',
         'caught',
+        'caught & bowled',
         'lbw',
         'run out',
         'stumped',
         'hit wicket',
-        'caught & bowled',
         'retired hurt',
         'retired out',
         'timed out',
@@ -96,6 +98,15 @@ export default function WicketModal({
     }, [wicketType]);
 
     const needsFielder = wicketType === 'caught' || wicketType === 'run out' || wicketType === 'stumped';
+
+    // If user picks “caught & bowled,” set the fielder to current bowler automatically
+    useEffect(() => {
+        if (wicketType === 'caught & bowled' && currentBowlerId) {
+            // We want the fielder to be the current bowler
+            setFielderId(currentBowlerId);
+            setFielderName('');
+        }
+    }, [wicketType, currentBowlerId]);
 
     const getFielderLabel = () => {
         switch (wicketType) {
@@ -155,20 +166,36 @@ export default function WicketModal({
             finalNextBatsmanId = newId;
         }
 
-        // 2) Basic validations
+        // 2) If custom fielder name is provided, create new fielder on the fly
+        let finalFielderId = fielderId;
+        if (fielderName.trim() && !finalFielderId && needsFielder) {
+            const newFielderId = uuidv4();
+
+            // Determine bowling team key (opposite of batting team)
+            const bowlingTeamKey = battingTeamKey === 'teamA' ? 'teamB' : 'teamA';
+
+            dispatch(addPlayer({
+                team: bowlingTeamKey,
+                player: createCricketer(newFielderId, fielderName.trim())
+            }));
+
+            finalFielderId = newFielderId;
+        }
+
+        // 3) Basic validations
         if (!outBatsmanId || (!finalNextBatsmanId && !newBatsmanName.trim())) {
             return; // Must pick or create a next batsman
         }
-        if (needsFielder && !fielderId && !fielderName) {
+        if (needsFielder && !finalFielderId && !fielderName.trim()) {
             return; // Must pick or provide a fielder
         }
 
-        // 3) Pass everything up so the parent can dispatch properly
+        // 4) Pass everything up so the parent can dispatch properly
         onConfirm({
             wicketType,
             outBatsmanId,
-            fielderId,
-            fielderName: fielderName || undefined,
+            fielderId: finalFielderId,
+            fielderName: fielderName.trim() || undefined,
             nextBatsmanId: finalNextBatsmanId || ''
         });
     };

@@ -55,11 +55,6 @@ export const updateBatsmenPositions = (
   // Get the current innings
   const currentInnings = state.currentInning === 1 ? state.innings1 : state.innings2;
   
-  // Debug the update
-  console.log("UPDATING BATSMEN POSITIONS - Before:", {
-    inningsStriker: currentInnings.currentStrikerId,
-    inningsNonStriker: currentInnings.currentNonStrikerId
-  });
   
   // Update the innings state
   currentInnings.currentStrikerId = newStrikerId;
@@ -73,16 +68,6 @@ export const updateBatsmenPositions = (
     state.teamB.currentStrikerId = newStrikerId;
     state.teamB.currentNonStrikerId = newNonStrikerId;
   }
-  
-  // Debug the update
-  console.log("UPDATING BATSMEN POSITIONS - After:", {
-    inningsStriker: currentInnings.currentStrikerId,
-    inningsNonStriker: currentInnings.currentNonStrikerId,
-    teamAStriker: state.teamA.currentStrikerId,
-    teamANonStriker: state.teamA.currentNonStrikerId,
-    teamBStriker: state.teamB.currentStrikerId,
-    teamBNonStriker: state.teamB.currentNonStrikerId
-  });
 };
 
 /** Helper to create a minimal Cricketer object */
