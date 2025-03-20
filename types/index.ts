@@ -22,8 +22,8 @@ export interface ScoreBallPayload {
     wicketType?: string;
     outBatsmanId?: string;
     nextBatsmanId?: string;
-    fielderId?: string; 
-    fielderName?: string;
+    fielderId?: string; // Fielder ID for catches and runouts
+    preSwitchStrikerId?: string; // For switching striker after a wicket
 }
 
 export interface DeliveryEvent {

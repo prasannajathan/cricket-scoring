@@ -25,7 +25,6 @@ interface WicketModalProps {
         wicketType: string;
         outBatsmanId: string;
         fielderId?: string;
-        fielderName?: string;
         nextBatsmanId: string;
     }) => void;
     battingTeam: Team;
@@ -195,7 +194,6 @@ export default function WicketModal({
             wicketType,
             outBatsmanId,
             fielderId: finalFielderId,
-            fielderName: fielderName.trim() || undefined,
             nextBatsmanId: finalNextBatsmanId || ''
         });
     };
