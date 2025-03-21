@@ -3,7 +3,7 @@ import { ScoreboardState } from '@/types';
 // Install react-native-get-random-values Import it before uuid:
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
-import { checkInningsCompletionHelper } from '@/utils';
+import { checkInningsCompletionHelper, calculateMatchResult } from '@/utils';
 
 export const inningsReducers = {
     initializeInnings: (state: ScoreboardState, action: PayloadAction<{ battingTeamId: string; bowlingTeamId: string }>) => {
@@ -41,16 +41,10 @@ export const inningsReducers = {
             // Match is over
             state.matchOver = true;
             
-            // Set match result (your existing logic)
-            if (currentInnings.totalRuns >= (state.targetScore || 0)) {
-                const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-                state.matchResult = `${battingTeam.teamName} wins by ${10 - currentInnings.wickets} wickets`;
-            } else {
-                const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-                state.matchResult = `${bowlingTeam.teamName} wins by ${state.targetScore! - currentInnings.totalRuns - 1} runs`;
-            }
+            // Use centralized function to calculate result
+            calculateMatchResult(state);
         }
-        // First innings completion is now handled by startInnings2
+        // First innings completion is handled by startInnings2
     },
 
     checkInningsCompletion: (state: ScoreboardState) => {

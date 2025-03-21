@@ -8,7 +8,8 @@ import {
     ScrollView,
     TextInput,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Alert
 } from 'react-native';
 import { Team } from '@/types';
 import { Dropdown } from 'react-native-element-dropdown';
@@ -58,10 +59,15 @@ export default function WicketModal({
     const [newBatsmanName, setNewBatsmanName] = useState('');
     const [isFocus, setIsFocus] = useState(false);
 
+    // Calculate all out status:
+    // 1. Count currently out players
     const outPlayers = battingTeam.players.filter(p => p.isOut || p.isRetired).length;
+    
+    // 2. Calculate max wickets allowed (based on totalPlayers)
     const maxWickets = totalPlayers - 1;
-    // If next wicket causes all out:
-    const nextWicketAllOut = outPlayers + 1 > maxWickets;
+    
+    // 3. Check if this wicket will cause all out
+    const nextWicketAllOut = outPlayers + 1 >= maxWickets;
 
     const wicketTypes = [
         'bowled',
@@ -105,7 +111,7 @@ export default function WicketModal({
 
     const needsFielder = wicketType === 'caught' || wicketType === 'run out' || wicketType === 'stumped';
 
-    // If user picks “caught & bowled,” set the fielder to current bowler automatically
+    // If user picks "caught & bowled," set the fielder to current bowler automatically
     useEffect(() => {
         if (wicketType === 'caught & bowled' && currentBowlerId) {
             // We want the fielder to be the current bowler
@@ -134,10 +140,12 @@ export default function WicketModal({
             value: currentNonStrikerId
         }
     ];
+    
     // Next batsmen are those who are not out, not retired, and not currently on strike
     const availableBatsmen = battingTeam.players.filter(
         player =>
             !player.isOut &&
+            !player.isRetired &&
             player.id !== currentStrikerId &&
             player.id !== currentNonStrikerId
     );
@@ -158,59 +166,91 @@ export default function WicketModal({
 
     // Final step: confirm the wicket
     const handleConfirm = () => {
-        // 1) If new batsman name is provided, create the new player on the fly
+        // Check if we need a fielder but don't have one
+        if (needsFielder && !fielderId && !fielderName.trim()) {
+            Alert.alert('Missing Fielder', 'Please select or enter a fielder name.');
+            return;
+        }
+        
+        // If this wicket will cause all out, show confirmation
+        if (nextWicketAllOut) {
+            Alert.alert(
+                'Team All Out',
+                'This wicket will result in the team being all out. The innings will end.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                        text: 'Continue', 
+                        onPress: () => {
+                            // 1) Handle custom fielder if needed
+                            let finalFielderId = fielderId;
+                            if (fielderName.trim() && !finalFielderId && needsFielder) {
+                                const newFielderId = uuidv4();
+                                const bowlingTeamKey = battingTeamKey === 'teamA' ? 'teamB' : 'teamA';
+                                dispatch(addPlayer({
+                                    team: bowlingTeamKey,
+                                    player: createCricketer(newFielderId, fielderName.trim())
+                                }));
+                                finalFielderId = newFielderId;
+                            }
+                            
+                            // 2) Submit with empty nextBatsmanId to signal all out
+                            onConfirm({
+                                wicketType,
+                                outBatsmanId,
+                                fielderId: finalFielderId,
+                                nextBatsmanId: ''  // Empty string signals all out when combined with nextWicketAllOut
+                            });
+                        }
+                    }
+                ]
+            );
+            return;
+        }
+        
+        // Regular case - not all out
+        
+        // 1) If new batsman name is provided, create the new player
         let finalNextBatsmanId = nextBatsmanId;
         if (newBatsmanName.trim() && !finalNextBatsmanId) {
             const newId = uuidv4();
-
             dispatch(addPlayer({
                 team: battingTeamKey,
                 player: createCricketer(newId, newBatsmanName.trim())
             }));
-
             finalNextBatsmanId = newId;
         }
 
-        // 2) If custom fielder name is provided, create new fielder on the fly
+        // 2) If custom fielder name is provided, create new fielder
         let finalFielderId = fielderId;
         if (fielderName.trim() && !finalFielderId && needsFielder) {
             const newFielderId = uuidv4();
-
-            // Determine bowling team key (opposite of batting team)
             const bowlingTeamKey = battingTeamKey === 'teamA' ? 'teamB' : 'teamA';
-
             dispatch(addPlayer({
                 team: bowlingTeamKey,
                 player: createCricketer(newFielderId, fielderName.trim())
             }));
-
             finalFielderId = newFielderId;
         }
 
-        // 3) Basic validations
-        if (!outBatsmanId || (!finalNextBatsmanId && !newBatsmanName.trim())) {
-            return; // Must pick or create a next batsman
+        // 3) Basic validations for non-all-out case
+        if (!outBatsmanId) {
+            Alert.alert('Error', 'Please select which batsman is out.');
+            return;
         }
-        if (needsFielder && !finalFielderId && !fielderName.trim()) {
-            return; // Must pick or provide a fielder
+        
+        if (!finalNextBatsmanId && !newBatsmanName.trim()) {
+            Alert.alert('Error', 'Please select or enter a name for the next batsman.');
+            return;
         }
 
-        // 4) Pass everything up so the parent can dispatch properly
-        if (nextWicketAllOut) {
-            onConfirm({
-                wicketType,
-                outBatsmanId,
-                fielderId: finalFielderId,
-                nextBatsmanId: ""
-            });
-        } else {
-            onConfirm({
-                wicketType,
-                outBatsmanId,
-                fielderId: finalFielderId,
-                nextBatsmanId: finalNextBatsmanId || ''
-            });
-        }
+        // 4) Submit the wicket
+        onConfirm({
+            wicketType,
+            outBatsmanId,
+            fielderId: finalFielderId,
+            nextBatsmanId: finalNextBatsmanId || ''
+        });
     };
 
     return (
@@ -315,7 +355,7 @@ export default function WicketModal({
                             <Text style={styles.sectionTitle}>Select next batsman</Text>
 
                             {nextWicketAllOut ? (
-                                <Text style={styles.noPlayersText}>
+                                <Text style={styles.allOutText}>
                                     This wicket will cause the team to be all out. No next batsman needed.
                                 </Text>
                             ) : (
@@ -340,7 +380,7 @@ export default function WicketModal({
                                             }}
                                         />
                                     ) : (
-                                        <Text style={styles.noPlayersText}>No available batsmen</Text>
+                                        <Text style={styles.noPlayersText}>No available batsmen - add a new player</Text>
                                     )}
 
                                     <Text style={styles.orText}>OR</Text>
@@ -376,14 +416,16 @@ export default function WicketModal({
                             style={[
                                 styles.button,
                                 styles.confirmButton,
-                                ((!nextBatsmanId && !newBatsmanName.trim()) ||
-                                    (needsFielder && !fielderId && !fielderName)) && styles.disabledButton
+                                (!outBatsmanId || 
+                                 (needsFielder && !fielderId && !fielderName.trim()) || 
+                                 (!nextWicketAllOut && !nextBatsmanId && !newBatsmanName.trim())) 
+                                && styles.disabledButton
                             ]}
                             onPress={handleConfirm}
                             disabled={
-                                nextWicketAllOut ||
-                                (!nextBatsmanId && !newBatsmanName.trim()) ||
-                                (needsFielder && !fielderId && !fielderName)
+                                !outBatsmanId || 
+                                (needsFielder && !fielderId && !fielderName.trim()) || 
+                                (!nextWicketAllOut && !nextBatsmanId && !newBatsmanName.trim())
                             }
                         >
                             <Text style={styles.confirmText}>Confirm</Text>
@@ -474,6 +516,14 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontStyle: 'italic',
         borderRadius: 8,
+    },
+    allOutText: {
+        padding: 12,
+        backgroundColor: '#ffebee',
+        textAlign: 'center',
+        fontWeight: '500',
+        borderRadius: 8,
+        color: '#D32F2F',
     },
     buttonContainer: {
         flexDirection: 'row',

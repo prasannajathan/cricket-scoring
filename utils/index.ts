@@ -9,43 +9,73 @@ export const checkInningsCompletionHelper = (state: ScoreboardState) => {
   }
   
   // Check for completion conditions
+  const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+  
+  // Set all out flag if appropriate (using totalPlayers)
   const allOut = currentInnings.wickets >= state.totalPlayers - 1;
   const oversComplete = currentInnings.completedOvers >= state.totalOvers;
   const targetReached = state.currentInning === 2 && 
                         state.targetScore && 
                         currentInnings.totalRuns >= state.targetScore;
   
-  // Set isAllOut flag if appropriate
   if (allOut) {
     currentInnings.isAllOut = true;
   }
   
   if (allOut || oversComplete || targetReached) {
-      if (state.currentInning === 2) {
-          currentInnings.isCompleted = true;
-          state.matchOver = true;
-
-          // Set match result
-          if (currentInnings.totalRuns >= (state.targetScore || 0)) {
-              const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-              
-              // Use the calculateRemainingWickets function for consistency
-              const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets, state);
-              
-              state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
-          } else {
-              const bowlingTeam = state[currentInnings.bowlingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-              state.matchResult = `${bowlingTeam.teamName} wins by ${(state.targetScore || 0) - currentInnings.totalRuns} runs`;
-          }
-      }
+    if (state.currentInning === 2) {
+      // Second innings is over, match is completed
+      currentInnings.isCompleted = true;
+      state.matchOver = true;
+      
+      // Use our centralized function to calculate the result
+      calculateMatchResult(state);
+    } else {
       // For first innings, just set a flag for the UI but don't mark as completed
-      else {
-          state.innings1.readyForInnings2 = true;
-      }
+      state.innings1.readyForInnings2 = true;
+    }
   }
 };
 
-// Add this helper function to your scoreboardSlice.ts
+/**
+ * Calculates match result and sets state appropriately
+ * This centralizes all match result logic to avoid duplication
+ */
+export const calculateMatchResult = (state: ScoreboardState): void => {
+  // Only calculate if match is over
+  if (!state.matchOver) return;
+  
+  // Get both innings data
+  const innings1 = state.innings1;
+  const innings2 = state.innings2;
+  
+  // We need batting team identities
+  const team1 = state[innings1.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+  const team2 = state[innings2.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
+  
+  // Calculate run difference (absolute value)
+  const runDifference = Math.abs(innings1.totalRuns - innings2.totalRuns);
+  
+  // Handle various result scenarios
+  if (innings1.totalRuns === innings2.totalRuns) {
+    // Match tied
+    state.matchResult = "Match tied";
+  }
+  else if (innings2.totalRuns > innings1.totalRuns) {
+    // Team batting second won
+    const remainingWickets = calculateRemainingWickets(team2, innings2.wickets, state);
+    state.matchResult = `${team2.teamName} wins by ${remainingWickets} wicket${remainingWickets !== 1 ? 's' : ''}`;
+  }
+  else {
+    // Team batting first won
+    state.matchResult = `${team1.teamName} wins by ${runDifference} run${runDifference !== 1 ? 's' : ''}`;
+  }
+  
+  // Set match as over
+  state.matchOver = true;
+  innings2.isCompleted = true;
+}
+
 export const updateBatsmenPositions = (
   state: ScoreboardState,
   newStrikerId: string | undefined,

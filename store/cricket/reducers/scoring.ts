@@ -1,6 +1,6 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { ScoreboardState, ScoreBallPayload, Team, InningsData } from '@/types';
-import { checkInningsCompletionHelper, calculateRemainingWickets, updateBatsmenPositions } from '@/utils';
+import { checkInningsCompletionHelper, calculateMatchResult, updateBatsmenPositions } from '@/utils';
 
 export const scoringReducers = {
     scoreBall: (state: ScoreboardState, action: PayloadAction<ScoreBallPayload>) => {
@@ -69,36 +69,39 @@ export const scoringReducers = {
 
         // Handle wicket
         if (wicket) {
-            // Determine if the wicket fell on the striker before any changes:
-            const wicketFellOnStriker = (outBatsmanId || preSwitchStrikerId) === currentInnings.currentStrikerId;
             currentInnings.wickets += 1;
 
-            // Handle partnerships when a wicket falls
+            // Check if team is all out after this wicket
+            const maxWickets = state.totalPlayers - 1; // Typically 10 in standard cricket
+            const isAllOut = currentInnings.wickets >= maxWickets;
+
+            // Handle partnerships
             if (currentInnings.currentPartnership) {
-                // Initialize partnerships array if it doesn't exist
+                // Store the completed partnership
                 if (!currentInnings.partnerships) {
                     currentInnings.partnerships = [];
                 }
 
-                // Add current partnership to history
                 currentInnings.partnerships.push({
                     ...currentInnings.currentPartnership,
                     isActive: false
                 });
 
-                // Start a new partnership with the new batsman
-                currentInnings.currentPartnership = {
-                    player1Id: outBatsmanId === currentInnings.currentStrikerId
-                        ? (nextBatsmanId || '')
-                        : (currentInnings.currentStrikerId || ''),
-                    player2Id: outBatsmanId === currentInnings.currentNonStrikerId
-                        ? (nextBatsmanId || '')
-                        : (currentInnings.currentNonStrikerId || ''),
-                    runs: 0,
-                    balls: 0,
-                    isActive: true,
-                    startTime: Date.now()
-                };
+                // Only create a new partnership if not all out and nextBatsmanId is provided
+                if (!isAllOut && nextBatsmanId) {
+                    currentInnings.currentPartnership = {
+                        player1Id: outBatsmanId === currentInnings.currentStrikerId
+                            ? (nextBatsmanId || '')
+                            : (currentInnings.currentStrikerId || ''),
+                        player2Id: outBatsmanId === currentInnings.currentNonStrikerId
+                            ? (nextBatsmanId || '')
+                            : (currentInnings.currentNonStrikerId || ''),
+                        runs: 0,
+                        balls: 0,
+                        isActive: true,
+                        startTime: Date.now()
+                    };
+                }
             }
 
             // 1) Mark old batter as out
@@ -109,9 +112,8 @@ export const scoringReducers = {
                 outBatsman.isOut = true;
             }
 
-            // 2) Insert the new batter in place of the out batsman
-            //    (We assume you passed nextBatsmanId in your payload)
-            if (nextBatsmanId) {
+            // 2) Insert the new batter in place of the out batsman (only if not all out)
+            if (nextBatsmanId && !isAllOut) {
                 if (outBatsman?.id === currentInnings.currentStrikerId) {
                     currentInnings.currentStrikerId = nextBatsmanId;
                 } else if (outBatsman?.id === currentInnings.currentNonStrikerId) {
@@ -119,21 +121,35 @@ export const scoringReducers = {
                 }
             }
 
-            // 3) If this wicket fell on the last ball of the over AND runs are even,
-            //    you still do the normal end-of-over strike swap.
-            // const isLastBallOfOver = currentInnings.ballInCurrentOver === 5 ||
-            //     (isLegalDelivery && currentInnings.ballInCurrentOver + 1 === 6);
-            const isLastBallOfOver = currentInnings.ballInCurrentOver === 6;
-            const isOddRun = runs % 2 === 1;
+            // 3) Handle all-out case specially
+            if (isAllOut) {
+                currentInnings.isAllOut = true;
+                
+                // For all-out in first innings, mark ready for innings 2
+                if (state.currentInning === 1) {
+                    currentInnings.readyForInnings2 = true;
+                } else {
+                    // For all-out in second innings, match is over
+                    state.matchOver = true;
+                    
+                    // Use centralized function to calculate result
+                    calculateMatchResult(state);
+                }
+            } else {
+                // Only do the strike rotation for non-all-out cases
+                // const isLastBallOfOver = currentInnings.ballInCurrentOver === 5 ||
+                //     (isLegalDelivery && currentInnings.ballInCurrentOver + 1 === 6);
+                const isLastBallOfOver = currentInnings.ballInCurrentOver === 6;
+                const isOddRun = runs % 2 === 1;
 
-            if (isLastBallOfOver && !isOddRun && !wicketFellOnStriker) {
-                updateBatsmenPositions(
-                    state,
-                    currentInnings.currentNonStrikerId,
-                    currentInnings.currentStrikerId
-                );
+                if (isLastBallOfOver && !isOddRun) {
+                    updateBatsmenPositions(
+                        state,
+                        currentInnings.currentNonStrikerId,
+                        currentInnings.currentStrikerId
+                    );
+                }
             }
-
         }
 
         // Check for innings completion if not already marked
@@ -467,15 +483,12 @@ function handleMatchVictory(
     battingTeam: Team,
     legalDelivery: boolean
 ) {
+    // Mark innings and match as complete
     currentInnings.isCompleted = true;
     state.matchOver = true;
 
-    // Calculate remaining wickets
-    const remainingWickets = calculateRemainingWickets(battingTeam, currentInnings.wickets, state);
-
-    // Set match result
-    state.matchResult = `${battingTeam.teamName} wins by ${remainingWickets} wickets`;
-    state.alertMessage = `${battingTeam.teamName} has won the match by ${remainingWickets} wickets!`;
+    // Use the centralized function for calculating match result
+    calculateMatchResult(state);
 
     // Update ball count for a legal delivery
     if (legalDelivery) {

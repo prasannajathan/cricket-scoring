@@ -157,6 +157,7 @@ export default function ScoringScreen() {
             Alert.alert('Match Completed', 'The match is already over.');
             return;
         }
+        
         setShowWicketModal(false);
 
         dispatch(
@@ -169,6 +170,10 @@ export default function ScoringScreen() {
                 fielderId: wkData.fielderId
             })
         );
+        
+        // Reset scoring state
+        resetAll();
+        
     };
 
     // 9) End innings confirm
