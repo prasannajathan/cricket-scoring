@@ -33,6 +33,7 @@ interface WicketModalProps {
     currentNonStrikerId: string;
     battingTeamKey: 'teamA' | 'teamB';
     currentBowlerId?: string;
+    totalPlayers: number;
 }
 
 export default function WicketModal({
@@ -44,7 +45,8 @@ export default function WicketModal({
     currentStrikerId,
     currentNonStrikerId,
     battingTeamKey,
-    currentBowlerId
+    currentBowlerId,
+    totalPlayers,
 }: WicketModalProps) {
     const dispatch = useDispatch();
 
@@ -55,6 +57,11 @@ export default function WicketModal({
     const [nextBatsmanId, setNextBatsmanId] = useState<string | undefined>(undefined);
     const [newBatsmanName, setNewBatsmanName] = useState('');
     const [isFocus, setIsFocus] = useState(false);
+
+    const outPlayers = battingTeam.players.filter(p => p.isOut || p.isRetired).length;
+    const maxWickets = totalPlayers - 1;
+    // If next wicket causes all out:
+    const nextWicketAllOut = outPlayers + 1 > maxWickets;
 
     const wicketTypes = [
         'bowled',
@@ -131,7 +138,6 @@ export default function WicketModal({
     const availableBatsmen = battingTeam.players.filter(
         player =>
             !player.isOut &&
-            !player.isRetired &&
             player.id !== currentStrikerId &&
             player.id !== currentNonStrikerId
     );
@@ -190,12 +196,21 @@ export default function WicketModal({
         }
 
         // 4) Pass everything up so the parent can dispatch properly
-        onConfirm({
-            wicketType,
-            outBatsmanId,
-            fielderId: finalFielderId,
-            nextBatsmanId: finalNextBatsmanId || ''
-        });
+        if (nextWicketAllOut) {
+            onConfirm({
+                wicketType,
+                outBatsmanId,
+                fielderId: finalFielderId,
+                nextBatsmanId: ""
+            });
+        } else {
+            onConfirm({
+                wicketType,
+                outBatsmanId,
+                fielderId: finalFielderId,
+                nextBatsmanId: finalNextBatsmanId || ''
+            });
+        }
     };
 
     return (
@@ -298,44 +313,53 @@ export default function WicketModal({
                         {/* Next Batsman */}
                         <View style={styles.section}>
                             <Text style={styles.sectionTitle}>Select next batsman</Text>
-                            {availableBatsmen.length > 0 ? (
-                                <Dropdown
-                                    style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
-                                    placeholderStyle={styles.placeholderStyle}
-                                    selectedTextStyle={styles.selectedTextStyle}
-                                    data={nextBatsmenData}
-                                    maxHeight={300}
-                                    labelField="label"
-                                    valueField="value"
-                                    placeholder="Select next batsman"
-                                    value={nextBatsmanId}
-                                    onFocus={() => setIsFocus(true)}
-                                    onBlur={() => setIsFocus(false)}
-                                    onChange={item => {
-                                        setNextBatsmanId(item.value);
-                                        setNewBatsmanName(''); // Clear new name if a dropdown option is chosen
-                                        setIsFocus(false);
-                                    }}
-                                />
+
+                            {nextWicketAllOut ? (
+                                <Text style={styles.noPlayersText}>
+                                    This wicket will cause the team to be all out. No next batsman needed.
+                                </Text>
                             ) : (
-                                <Text style={styles.noPlayersText}>No available batsmen</Text>
+                                <>
+                                    {availableBatsmen.length > 0 ? (
+                                        <Dropdown
+                                            style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
+                                            placeholderStyle={styles.placeholderStyle}
+                                            selectedTextStyle={styles.selectedTextStyle}
+                                            data={nextBatsmenData}
+                                            maxHeight={300}
+                                            labelField="label"
+                                            valueField="value"
+                                            placeholder="Select next batsman"
+                                            value={nextBatsmanId}
+                                            onFocus={() => setIsFocus(true)}
+                                            onBlur={() => setIsFocus(false)}
+                                            onChange={item => {
+                                                setNextBatsmanId(item.value);
+                                                setNewBatsmanName(''); // Clear new name if a dropdown option is chosen
+                                                setIsFocus(false);
+                                            }}
+                                        />
+                                    ) : (
+                                        <Text style={styles.noPlayersText}>No available batsmen</Text>
+                                    )}
+
+                                    <Text style={styles.orText}>OR</Text>
+
+                                    <View style={styles.newBatsmanContainer}>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="New batsman name"
+                                            value={newBatsmanName}
+                                            onChangeText={text => {
+                                                setNewBatsmanName(text);
+                                                if (text.trim()) {
+                                                    setNextBatsmanId(undefined);
+                                                }
+                                            }}
+                                        />
+                                    </View>
+                                </>
                             )}
-
-                            <Text style={styles.orText}>OR</Text>
-
-                            <View style={styles.newBatsmanContainer}>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="New batsman name"
-                                    value={newBatsmanName}
-                                    onChangeText={text => {
-                                        setNewBatsmanName(text);
-                                        if (text.trim()) {
-                                            setNextBatsmanId(undefined);
-                                        }
-                                    }}
-                                />
-                            </View>
                         </View>
                     </ScrollView>
 
@@ -357,6 +381,7 @@ export default function WicketModal({
                             ]}
                             onPress={handleConfirm}
                             disabled={
+                                nextWicketAllOut ||
                                 (!nextBatsmanId && !newBatsmanName.trim()) ||
                                 (needsFielder && !fielderId && !fielderName)
                             }

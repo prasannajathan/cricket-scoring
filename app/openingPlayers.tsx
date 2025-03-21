@@ -64,7 +64,7 @@ export default function OpeningPlayersScreen() {
   const [newBowlerName, setNewBowlerName] = useState('');
 
   // Filter the existing players for the new batting side.
-  const existingBattingPlayers = battingTeam.players.filter(p => !p.isOut && !p.isRetired);
+  const existingBattingPlayers = battingTeam.players.filter(p => !p.isOut);
   const existingBowlingPlayers = bowlingTeam.players;
 
   useLayoutEffect(() => {

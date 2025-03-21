@@ -43,6 +43,7 @@ interface ScoreModalsProps {
     handleEndInningsConfirm: () => void;
     // Partnerships
     currentInnings: InningsData; //  | null
+    totalPlayers: number;
 }
 
 export function ScoreModals(props: ScoreModalsProps) {
@@ -69,7 +70,8 @@ export function ScoreModals(props: ScoreModalsProps) {
         showEndInningsModal,
         setShowEndInningsModal,
         handleEndInningsConfirm,
-        currentInnings
+        currentInnings,
+        totalPlayers
     } = props;
 
     const dispatch = useDispatch();
@@ -118,6 +120,7 @@ export function ScoreModals(props: ScoreModalsProps) {
                 currentStrikerId={currentStrikerId}
                 currentNonStrikerId={currentNonStrikerId}
                 battingTeamKey={battingTeamKey}
+                totalPlayers={totalPlayers}
             />
 
             <EndInningsModal

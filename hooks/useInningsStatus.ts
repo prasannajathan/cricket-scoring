@@ -63,8 +63,7 @@ export function useInningsStatus({
         currentInnings.battingTeamId &&
         currentInnings.currentStrikerId
       ) {
-        const nonRetiredPlayers = battingTeam.players.filter(p => !p.isRetired).length;
-        const allOut = currentInnings.wickets >= nonRetiredPlayers - 1;
+        const allOut = currentInnings.wickets >= state.totalPlayers - 1;
         const oversComplete = currentInnings.completedOvers >= state.totalOvers;
 
         if ((allOut || oversComplete) && !currentInnings.readyForInnings2) {

@@ -327,6 +327,7 @@ export default function ScoringScreen() {
                 setShowEndInningsModal={setShowEndInningsModal}
                 handleEndInningsConfirm={handleEndInningsConfirm}
                 currentInnings={currentInnings}
+                totalPlayers={state.totalPlayers}
             />
 
             <TouchableOpacity

@@ -69,6 +69,8 @@ export const scoringReducers = {
 
         // Handle wicket
         if (wicket) {
+            // Determine if the wicket fell on the striker before any changes:
+            const wicketFellOnStriker = (outBatsmanId || preSwitchStrikerId) === currentInnings.currentStrikerId;
             currentInnings.wickets += 1;
 
             // Handle partnerships when a wicket falls
@@ -94,6 +96,7 @@ export const scoringReducers = {
                         : (currentInnings.currentNonStrikerId || ''),
                     runs: 0,
                     balls: 0,
+                    isActive: true,
                     startTime: Date.now()
                 };
             }
@@ -108,26 +111,29 @@ export const scoringReducers = {
 
             // 2) Insert the new batter in place of the out batsman
             //    (We assume you passed nextBatsmanId in your payload)
-            if (outBatsman?.id === currentInnings.currentStrikerId) {
-                currentInnings.currentStrikerId = nextBatsmanId;
-            } else if (outBatsman?.id === currentInnings.currentNonStrikerId) {
-                currentInnings.currentNonStrikerId = nextBatsmanId;
+            if (nextBatsmanId) {
+                if (outBatsman?.id === currentInnings.currentStrikerId) {
+                    currentInnings.currentStrikerId = nextBatsmanId;
+                } else if (outBatsman?.id === currentInnings.currentNonStrikerId) {
+                    currentInnings.currentNonStrikerId = nextBatsmanId;
+                }
             }
 
             // 3) If this wicket fell on the last ball of the over AND runs are even,
             //    you still do the normal end-of-over strike swap.
-            // const isLastBallOfOver = currentInnings.ballInCurrentOver === 6;
-            const isLastBallOfOver = currentInnings.ballInCurrentOver === 5 ||
-                (isLegalDelivery && currentInnings.ballInCurrentOver + 1 === 6);
+            // const isLastBallOfOver = currentInnings.ballInCurrentOver === 5 ||
+            //     (isLegalDelivery && currentInnings.ballInCurrentOver + 1 === 6);
+            const isLastBallOfOver = currentInnings.ballInCurrentOver === 6;
             const isOddRun = runs % 2 === 1;
 
-            if (isLastBallOfOver && !isOddRun) {
+            if (isLastBallOfOver && !isOddRun && !wicketFellOnStriker) {
                 updateBatsmenPositions(
                     state,
                     currentInnings.currentNonStrikerId,
                     currentInnings.currentStrikerId
                 );
             }
+
         }
 
         // Check for innings completion if not already marked
@@ -388,16 +394,14 @@ function handleBallAndOverCount(
         // 1. The runs are odd, OR
         // 2. It's the last ball of an over (even for 0 runs)
         if ((extraType === 'wide' || extraType === 'no-ball') && runs % 2 === 1) {
-            const isOddRun = runs % 2 === 1;
-            const isLastBallOfOver = currentInnings.ballInCurrentOver === 5; // Checking current ball before increment
-
-            if (isOddRun || isLastBallOfOver) {
-                updateBatsmenPositions(
-                    state,
-                    currentInnings.currentNonStrikerId,
-                    currentInnings.currentStrikerId
-                );
-            }
+            // const isLastBallOfOver = currentInnings.ballInCurrentOver === 6; // Checking current ball before increment
+            // if ( isLastBallOfOver) {
+            updateBatsmenPositions(
+                state,
+                currentInnings.currentNonStrikerId,
+                currentInnings.currentStrikerId
+            );
+            // }
         }
         return;
     }

@@ -9,8 +9,7 @@ export const checkInningsCompletionHelper = (state: ScoreboardState) => {
   }
   
   // Check for completion conditions
-  const battingTeam = state[currentInnings.battingTeamId === state.teamA.id ? 'teamA' : 'teamB'];
-  const allOut = currentInnings.wickets >= battingTeam.players.filter(p => !p.isRetired).length - 1;
+  const allOut = currentInnings.wickets >= state.totalPlayers - 1;
   const oversComplete = currentInnings.completedOvers >= state.totalOvers;
   const targetReached = state.currentInning === 2 && 
                         state.targetScore && 
@@ -101,7 +100,7 @@ export const calculateRemainingWickets = (
     const totalPlayers = state.totalPlayers;
     
     // Count active (non-retired) players
-    const activePlayersCount = battingTeam.players.filter(p => !p.isRetired).length;
+    const activePlayersCount = battingTeam.players.filter(p => !p.isOut).length;
     
     // Use the minimum of totalPlayers or actual active players to be safe
     const effectiveTotalPlayers = Math.min(totalPlayers, activePlayersCount);
