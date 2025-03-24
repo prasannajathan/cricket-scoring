@@ -26,6 +26,8 @@ import CommentaryFeed from '@/components/scoring/CommentaryFeed';
 import { ScoreModals } from '@/components/scoring/ScoreModals';
 import { colors, spacing, typography } from '@/constants/theme';
 
+import { runMatchSimulation } from '@/utils/simulation/testRunner';
+
 const SHOWN_MATCH_ALERTS = new Set<string>();
 
 export default function ScoringScreen() {
@@ -157,7 +159,7 @@ export default function ScoringScreen() {
             Alert.alert('Match Completed', 'The match is already over.');
             return;
         }
-        
+
         setShowWicketModal(false);
 
         dispatch(
@@ -170,10 +172,10 @@ export default function ScoringScreen() {
                 fielderId: wkData.fielderId
             })
         );
-        
+
         // Reset scoring state
         resetAll();
-        
+
     };
 
     // 9) End innings confirm
@@ -350,6 +352,19 @@ export default function ScoringScreen() {
                 <Text style={styles.debugButtonText}>Debug</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+                style={[styles.debugButton, { backgroundColor: '#4CAF50' }]}
+                onPress={() => {
+                    runMatchSimulation(dispatch, (result) => {
+                        // This will be called after simulation is complete
+                        // You might want to switch to the scorecard tab
+                        setActiveTabPersistent('scorecard');
+                    });
+                }}
+            >
+                <Text style={styles.debugButtonText}>Test Overs</Text>
+            </TouchableOpacity>
+
         </ScrollView>
     );
 }
@@ -393,16 +408,31 @@ const styles = StyleSheet.create({
         color: colors.brandBlue,
         fontWeight: '600',
     },
+    // debugButton: {
+    //     backgroundColor: colors.brandBlue,
+    //     padding: spacing.md,
+    //     borderRadius: 5,
+    //     alignItems: 'center',
+    //     marginTop: spacing.lg,
+    // },
+    // debugButtonText: {
+    //     color: colors.white,
+    //     fontSize: typography.sizeMD,
+    //     fontWeight: '600',
+    // },
+
     debugButton: {
-        backgroundColor: colors.brandBlue,
-        padding: spacing.md,
-        borderRadius: 5,
-        alignItems: 'center',
-        marginTop: spacing.lg,
+        position: 'absolute',
+        right: 10,
+        bottom: 10,
+        backgroundColor: '#2196F3',
+        padding: 8,
+        borderRadius: 4,
+        opacity: 0.8,
+        marginLeft: 10, // Add this to separate the buttons
     },
     debugButtonText: {
-        color: colors.white,
-        fontSize: typography.sizeMD,
-        fontWeight: '600',
+        color: 'white',
+        fontWeight: 'bold',
     },
 });
