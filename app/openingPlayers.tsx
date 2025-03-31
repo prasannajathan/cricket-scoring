@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert
+  Alert,
+  SafeAreaView,
+  Platform
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -21,6 +24,7 @@ import {
   startInnings2
 } from '@/store/cricket/scoreboardSlice';
 import { selectBattingTeam, selectBowlingTeam } from '@/store/cricket/selectors';
+import { colors, spacing, radius } from '@/constants/theme';
 
 export default function OpeningPlayersScreen() {
   const router = useRouter();
@@ -154,257 +158,412 @@ export default function OpeningPlayersScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>
-        {isSecondInnings ? 'Second Innings' : 'First Innings'}: Select Opening Players
-      </Text>
-
-      {/* First innings summary - only show for second innings */}
-      {isSecondInnings && targetScore && (
-        <View style={styles.firstInningsSummary}>
-          <Text style={styles.firstInningsHeading}>First Innings Summary</Text>
-          <Text style={styles.firstInningsScore}>
-            {firstInningsTeamName}: {firstInningsScore}/{firstInningsWickets} ({firstInningsOvers} overs)
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            {isSecondInnings ? 'Second Innings' : 'First Innings'}
           </Text>
-          <Text style={styles.targetText}>
-            {battingTeam.teamName} needs {targetScore} runs to win
+          <Text style={styles.subtitle}>Select Playing XI</Text>
+        </View>
+
+        {/* First innings summary - only show for second innings */}
+        {isSecondInnings && targetScore && (
+          <View style={styles.card}>
+            <View style={styles.firstInningsSummary}>
+              <Text style={styles.firstInningsHeading}>First Innings Summary</Text>
+              <Text style={styles.firstInningsScore}>
+                {firstInningsTeamName}: {firstInningsScore}/{firstInningsWickets} ({firstInningsOvers} overs)
+              </Text>
+              <View style={styles.targetContainer}>
+                <FontAwesome name="bullseye" size={16} color={colors.brandRed} style={styles.targetIcon} />
+                <Text style={styles.targetText}>
+                  {battingTeam.teamName} needs {targetScore} runs to win
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Striker Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Striker</Text>
+            <View style={styles.teamBadge}>
+              <Text style={styles.teamBadgeText}>{battingTeam.teamName}</Text>
+            </View>
+          </View>
+          
+          {existingBattingPlayers.length > 0 && (
+            <View style={styles.playerSelection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {existingBattingPlayers.map((player) => (
+                  <TouchableOpacity 
+                    key={player.id}
+                    style={[
+                      styles.playerBubble,
+                      selectedStrikerId === player.id ? styles.selectedPlayerBubble : {}
+                    ]}
+                    onPress={() => {
+                      setSelectedStrikerId(player.id);
+                      setNewStrikerName('');
+                    }}
+                  >
+                    <Text style={[
+                      styles.playerBubbleText,
+                      selectedStrikerId === player.id ? styles.selectedPlayerBubbleText : {}
+                    ]}>
+                      {player.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[
+                styles.textInput, 
+                selectedStrikerId ? styles.disabledInput : {}
+              ]}
+              placeholder="Add new Striker name"
+              placeholderTextColor={colors.ccc}
+              value={newStrikerName}
+              onChangeText={text => {
+                setNewStrikerName(text);
+                if (text.trim()) {
+                  setSelectedStrikerId('');
+                }
+              }}
+              editable={!selectedStrikerId}
+            />
+            {!selectedStrikerId && newStrikerName.trim() && (
+              <View style={styles.inputNotice}>
+                <FontAwesome name="info-circle" size={14} color={colors.brandBlue} style={styles.inputNoticeIcon} />
+                <Text style={styles.inputNoticeText}>New player will be added to team</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Non-striker Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Non-Striker</Text>
+            <View style={styles.teamBadge}>
+              <Text style={styles.teamBadgeText}>{battingTeam.teamName}</Text>
+            </View>
+          </View>
+          
+          {existingBattingPlayers.length > 0 && (
+            <View style={styles.playerSelection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {existingBattingPlayers
+                  .filter(p => p.id !== selectedStrikerId)
+                  .map((player) => (
+                    <TouchableOpacity 
+                      key={player.id}
+                      style={[
+                        styles.playerBubble,
+                        selectedNonStrikerId === player.id ? styles.selectedPlayerBubble : {}
+                      ]}
+                      onPress={() => {
+                        setSelectedNonStrikerId(player.id);
+                        setNewNonStrikerName('');
+                      }}
+                    >
+                      <Text style={[
+                        styles.playerBubbleText,
+                        selectedNonStrikerId === player.id ? styles.selectedPlayerBubbleText : {}
+                      ]}>
+                        {player.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                }
+              </ScrollView>
+            </View>
+          )}
+          
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[
+                styles.textInput, 
+                selectedNonStrikerId ? styles.disabledInput : {}
+              ]}
+              placeholder="Add new Non-Striker name"
+              placeholderTextColor={colors.ccc}
+              value={newNonStrikerName}
+              onChangeText={text => {
+                setNewNonStrikerName(text);
+                if (text.trim()) {
+                  setSelectedNonStrikerId('');
+                }
+              }}
+              editable={!selectedNonStrikerId}
+            />
+            {!selectedNonStrikerId && newNonStrikerName.trim() && (
+              <View style={styles.inputNotice}>
+                <FontAwesome name="info-circle" size={14} color={colors.brandBlue} style={styles.inputNoticeIcon} />
+                <Text style={styles.inputNoticeText}>New player will be added to team</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Bowler Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Opening Bowler</Text>
+            <View style={styles.teamBadge}>
+              <Text style={styles.teamBadgeText}>{bowlingTeam.teamName}</Text>
+            </View>
+          </View>
+          
+          {existingBowlingPlayers.length > 0 && (
+            <View style={styles.playerSelection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {existingBowlingPlayers.map((player) => (
+                  <TouchableOpacity 
+                    key={player.id}
+                    style={[
+                      styles.playerBubble,
+                      selectedBowlerId === player.id ? styles.selectedPlayerBubble : {}
+                    ]}
+                    onPress={() => {
+                      setSelectedBowlerId(player.id);
+                      setNewBowlerName('');
+                    }}
+                  >
+                    <Text style={[
+                      styles.playerBubbleText,
+                      selectedBowlerId === player.id ? styles.selectedPlayerBubbleText : {}
+                    ]}>
+                      {player.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+          
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[
+                styles.textInput, 
+                selectedBowlerId ? styles.disabledInput : {}
+              ]}
+              placeholder="Add new Bowler name"
+              placeholderTextColor={colors.ccc}
+              value={newBowlerName}
+              onChangeText={text => {
+                setNewBowlerName(text);
+                if (text.trim()) {
+                  setSelectedBowlerId('');
+                }
+              }}
+              editable={!selectedBowlerId}
+            />
+            {!selectedBowlerId && newBowlerName.trim() && (
+              <View style={styles.inputNotice}>
+                <FontAwesome name="info-circle" size={14} color={colors.brandBlue} style={styles.inputNoticeIcon} />
+                <Text style={styles.inputNoticeText}>New player will be added to team</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Start Match Button */}
+        <TouchableOpacity 
+          style={styles.startButton} 
+          onPress={handleStartScoring}
+          activeOpacity={0.8}
+        >
+          <FontAwesome name="play-circle" size={18} color={colors.white} style={styles.startButtonIcon} />
+          <Text style={styles.startButtonText}>
+            {isSecondInnings ? 'Start Second Innings' : 'Start Match'}
           </Text>
-        </View>
-      )}
-
-      {/* Striker */}
-      <Text style={styles.label}>Striker ({battingTeam.teamName})</Text>
-      {existingBattingPlayers.length > 0 && (
-        <View style={styles.playerSelection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {existingBattingPlayers.map((player) => (
-              <TouchableOpacity 
-                key={player.id}
-                style={[
-                  styles.playerBubble,
-                  selectedStrikerId === player.id ? styles.selectedPlayerBubble : {}
-                ]}
-                onPress={() => {
-                  setSelectedStrikerId(player.id);
-                  setNewStrikerName('');
-                }}
-              >
-                <Text style={[
-                  styles.playerBubbleText,
-                  selectedStrikerId === player.id ? styles.selectedPlayerBubbleText : {}
-                ]}>
-                  {player.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-      <TextInput
-        style={[
-          styles.textInput, 
-          selectedStrikerId ? styles.disabledInput : {}
-        ]}
-        placeholder="Add new Striker name"
-        value={newStrikerName}
-        onChangeText={text => {
-          setNewStrikerName(text);
-          if (text.trim()) {
-            setSelectedStrikerId('');
-          }
-        }}
-        editable={!selectedStrikerId}
-      />
-
-      {/* Non-striker */}
-      <Text style={styles.label}>Non-Striker ({battingTeam.teamName})</Text>
-      {existingBattingPlayers.length > 0 && (
-        <View style={styles.playerSelection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {existingBattingPlayers
-              .filter(p => p.id !== selectedStrikerId)
-              .map((player) => (
-                <TouchableOpacity 
-                  key={player.id}
-                  style={[
-                    styles.playerBubble,
-                    selectedNonStrikerId === player.id ? styles.selectedPlayerBubble : {}
-                  ]}
-                  onPress={() => {
-                    setSelectedNonStrikerId(player.id);
-                    setNewNonStrikerName('');
-                  }}
-                >
-                  <Text style={[
-                    styles.playerBubbleText,
-                    selectedNonStrikerId === player.id ? styles.selectedPlayerBubbleText : {}
-                  ]}>
-                    {player.name}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            }
-          </ScrollView>
-        </View>
-      )}
-      <TextInput
-        style={[
-          styles.textInput, 
-          selectedNonStrikerId ? styles.disabledInput : {}
-        ]}
-        placeholder="Add new Non-Striker name"
-        value={newNonStrikerName}
-        onChangeText={text => {
-          setNewNonStrikerName(text);
-          if (text.trim()) {
-            setSelectedNonStrikerId('');
-          }
-        }}
-        editable={!selectedNonStrikerId}
-      />
-
-      {/* Opening bowler */}
-      <Text style={styles.label}>Opening Bowler ({bowlingTeam.teamName})</Text>
-      {existingBowlingPlayers.length > 0 && (
-        <View style={styles.playerSelection}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {existingBowlingPlayers.map((player) => (
-              <TouchableOpacity 
-                key={player.id}
-                style={[
-                  styles.playerBubble,
-                  selectedBowlerId === player.id ? styles.selectedPlayerBubble : {}
-                ]}
-                onPress={() => {
-                  setSelectedBowlerId(player.id);
-                  setNewBowlerName('');
-                }}
-              >
-                <Text style={[
-                  styles.playerBubbleText,
-                  selectedBowlerId === player.id ? styles.selectedPlayerBubbleText : {}
-                ]}>
-                  {player.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      )}
-      <TextInput
-        style={[
-          styles.textInput, 
-          selectedBowlerId ? styles.disabledInput : {}
-        ]}
-        placeholder="Add new Bowler name"
-        value={newBowlerName}
-        onChangeText={text => {
-          setNewBowlerName(text);
-          if (text.trim()) {
-            setSelectedBowlerId('');
-          }
-        }}
-        editable={!selectedBowlerId}
-      />
-
-      {/* Start Match Button */}
-      <TouchableOpacity style={styles.startButton} onPress={handleStartScoring}>
-        <Text style={styles.startButtonText}>
-          {isSecondInnings ? 'Start Second Innings' : 'Start Match'}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F1F3F5',
-    padding: 16,
+    backgroundColor: colors.brandLight,
+  },
+  contentContainer: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl * 2,
+  },
+  header: {
+    marginBottom: spacing.xl,
   },
   title: {
-    fontSize: 20,
-    color: '#2E7D32',
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.brandDark,
+    marginBottom: spacing.xs,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: colors.brandBlue,
+    fontWeight: '500',
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    marginBottom: spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   firstInningsSummary: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
+    padding: spacing.lg,
   },
   firstInningsHeading: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginBottom: 8,
+    fontWeight: '600',
+    color: colors.brandBlue,
+    marginBottom: spacing.md,
   },
   firstInningsScore: {
-    fontSize: 18,
-    color: '#1B5E20',
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.brandDark,
+    marginBottom: spacing.md,
+  },
+  targetContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.brandLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    alignSelf: 'flex-start',
+  },
+  targetIcon: {
+    marginRight: spacing.sm,
   },
   targetText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#D32F2F',
-  },
-  label: {
     fontSize: 16,
-    color: '#2E7D32',
+    fontWeight: '600',
+    color: colors.brandRed,
+  },
+  section: {
+    marginBottom: spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.brandDark,
+    marginRight: spacing.md,
+  },
+  teamBadge: {
+    backgroundColor: colors.brandBlue,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  teamBadgeText: {
+    color: colors.white,
+    fontSize: 12,
     fontWeight: '500',
-    marginBottom: 8,
-    marginTop: 8,
   },
   playerSelection: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   playerBubble: {
-    backgroundColor: '#E0E0E0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.xl,
+    marginRight: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.ccc,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   selectedPlayerBubble: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: colors.brandBlue,
+    borderColor: colors.brandBlue,
   },
   playerBubbleText: {
-    color: '#424242',
+    color: colors.brandDark,
     fontSize: 14,
+    fontWeight: '500',
   },
   selectedPlayerBubbleText: {
-    color: '#FFFFFF',
+    color: colors.white,
+  },
+  inputContainer: {
+    marginBottom: spacing.xs,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: '#CCC',
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#FFF',
+    borderColor: colors.ccc,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
+    backgroundColor: colors.white,
     fontSize: 16,
+    color: colors.brandDark,
   },
   disabledInput: {
-    backgroundColor: '#F1F1F1',
-    color: '#9E9E9E',
+    backgroundColor: colors.brandLight,
+    color: colors.ccc,
+  },
+  inputNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+    marginLeft: spacing.xs,
+  },
+  inputNoticeIcon: {
+    marginRight: spacing.xs,
+  },
+  inputNoticeText: {
+    fontSize: 12,
+    color: colors.brandBlue,
+    fontStyle: 'italic',
   },
   startButton: {
-    backgroundColor: '#2E7D32',
-    paddingVertical: 14,
-    borderRadius: 6,
+    backgroundColor: colors.brandBlue,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 32,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    marginTop: spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  startButtonIcon: {
+    marginRight: spacing.sm,
   },
   startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: colors.white,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

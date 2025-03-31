@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ImageBackground, StatusBar } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { Team, InningsData } from '@/types';
 import {
     colors,
@@ -32,9 +33,11 @@ export default function ScoreHeader({
         return totalOvers > 0 ? (runs / totalOvers).toFixed(2) : '0.00';
     };
 
-    const computeRRR = (runsNeeded: number, oversLeft: number): string => {
-        if (oversLeft <= 0) return 'N/A';
-        return (runsNeeded / oversLeft).toFixed(2);
+    const computeRRR = (runsNeeded: number, oversLeft: number, ballsInOver: number): string => {
+        if (!totalOvers) return 'N/A';
+        const remainingOvers = totalOvers - oversLeft - (ballsInOver / 6);
+        if (remainingOvers <= 0) return 'N/A';
+        return (runsNeeded / remainingOvers).toFixed(2);
     };
 
     const calculateRemainingBalls = () => {
@@ -43,12 +46,39 @@ export default function ScoreHeader({
         const usedBalls = (currentInnings.completedOvers * 6) + currentInnings.ballInCurrentOver;
         return totalBalls - usedBalls;
     };
+    
     const remainingBalls = calculateRemainingBalls();
     const partnership = currentInnings?.currentPartnership || { runs: 0, balls: 0 };
+    const runsNeeded = targetScore && currentInnings 
+        ? Math.max(0, targetScore - currentInnings.totalRuns) 
+        : 0;
+
+    // Determine if the match is close (required run rate is high or low)
+    const isChaseUnderPressure = () => {
+        if (currentInning !== 2 || !targetScore || !currentInnings || !totalOvers) return false;
+        
+        const remainingOvers = totalOvers - currentInnings.completedOvers - (currentInnings.ballInCurrentOver / 6);
+        if (remainingOvers <= 0) return false;
+        
+        const requiredRunRate = runsNeeded / remainingOvers;
+        return requiredRunRate > 10; // High required run rate
+    };
+
+    const isChaseComfortable = () => {
+        if (currentInning !== 2 || !targetScore || !currentInnings || !totalOvers) return false;
+        
+        const remainingOvers = totalOvers - currentInnings.completedOvers - (currentInnings.ballInCurrentOver / 6);
+        if (remainingOvers <= 0) return false;
+        
+        const requiredRunRate = runsNeeded / remainingOvers;
+        const wicketsLeft = 10 - (currentInnings.wickets || 0);
+        
+        return requiredRunRate < 6 && wicketsLeft > 5; // Low required run rate and plenty of wickets
+    };
 
     return (
         <View style={styles.heroContainer}>
-            {/* <StatusBar barStyle="light-content" /> */}
+            <StatusBar barStyle="light-content" />
             <ImageBackground
                 source={require('@/assets/images/stadium-1.png')}
                 style={styles.heroImage}
@@ -56,54 +86,100 @@ export default function ScoreHeader({
             >
                 <View style={styles.heroOverlay} />
                 <View style={styles.heroContent}>
+                    {/* Team and Current Score */}
+                    <View style={styles.scoreHeader}>
+                        <Text style={styles.teamName}>
+                            {battingTeam?.teamName}
+                        </Text>
+                    </View>
+                    
+                    <View style={styles.scoreRow}>
+                        <Text style={styles.score}>
+                            {currentInnings?.totalRuns || 0}
+                            <Text style={styles.scoreDelimiter}>/</Text>
+                            {currentInnings?.wickets || 0}
+                        </Text>
+                        
+                        <View style={styles.oversContainer}>
+                            <Text style={styles.oversLabel}>Overs</Text>
+                            <Text style={styles.oversValue}>
+                                {currentInnings?.completedOvers || 0}
+                                <Text style={styles.oversDot}>.</Text>
+                                {currentInnings?.ballInCurrentOver || 0}
+                            </Text>
+                        </View>
+                    </View>
+                    
+                    {/* Match Status for 2nd Innings */}
                     {currentInning === 2 && targetScore && (
-                        <>
-                            {/* <Text style={styles.scoreStatus}>
-                                {`${battingTeam?.teamName} Needs: ${Math.max(0, targetScore - (currentInnings?.totalRuns || 0))} runs`}
-                            </Text> */}
-                            <Text style={styles.scoreStatus}>
-                            {`Target: ${targetScore} (${Math.max(0, targetScore - (currentInnings?.totalRuns || 0))} needed from ${remainingBalls} balls)`}
+                        <View style={[
+                            styles.targetContainer,
+                            isChaseUnderPressure() ? styles.pressureTarget : null,
+                            isChaseComfortable() ? styles.comfortableTarget : null
+                        ]}>
+                            <FontAwesome 
+                                name={
+                                    isChaseUnderPressure() ? "tachometer" : 
+                                    isChaseComfortable() ? "thumbs-up" : "flag-checkered"
+                                } 
+                                size={16} 
+                                color={colors.white} 
+                                style={styles.targetIcon} 
+                            />
+                            <Text style={styles.targetText}>
+                                {`Target: ${targetScore} (${runsNeeded} needed from ${remainingBalls} balls)`}
                             </Text>
-                        </>
+                        </View>
                     )}
+                    
+                    {/* Match Result */}
                     {matchResult && (
-                        <Text style={styles.scoreStatus}>{matchResult}</Text>
+                        <View style={styles.resultContainer}>
+                            <FontAwesome name="trophy" size={16} color={colors.white} style={styles.resultIcon} />
+                            <Text style={styles.resultText}>{matchResult}</Text>
+                        </View>
                     )}
 
-                    {/* Score Details */}
-
-                    <Text style={styles.teamName}>{battingTeam?.teamName}</Text>
-                    <Text style={styles.score}>{currentInnings?.totalRuns || 0} - {currentInnings?.wickets || 0}</Text>
-
-                    <View style={styles.subInfo}>
-                        {currentInning === 2 && targetScore && (
-                            <Text style={styles.subInfoText}>
-                                {`Target: ${targetScore}`}
+                    {/* Stats Row: CRR, REQ, Partnership */}
+                    <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                            <Text style={styles.statLabel}>CRR</Text>
+                            <Text style={styles.statValue}>
+                                {computeRunRate(
+                                    currentInnings?.totalRuns || 0,
+                                    currentInnings?.completedOvers || 0,
+                                    currentInnings?.ballInCurrentOver || 0
+                                )}
                             </Text>
+                        </View>
+                        
+                        {currentInning === 2 && targetScore && (
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>REQ</Text>
+                                <Text style={[
+                                    styles.statValue, 
+                                    isChaseUnderPressure() ? styles.pressureStatValue : null,
+                                    isChaseComfortable() ? styles.comfortableStatValue : null
+                                ]}>
+                                    {computeRRR(
+                                        runsNeeded,
+                                        currentInnings?.completedOvers || 0,
+                                        currentInnings?.ballInCurrentOver || 0
+                                    )}
+                                </Text>
+                            </View>
                         )}
+                        
+                        <View style={styles.statItem}>
+                            <Text style={styles.statLabel}>P'SHIP</Text>
+                            <Text style={styles.statValue}>
+                                {partnership.runs}
+                                <Text style={styles.statSubValue}>
+                                    ({partnership.balls})
+                                </Text>
+                            </Text>
+                        </View>
                     </View>
-
-
-                    {/* Partnership Info (CRR, REQ, Partnership) */}
-                    <View style={styles.subInfoRow}>
-                        <Text style={styles.subInfoText}>Overs: {currentInnings?.completedOvers || 0}.{currentInnings?.ballInCurrentOver || 0}</Text>
-
-                        <Text style={styles.subInfoText}>{`CRR: ${computeRunRate(
-                            currentInnings?.totalRuns || 0,
-                            currentInnings?.completedOvers || 0,
-                            currentInnings?.ballInCurrentOver || 0
-                        )}`}</Text>
-                        <Text style={styles.subInfoText}>
-                            {currentInning === 2 && targetScore && (
-                                <>{`REQ ${computeRRR(targetScore, currentInnings?.completedOvers || 0)}`}</>
-                            )}
-                        </Text>
-                        {/* TODO: Implement partnership */}
-                        <Text style={styles.subInfoText}>
-                        P'SHIP {partnership.runs}({partnership.balls})
-                        </Text>
-                    </View>
-
                 </View>
             </ImageBackground>
         </View>
@@ -113,14 +189,14 @@ export default function ScoreHeader({
 const styles = StyleSheet.create({
     /* Hero Scoreboard */
     heroContainer: {
-        // borderRadius: radius.md,
         overflow: 'hidden',
-        // marginBottom: spacing.xs,
+        borderBottomLeftRadius: radius.md,
+        borderBottomRightRadius: radius.md,
         ...shadows.card,
     },
     heroImage: {
         width: '100%',
-        height: 160,
+        height: 180,
         justifyContent: 'flex-end',
     },
     heroImageStyle: {
@@ -132,10 +208,13 @@ const styles = StyleSheet.create({
         right: 0,
         left: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)', 
+        backgroundColor: 'rgba(0,0,0,0.7)', 
     },
     heroContent: {
-        padding: spacing.md,
+        padding: spacing.lg,
+    },
+    scoreHeader: {
+        marginBottom: spacing.xs,
     },
     teamName: {
         fontFamily: typography.fontFamilyBold,
@@ -143,30 +222,112 @@ const styles = StyleSheet.create({
         color: colors.white,
         fontWeight: typography.weightBold,
     },
+    scoreRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: spacing.sm,
+    },
     score: {
         fontFamily: typography.fontFamilyBold,
-        fontSize: typography.sizeXL,
+        fontSize: 40,
         color: colors.white,
-        marginTop: spacing.xs,
-        fontWeight: typography.weightBold,
+        fontWeight: '800',
     },
-    subInfoRow: {
-        flexDirection: 'row',
-        marginTop: spacing.xs,
+    scoreDelimiter: {
+        color: colors.white + '80', // 80% opacity
+        fontSize: 36,
     },
-    subInfoText: {
-        fontFamily: typography.fontFamilyRegular,
+    oversContainer: {
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderRadius: radius.md,
+        padding: spacing.sm,
+        minWidth: 80,
+    },
+    oversLabel: {
+        color: colors.white + '90', // 90% opacity
         fontSize: typography.sizeSM,
+        marginBottom: 2,
+    },
+    oversValue: {
         color: colors.white,
-        marginRight: spacing.md,
+        fontSize: typography.sizeMD,
+        fontWeight: '600',
     },
-    /* Score Status */
-    scoreStatus: {
-        // fontWeight: 'bold',
-        // marginBottom: 12,
-        // fontSize: 16,
+    oversDot: {
+        color: colors.white + '70', // 70% opacity
     },
-    subInfo: {
-        alignItems: 'flex-end',
+    targetContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,100,255,0.4)',
+        borderRadius: radius.md,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        marginBottom: spacing.md,
+    },
+    pressureTarget: {
+        backgroundColor: 'rgba(255,50,50,0.4)',
+    },
+    comfortableTarget: {
+        backgroundColor: 'rgba(50,200,50,0.4)',
+    },
+    targetIcon: {
+        marginRight: spacing.sm,
+    },
+    targetText: {
+        color: colors.white,
+        fontSize: typography.sizeMD,
+        fontWeight: '600',
+    },
+    resultContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(50,200,50,0.4)',
+        borderRadius: radius.md,
+        paddingVertical: spacing.sm,
+        paddingHorizontal: spacing.md,
+        marginBottom: spacing.md,
+    },
+    resultIcon: {
+        marginRight: spacing.sm,
+    },
+    resultText: {
+        color: colors.white,
+        fontSize: typography.sizeMD,
+        fontWeight: '600',
+    },
+    statsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingTop: spacing.xs,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255,255,255,0.2)',
+    },
+    statItem: {
+        alignItems: 'center',
+        minWidth: 80,
+    },
+    statLabel: {
+        color: colors.white + '80', // 80% opacity
+        fontSize: typography.sizeSM,
+        marginBottom: 2,
+    },
+    statValue: {
+        color: colors.white,
+        fontSize: typography.sizeMD,
+        fontWeight: '600',
+    },
+    pressureStatValue: {
+        color: '#FF9999',
+    },
+    comfortableStatValue: {
+        color: '#99FF99',
+    },
+    statSubValue: {
+        fontSize: typography.sizeSM,
+        color: colors.white + '70', // 70% opacity
+        fontWeight: 'normal',
     }
 });

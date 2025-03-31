@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import {
     Team,
     InningsData,
@@ -7,6 +8,7 @@ import {
     ScoreboardState
 } from '@/types';
 import { getBattingOrder } from '@/utils/scorecardTab';
+import { colors, spacing, radius, typography } from '@/constants/theme';
 
 // --------------------------------------------------------------------------
 // BatsmanRow
@@ -30,20 +32,30 @@ interface BatsmanRowProps {
     return (
       <View style={styles.scoreRow}>
         <View style={[styles.scoreCell, styles.nameCell]}>
-          <Text style={styles.playerName}>
+          <Text style={[
+            styles.playerName,
+            (isStriker || isNonStriker) && styles.activeBatsmanName
+          ]}>
             {player.name}
-            {isStriker ? ' *' : ''}
-            {isNonStriker ? ' †' : ''}
+            {isStriker && <Text style={styles.activeBatsmanSymbol}> *</Text>}
+            {isNonStriker && <Text style={styles.activeBatsmanSymbol}> †</Text>}
           </Text>
           {dismissalInfo ? (
             <Text style={styles.dismissalInfo}>{dismissalInfo}</Text>
           ) : null}
         </View>
-        <Text style={styles.scoreCell}>{player.runs || 0}</Text>
+        <Text style={[styles.scoreCell, player.runs > 49 ? styles.milestone : null]}>
+          {player.runs || 0}
+        </Text>
         <Text style={styles.scoreCell}>{player.balls || 0}</Text>
         <Text style={styles.scoreCell}>{player.fours || 0}</Text>
         <Text style={styles.scoreCell}>{player.sixes || 0}</Text>
-        <Text style={styles.scoreCell}>{sr}</Text>
+        <Text style={[
+          styles.scoreCell, 
+          parseFloat(sr) > 150 ? styles.highStrikeRate : null
+        ]}>
+          {sr}
+        </Text>
       </View>
     );
   };
@@ -62,17 +74,31 @@ interface BatsmanRowProps {
       : '0.00';
   
     const oversText = `${player.overs}.${player.ballsThisOver}`;
+    
+    // Calculate if bowler has good economy
+    const hasGoodEconomy = parseFloat(econ) < 6.0 && oversFraction >= 1;
+    
     return (
       <View style={styles.scoreRow}>
-        <Text style={[styles.scoreCell, styles.nameCell]}>
+        <Text style={[
+          styles.scoreCell, 
+          styles.nameCell,
+          isBowling && styles.activeBowlerName
+        ]}>
           {player.name}
-          {isBowling ? ' *' : ''}
+          {isBowling && <Text style={styles.activeBowlerSymbol}> *</Text>}
         </Text>
         <Text style={styles.scoreCell}>{oversText}</Text>
-        <Text style={styles.scoreCell}>{player.maidens || 0}</Text>
+        <Text style={[styles.scoreCell, player.maidens > 0 ? styles.goodBowlingFigure : null]}>
+          {player.maidens || 0}
+        </Text>
         <Text style={styles.scoreCell}>{player.runsConceded}</Text>
-        <Text style={styles.scoreCell}>{player.wickets}</Text>
-        <Text style={styles.scoreCell}>{econ}</Text>
+        <Text style={[styles.scoreCell, player.wickets >= 3 ? styles.goodBowlingFigure : null]}>
+          {player.wickets}
+        </Text>
+        <Text style={[styles.scoreCell, hasGoodEconomy ? styles.goodBowlingFigure : null]}>
+          {econ}
+        </Text>
       </View>
     );
   };
@@ -96,8 +122,11 @@ interface BatsmanRowProps {
     return (
       <View style={styles.extrasRow}>
         <Text style={styles.extrasText}>
-          Extras: {innings.extras || 0} (
-          b {byeRuns}, lb {legByeRuns}, w {wideDeliveries.length}, nb {noBallDeliveries.length})
+          <Text style={styles.extrasLabel}>Extras: </Text>
+          <Text style={styles.extrasValue}>{innings.extras || 0}</Text>
+          <Text style={styles.extrasSeparator}> (</Text>
+          <Text style={styles.extrasDetail}>b {byeRuns}, lb {legByeRuns}, w {wideDeliveries.length}, nb {noBallDeliveries.length}</Text>
+          <Text style={styles.extrasSeparator}>)</Text>
         </Text>
       </View>
     );
@@ -112,7 +141,15 @@ interface BatsmanRowProps {
   const InningsTotal: React.FC<InningsTotalProps> = ({ innings }) => (
     <View style={styles.totalRow}>
       <Text style={styles.totalText}>
-        Total: {innings.totalRuns}/{innings.wickets} ({innings.completedOvers}.{innings.ballInCurrentOver} Overs)
+        <Text style={styles.totalLabel}>Total: </Text>
+        <Text style={styles.totalFigure}>
+          {innings.totalRuns}/{innings.wickets}
+        </Text>
+        <Text style={styles.totalSeparator}> (</Text>
+        <Text style={styles.totalOvers}>
+          {innings.completedOvers}.{innings.ballInCurrentOver} Overs
+        </Text>
+        <Text style={styles.totalSeparator}>)</Text>
       </Text>
     </View>
   );
@@ -157,7 +194,10 @@ interface BatsmanRowProps {
   
     return (
       <View style={styles.fallOfWickets}>
-        <Text style={styles.fowTitle}>Fall of Wickets:</Text>
+        <Text style={styles.fowTitle}>
+          <FontAwesome name="arrow-down" size={12} color={colors.brandRed} style={styles.fowIcon} />
+          <Text> Fall of Wickets:</Text>
+        </Text>
         <Text style={styles.fowText}>
           {dismissals.join(', ')}
         </Text>
@@ -244,7 +284,8 @@ interface BatsmanRowProps {
     return (
       <View style={styles.scorecardSection}>
         <Text style={styles.sectionHeader}>
-          {battingTeam.teamName}
+          <FontAwesome name="user" size={14} color={colors.brandBlue} style={styles.headerIcon} />
+          <Text style={styles.headerText}> {battingTeam.teamName}</Text>
         </Text>
   
         <View style={styles.scoreTableHeader}>
@@ -275,12 +316,10 @@ interface BatsmanRowProps {
           );
         })}
   
-        {/* Extras, Total, FallOfWickets inline */}
         <InningsExtras innings={innings} />
         <InningsTotal innings={innings} />
         <PartnershipHistory innings={innings} battingTeam={battingTeam} />
         <FallOfWickets innings={innings} state={state} />
-
       </View>
     );
   };
@@ -299,8 +338,10 @@ interface BatsmanRowProps {
     return (
       <View style={styles.scorecardSection}>
         <Text style={styles.sectionHeader}>
-          {bowlingTeam.teamName} Bowling
+          <FontAwesome name="dot-circle-o" size={14} color={colors.brandBlue} style={styles.headerIcon} />
+          <Text style={styles.headerText}> {bowlingTeam.teamName} Bowling</Text>
         </Text>
+        
         <View style={styles.scoreTableHeader}>
           <Text style={[styles.headerCell, styles.nameCell]}>Bowler</Text>
           <Text style={styles.headerCell}>O</Text>
@@ -332,16 +373,26 @@ interface BatsmanRowProps {
     if (!innings.partnerships || innings.partnerships.length === 0) return null;
     
     return (
-      <View style={styles.scorecardSection}>
-        <Text style={styles.sectionHeader}>Partnerships</Text>
+      <View style={styles.partnershipSection}>
+        <Text style={styles.partnershipTitle}>
+          <FontAwesome name="link" size={12} color={colors.brandBlue} style={styles.partnershipIcon} />
+          <Text> Partnerships</Text>
+        </Text>
+        
         {innings.partnerships.map((p, index) => {
           const player1 = battingTeam.players.find(player => player.id === p.player1Id);
           const player2 = battingTeam.players.find(player => player.id === p.player2Id);
           
           return (
-            <Text key={index} style={styles.partnershipText}>
-              {player1?.name || 'Unknown'} & {player2?.name || 'Unknown'}: {p.runs} runs ({p.balls} balls)
-            </Text>
+            <View key={index} style={styles.partnershipRow}>
+              <Text style={styles.partnershipPlayers}>
+                {player1?.name || 'Unknown'} & {player2?.name || 'Unknown'}
+              </Text>
+              <Text style={styles.partnershipDetail}>
+                <Text style={styles.partnershipRuns}>{p.runs}</Text> runs 
+                <Text style={styles.partnershipBalls}> ({p.balls} balls)</Text>
+              </Text>
+            </View>
           );
         })}
       </View>
@@ -370,7 +421,6 @@ interface BatsmanRowProps {
     matchResult,
     state
   }) => {
-    // console.log('ScorecardTab rendering...', JSON.stringify(state));
     // We detect if we are missing any core data
     const isLoading = !battingTeam || !bowlingTeam || !currentInnings;
   
@@ -386,12 +436,13 @@ interface BatsmanRowProps {
     return (
       <ScrollView style={styles.container}>
         {isLoading && (
-          <View style={styles.scorecardSection}>
-            <Text>Loading match information...</Text>
+          <View style={styles.loadingContainer}>
+            <FontAwesome name="refresh" size={24} color={colors.brandBlue} style={styles.loadingIcon} />
+            <Text style={styles.loadingText}>Loading match information...</Text>
           </View>
         )}
   
-        {/* 1) Indian Royals - first innings */}
+        {/* First innings */}
         {!isLoading && (
           <>
             <BattingScorecard
@@ -407,7 +458,7 @@ interface BatsmanRowProps {
           </>
         )}
   
-        {/* 2) The second innings */}
+        {/* Second innings */}
         {(secondInnings.totalRuns > 0 || secondInnings.isCompleted) && (
           <>
             <BattingScorecard
@@ -423,9 +474,10 @@ interface BatsmanRowProps {
           </>
         )}
   
-        {/* 3) If match is over, show the final result */}
+        {/* If match is over, show the final result */}
         {matchResult && (
-          <View style={styles.scorecardSection}>
+          <View style={styles.resultContainer}>
+            <FontAwesome name="trophy" size={18} color={colors.brandGreen} style={styles.resultIcon} />
             <Text style={styles.matchResult}>{matchResult}</Text>
           </View>
         )}
@@ -439,105 +491,247 @@ interface BatsmanRowProps {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      padding: 12
+      padding: spacing.md,
+      backgroundColor: colors.brandLight,
     },
-    scorecardSection: {
-      backgroundColor: '#fff',
-      borderRadius: 8,
-      marginBottom: 16,
-      padding: 10,
-      elevation: 1,
-      shadowColor: '#000',
+    loadingContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: spacing.xxl,
+      backgroundColor: colors.white,
+      borderRadius: radius.md,
+      shadowColor: colors.black,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.1,
-      shadowRadius: 1
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    loadingIcon: {
+      marginBottom: spacing.md,
+    },
+    loadingText: {
+      fontSize: 16,
+      color: colors.brandBlue,
+    },
+    scorecardSection: {
+      backgroundColor: colors.white,
+      borderRadius: radius.md,
+      marginBottom: spacing.md,
+      padding: spacing.md,
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
     },
     sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
       fontSize: 16,
-      fontWeight: 'bold',
-      marginBottom: 8,
-      color: '#1B5E20'
+      fontWeight: '700',
+      marginBottom: spacing.md,
+      color: colors.brandBlue,
+      paddingBottom: spacing.xs,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.brandLight,
+    },
+    headerIcon: {
+      marginRight: spacing.xs,
+    },
+    headerText: {
+      color: colors.brandBlue,
     },
     scoreTableHeader: {
       flexDirection: 'row',
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: '#E0E0E0',
-      backgroundColor: '#F5F5F5'
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.xs,
+      borderRadius: radius.sm,
+      backgroundColor: colors.brandLight + '70', // 70% opacity
     },
     scoreRow: {
       flexDirection: 'row',
-      paddingVertical: 8,
+      paddingVertical: spacing.sm,
       borderBottomWidth: 1,
-      borderBottomColor: '#E0E0E0'
+      borderBottomColor: colors.brandLight,
     },
     headerCell: {
       flex: 1,
       textAlign: 'center',
       fontWeight: '600',
-      color: '#424242'
+      color: colors.brandDark,
+      fontSize: 13,
     },
     scoreCell: {
       flex: 1,
-      textAlign: 'center'
+      textAlign: 'center',
+      color: colors.brandDark,
     },
     nameCell: {
       flex: 3,
       textAlign: 'left',
-      paddingLeft: 5
+      paddingLeft: spacing.xs,
     },
     playerName: {
-      fontWeight: '500'
+      fontWeight: '500',
+      color: colors.brandDark,
     },
     dismissalInfo: {
       fontSize: 12,
-      color: '#666',
-      marginTop: 2
+      color: colors.brandDark + '80', // 80% opacity
+      marginTop: 2,
+    },
+    activeBatsmanName: {
+      fontWeight: '700',
+      color: colors.brandBlue,
+    },
+    activeBatsmanSymbol: {
+      color: colors.brandBlue,
+      fontWeight: '700',
+    },
+    activeBowlerName: {
+      fontWeight: '700',
+      color: colors.brandGreen,
+    },
+    activeBowlerSymbol: {
+      color: colors.brandGreen, 
+      fontWeight: '700',
+    },
+    milestone: {
+      fontWeight: '700',
+      color: colors.brandGreen,
+    },
+    highStrikeRate: {
+      color: colors.brandRed,
+      fontWeight: '600',
+    },
+    goodBowlingFigure: {
+      color: colors.brandGreen,
+      fontWeight: '600',
     },
     extrasRow: {
-      paddingVertical: 8,
+      paddingVertical: spacing.md,
       borderBottomWidth: 1,
-      borderBottomColor: '#E0E0E0'
+      borderBottomColor: colors.brandLight,
     },
     extrasText: {
       fontSize: 13,
-      color: '#555'
+      color: colors.brandDark,
+    },
+    extrasLabel: {
+      fontWeight: '600',
+    },
+    extrasValue: {
+      fontWeight: '600',
+    },
+    extrasSeparator: {
+      color: colors.brandDark + '60', // 60% opacity
+    },
+    extrasDetail: {
+      color: colors.brandDark + '80', // 80% opacity
     },
     totalRow: {
-      paddingVertical: 10,
-      alignItems: 'flex-end'
+      paddingVertical: spacing.md,
+      alignItems: 'flex-end',
     },
     totalText: {
       fontSize: 15,
-      fontWeight: 'bold',
-      color: '#1B5E20'
+      color: colors.brandDark,
+    },
+    totalLabel: {
+      fontWeight: '600',
+    },
+    totalFigure: {
+      fontWeight: '700',
+      color: colors.brandBlue,
+    },
+    totalSeparator: {
+      color: colors.brandDark + '60', // 60% opacity
+    },
+    totalOvers: {
+      color: colors.brandDark + '80', // 80% opacity
     },
     fallOfWickets: {
-      marginTop: 8,
-      paddingTop: 8,
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
       borderTopWidth: 1,
-      borderTopColor: '#E0E0E0'
+      borderTopColor: colors.brandLight,
+    },
+    fowIcon: {
+      marginRight: spacing.xs,
     },
     fowTitle: {
-      fontWeight: 'bold',
+      fontWeight: '600',
       fontSize: 13,
-      marginBottom: 4
+      marginBottom: spacing.xs,
+      color: colors.brandDark,
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     fowText: {
       fontSize: 12,
-      color: '#555',
-      lineHeight: 18
+      color: colors.brandDark + '80', // 80% opacity
+      lineHeight: 18,
+    },
+    resultContainer: {
+      backgroundColor: colors.white,
+      borderRadius: radius.md,
+      marginBottom: spacing.md,
+      padding: spacing.lg,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 2,
+      elevation: 2,
+    },
+    resultIcon: {
+      marginRight: spacing.sm,
     },
     matchResult: {
       fontSize: 16,
-      fontWeight: 'bold',
-      color: '#1B5E20',
-      textAlign: 'center'
+      fontWeight: '700',
+      color: colors.brandGreen,
+      textAlign: 'center',
     },
-    partnershipText: {
+    partnershipSection: {
+      marginTop: spacing.sm,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.brandLight,
+    },
+    partnershipTitle: {
+      fontWeight: '600',
       fontSize: 13,
-      color: '#555'
-    }
+      marginBottom: spacing.xs,
+      color: colors.brandDark,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    partnershipIcon: {
+      marginRight: spacing.xs,
+    },
+    partnershipRow: {
+      marginBottom: spacing.xs,
+      paddingVertical: spacing.xs,
+    },
+    partnershipPlayers: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: colors.brandBlue,
+    },
+    partnershipDetail: {
+      fontSize: 12,
+      color: colors.brandDark + '80', // 80% opacity
+    },
+    partnershipRuns: {
+      fontWeight: '600',
+      color: colors.brandDark,
+    },
+    partnershipBalls: {
+      color: colors.brandDark + '60', // 60% opacity
+    },
   });
   
   export default ScorecardTab;

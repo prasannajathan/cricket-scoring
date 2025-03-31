@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
+import { FontAwesome } from '@expo/vector-icons';
+import { colors, spacing, radius, typography, shadows } from '@/constants/theme';
 
 interface EndInningsModalProps {
     visible: boolean;
@@ -25,6 +27,7 @@ export default function EndInningsModal({
     const teamB = useSelector((state: RootState) => state.scoreboard.teamB);
     
     const battingTeamName = innings1.battingTeamId === teamA.id ? teamA.teamName : teamB.teamName;
+    const bowlingTeamName = innings1.battingTeamId !== teamA.id ? teamA.teamName : teamB.teamName;
     
     return (
         <Modal
@@ -35,30 +38,53 @@ export default function EndInningsModal({
         >
             <View style={styles.modalContainer}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.title}>First Innings Complete</Text>
+                    <View style={styles.headerContainer}>
+                        <FontAwesome name="flag-checkered" size={24} color={colors.brandBlue} style={styles.headerIcon} />
+                        <Text style={styles.title}>First Innings Complete</Text>
+                    </View>
                     
                     <View style={styles.infoContainer}>
-                        <Text style={styles.score}>
-                            {battingTeamName}: {innings1.totalRuns}/{innings1.wickets}
-                        </Text>
-                        <Text style={styles.overs}>
-                            ({innings1.completedOvers}.{innings1.ballInCurrentOver} overs)
-                        </Text>
-                        <Text style={styles.message}>
-                            Target: {innings1.totalRuns + 1} runs
-                        </Text>
+                        <View style={styles.scoreContainer}>
+                            <Text style={styles.teamName}>{battingTeamName}</Text>
+                            <Text style={styles.score}>
+                                {innings1.totalRuns}
+                                <Text style={styles.scoreDelimiter}>/</Text>
+                                {innings1.wickets}
+                            </Text>
+                        </View>
+                        
+                        <View style={styles.oversContainer}>
+                            <FontAwesome name="clock-o" size={16} color={colors.brandDark + '80'} style={styles.oversIcon} />
+                            <Text style={styles.overs}>
+                                {innings1.completedOvers}
+                                <Text style={styles.oversDelimiter}>.</Text>
+                                {innings1.ballInCurrentOver} overs
+                            </Text>
+                        </View>
+                        
+                        <View style={styles.divider} />
+                        
+                        <View style={styles.targetContainer}>
+                            <Text style={styles.targetLabel}>
+                                <FontAwesome name="bullseye" size={16} color={colors.brandRed} style={styles.targetIcon} />
+                                {' '}Target for {bowlingTeamName}
+                            </Text>
+                            <Text style={styles.targetValue}>
+                                {innings1.totalRuns + 1} runs
+                            </Text>
+                        </View>
                     </View>
                     
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity 
-                            style={styles.button}
-                            onPress={onConfirm}
-                        >
-                            <Text style={styles.buttonText}>
-                                Start Second Innings
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity 
+                        style={styles.button}
+                        onPress={onConfirm}
+                        activeOpacity={0.7}
+                    >
+                        <FontAwesome name="play" size={16} color={colors.white} style={styles.buttonIcon} />
+                        <Text style={styles.buttonText}>
+                            Start Second Innings
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </View>
         </Modal>
@@ -70,58 +96,121 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
     },
     modalContent: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 20,
-        width: '80%',
+        backgroundColor: colors.white,
+        borderRadius: radius.lg,
+        padding: spacing.lg,
+        width: '85%',
         alignItems: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        ...shadows.modal,
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.md,
+        paddingBottom: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.brandLight,
+        width: '100%',
+        justifyContent: 'center',
+    },
+    headerIcon: {
+        marginRight: spacing.sm,
     },
     title: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 16,
-        color: '#2E7D32',
+        fontSize: typography.sizeXL,
+        fontFamily: typography.fontFamilyBold,
+        fontWeight: typography.weightBold,
+        color: colors.brandBlue,
     },
     infoContainer: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: spacing.lg,
         width: '100%',
+        backgroundColor: colors.brandLight + '30', // 30% opacity
+        borderRadius: radius.md,
+        padding: spacing.md,
+        ...shadows.subtle,
+    },
+    scoreContainer: {
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    teamName: {
+        fontSize: typography.sizeMD,
+        fontWeight: typography.weightBold,
+        color: colors.brandDark,
+        marginBottom: spacing.xs,
     },
     score: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 8,
+        fontSize: 32,
+        fontFamily: typography.fontFamilyBold,
+        fontWeight: '800',
+        color: colors.brandDark,
+    },
+    scoreDelimiter: {
+        color: colors.brandDark + '60', // 60% opacity
+        fontSize: 28,
+    },
+    oversContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.md,
+    },
+    oversIcon: {
+        marginRight: spacing.xs,
     },
     overs: {
-        fontSize: 16,
-        marginBottom: 16,
-        color: '#555',
+        fontSize: typography.sizeMD,
+        color: colors.brandDark + '80', // 80% opacity
     },
-    message: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#D32F2F',
+    oversDelimiter: {
+        color: colors.brandDark + '60', // 60% opacity
     },
-    buttonContainer: {
-        width: '100%',
+    divider: {
+        height: 1,
+        backgroundColor: colors.brandLight,
+        width: '80%',
+        marginBottom: spacing.md,
     },
-    button: {
-        backgroundColor: '#2E7D32',
-        padding: 14,
-        borderRadius: 8,
+    targetContainer: {
         alignItems: 'center',
     },
+    targetLabel: {
+        fontSize: typography.sizeMD,
+        fontWeight: typography.weightBold,
+        color: colors.brandDark,
+        marginBottom: spacing.xs,
+    },
+    targetIcon: {
+        marginRight: spacing.xs,
+    },
+    targetValue: {
+        fontSize: 26,
+        fontFamily: typography.fontFamilyBold,
+        fontWeight: '800',
+        color: colors.brandRed,
+    },
+    button: {
+        backgroundColor: colors.brandGreen,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.xl,
+        borderRadius: radius.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        ...shadows.button,
+    },
+    buttonIcon: {
+        marginRight: spacing.sm,
+    },
     buttonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
+        color: colors.white,
+        fontSize: typography.sizeLG,
+        fontFamily: typography.fontFamilyBold,
+        fontWeight: typography.weightBold,
     },
 });

@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  ActivityIndicator, 
+  TouchableOpacity, 
+  ScrollView,
+  SafeAreaView 
+} from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 import { Team, SavedMatch, Cricketer } from '@/types';
 import { getSavedMatches } from '@/utils/matchStorage';
+import { colors, spacing, radius } from '@/constants/theme';
 
 // Define player stats interface
 interface PlayerStats {
@@ -41,7 +52,7 @@ export default function TeamDetailScreen() {
     const { id } = useLocalSearchParams();
     const [team, setTeam] = useState<Team | null>(null);
     const [playerStats, setPlayerStats] = useState<PlayerStats[]>([]);
-    const [teamMatches, setTeamMatches] = useState<SavedMatch[]>([]);  // Add this state variable
+    const [teamMatches, setTeamMatches] = useState<SavedMatch[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'batting' | 'bowling' | 'fielding' | 'insights'>('batting');
 
@@ -52,14 +63,12 @@ export default function TeamDetailScreen() {
     const loadTeamAndStats = async () => {
         setLoading(true);
         try {
-            // Load all matches
             const savedMatches = await getSavedMatches();
             if (!savedMatches) {
                 setLoading(false);
                 return;
             }
 
-            // Find team in saved matches
             const foundTeam = savedMatches.reduce((found: Team | null, match: SavedMatch) => {
                 if (match.teamA.id === id) return match.teamA;
                 if (match.teamB.id === id) return match.teamB;
@@ -69,15 +78,12 @@ export default function TeamDetailScreen() {
             if (foundTeam) {
                 setTeam(foundTeam);
 
-                // Filter matches involving this team
                 const matches = savedMatches.filter(match =>
                     match.teamA.id === id || match.teamB.id === id
                 );
-                
-                // Store team matches for insights
+
                 setTeamMatches(matches);
 
-                // Calculate player statistics
                 const stats = calculatePlayerStats(foundTeam, matches);
                 setPlayerStats(stats);
             }
@@ -88,18 +94,14 @@ export default function TeamDetailScreen() {
         }
     };
 
-    // Update calculatePlayerStats to accept matches as a parameter
     const calculatePlayerStats = (team: Team, matches: SavedMatch[]): PlayerStats[] => {
         try {
-            // Filter matches involving this team
             const teamMatches = matches.filter(match =>
                 match.teamA.id === team.id || match.teamB.id === team.id
             );
 
-            // Initialize stats objects for all players
             const playerStatsMap = new Map<string, PlayerStats>();
 
-            // Initialize player stats objects for all team players
             team.players.forEach(player => {
                 playerStatsMap.set(player.id, {
                     id: player.id,
@@ -134,22 +136,16 @@ export default function TeamDetailScreen() {
                 });
             });
 
-            // Process each match to update player stats
             teamMatches.forEach(match => {
-                // Process each innings to update both batting and bowling stats
                 [match.innings1, match.innings2].forEach(innings => {
-                    // Get the team's view of the innings (batting or bowling)
                     const isBattingTeam = innings.battingTeamId === team.id;
                     const teamInMatch = isBattingTeam
                         ? (match.teamA.id === team.id ? match.teamA : match.teamB)
                         : (match.teamA.id === team.id ? match.teamA : match.teamB);
 
-                    // Update batting stats if this team was batting
                     if (isBattingTeam) {
-                        // Find players who batted
                         const battedPlayerIds = new Set<string>();
-                        
-                        // First, identify all batters in this innings
+
                         innings.deliveries.forEach(delivery => {
                             if (delivery.strikerId) {
                                 battedPlayerIds.add(delivery.strikerId);
@@ -158,90 +154,70 @@ export default function TeamDetailScreen() {
                                 battedPlayerIds.add(delivery.nonStrikerId);
                             }
                         });
-                        
-                        // Process each batter's stats
+
                         battedPlayerIds.forEach(batsmanId => {
                             if (playerStatsMap.has(batsmanId)) {
                                 const playerStats = playerStatsMap.get(batsmanId)!;
-                                
-                                // Find the batsman in this match
+
                                 const batsmanInMatch = teamInMatch.players.find(p => p.id === batsmanId);
-                                
+
                                 if (batsmanInMatch) {
-                                    // Increment innings count and matches
                                     playerStats.battingStats.innings++;
                                     playerStats.matches++;
-                                    
-                                    // Get runs, balls faced, and boundary counts from the player in this match
+
                                     const runsScored = batsmanInMatch.runs || 0;
                                     const ballsFaced = batsmanInMatch.balls || 0;
                                     const foursHit = batsmanInMatch.fours || 0;
                                     const sixesHit = batsmanInMatch.sixes || 0;
-                                    
-                                    // Update player stats
+
                                     playerStats.battingStats.runs += runsScored;
                                     playerStats.battingStats.balls += ballsFaced;
                                     playerStats.battingStats.fours += foursHit;
                                     playerStats.battingStats.sixes += sixesHit;
-                                    
-                                    // Update high score if applicable
+
                                     if (runsScored > playerStats.battingStats.highScore) {
                                         playerStats.battingStats.highScore = runsScored;
                                     }
-                                    
-                                    // Update hundreds and fifties
+
                                     if (runsScored >= 100) {
                                         playerStats.battingStats.hundreds++;
                                     } else if (runsScored >= 50) {
                                         playerStats.battingStats.fifties++;
                                     }
-                                    
+
                                     playerStatsMap.set(batsmanId, playerStats);
                                 }
                             }
                         });
-                    }
-                    // Update bowling stats if this team was bowling
-                    else {
-                        // Find players who bowled
+                    } else {
                         const bowlerIds = new Set<string>();
-
-                        // Track wickets per bowler for this innings
                         const bowlerWickets = new Map<string, number>();
                         const bowlerRuns = new Map<string, number>();
-
-                        // Track legal deliveries per bowler
                         const bowlerLegalDeliveries = new Map<string, number>();
 
                         innings.deliveries.forEach(delivery => {
                             if (delivery.bowlerId && playerStatsMap.has(delivery.bowlerId)) {
                                 const playerStats = playerStatsMap.get(delivery.bowlerId)!;
 
-                                // Count innings once per bowler
                                 if (!bowlerIds.has(delivery.bowlerId)) {
                                     bowlerIds.add(delivery.bowlerId);
                                     playerStats.bowlingStats.innings++;
                                     playerStats.matches++;
                                 }
 
-                                // Add runs conceded
                                 playerStats.bowlingStats.runsConceded += (delivery.totalRuns || delivery.runs || 0);
 
-                                // Track legal deliveries for this bowler
                                 if (!delivery.extraType || (delivery.extraType !== 'wide' && delivery.extraType !== 'no-ball')) {
                                     const currentDeliveries = bowlerLegalDeliveries.get(delivery.bowlerId) || 0;
                                     bowlerLegalDeliveries.set(delivery.bowlerId, currentDeliveries + 1);
                                 }
 
-                                // Add wicket if applicable
                                 if (delivery.wicket && ['bowled', 'caught', 'lbw', 'stumped'].includes(delivery.wicketType || '')) {
                                     playerStats.bowlingStats.wickets++;
 
-                                    // Track wickets this innings
                                     const currentWickets = bowlerWickets.get(delivery.bowlerId) || 0;
                                     bowlerWickets.set(delivery.bowlerId, currentWickets + 1);
 
-                                    // Track runs conceded this innings
                                     const currentRuns = bowlerRuns.get(delivery.bowlerId) || 0;
                                     bowlerRuns.set(delivery.bowlerId, currentRuns + (delivery.runs || 0));
                                 }
@@ -249,7 +225,6 @@ export default function TeamDetailScreen() {
                                 playerStatsMap.set(delivery.bowlerId, playerStats);
                             }
 
-                            // Handle fielding stats
                             if (delivery.wicket && delivery.fielderId && playerStatsMap.has(delivery.fielderId)) {
                                 const playerStats = playerStatsMap.get(delivery.fielderId)!;
 
@@ -264,24 +239,20 @@ export default function TeamDetailScreen() {
                             }
                         });
 
-                        // Calculate overs correctly after processing all deliveries
                         bowlerIds.forEach(bowlerId => {
                             if (playerStatsMap.has(bowlerId)) {
                                 const playerStats = playerStatsMap.get(bowlerId)!;
                                 const legalDeliveries = bowlerLegalDeliveries.get(bowlerId) || 0;
 
-                                // Calculate overs in cricket notation (overs.balls)
                                 const completeOvers = Math.floor(legalDeliveries / 6);
                                 const remainingBalls = legalDeliveries % 6;
 
-                                // Set overs in the format that cricket uses: overs.balls
-                                playerStats.bowlingStats.overs = completeOvers + (remainingBalls / 10); // Use /10 to get proper decimal display (0.1, 0.2, etc)
+                                playerStats.bowlingStats.overs = completeOvers + (remainingBalls / 10);
 
                                 playerStatsMap.set(bowlerId, playerStats);
                             }
                         });
 
-                        // Update best bowling figures
                         bowlerIds.forEach(bowlerId => {
                             const wickets = bowlerWickets.get(bowlerId) || 0;
                             const runs = bowlerRuns.get(bowlerId) || 0;
@@ -289,10 +260,8 @@ export default function TeamDetailScreen() {
                             if (playerStatsMap.has(bowlerId)) {
                                 const playerStats = playerStatsMap.get(bowlerId)!;
 
-                                // Parse current best bowling
                                 const [bestWickets, bestRuns] = playerStats.bowlingStats.bestBowling.split('/').map(n => parseInt(n) || 0);
 
-                                // Check if this innings is better (more wickets, or same wickets with fewer runs)
                                 if (
                                     wickets > bestWickets ||
                                     (wickets === bestWickets && runs < bestRuns)
@@ -300,7 +269,6 @@ export default function TeamDetailScreen() {
                                     playerStats.bowlingStats.bestBowling = `${wickets}/${runs}`;
                                 }
 
-                                // Count five wicket hauls
                                 if (wickets >= 5) {
                                     playerStats.bowlingStats.fiveWickets++;
                                 }
@@ -312,25 +280,19 @@ export default function TeamDetailScreen() {
                 });
             });
 
-            // Calculate averages and rates
             playerStatsMap.forEach((stats, id) => {
-                // Batting strike rate = (runs / balls) * 100
                 if (stats.battingStats.balls > 0) {
                     stats.battingStats.strikeRate = +(stats.battingStats.runs / stats.battingStats.balls * 100).toFixed(2);
                 }
 
-                // Batting average = runs / dismissals
                 if (stats.battingStats.innings > 0) {
-                    // This is an approximation as we don't track not-outs properly
                     stats.battingStats.average = +(stats.battingStats.runs / stats.battingStats.innings).toFixed(2);
                 }
 
-                // Bowling economy = runs conceded / overs
                 if (stats.bowlingStats.overs > 0) {
                     stats.bowlingStats.economy = +(stats.bowlingStats.runsConceded / stats.bowlingStats.overs).toFixed(2);
                 }
 
-                // Bowling average = runs conceded / wickets
                 if (stats.bowlingStats.wickets > 0) {
                     stats.bowlingStats.average = +(stats.bowlingStats.runsConceded / stats.bowlingStats.wickets).toFixed(2);
                 }
@@ -338,7 +300,6 @@ export default function TeamDetailScreen() {
                 playerStatsMap.set(id, stats);
             });
 
-            // Convert map to array and return
             return Array.from(playerStatsMap.values());
         } catch (error) {
             console.error('Error calculating player stats:', error);
@@ -346,14 +307,17 @@ export default function TeamDetailScreen() {
         }
     };
 
-    // Render player stats based on active tab
     const renderPlayerStats = () => {
         if (loading) {
-            return <ActivityIndicator size="large" color="#1B5E20" />;
+            return (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.brandBlue} />
+                    <Text style={styles.loadingText}>Loading statistics...</Text>
+                </View>
+            );
         }
 
         if (activeTab === 'batting') {
-            // Filter out players with no innings played for better display
             const battingStats = playerStats
                 .filter(player => player.battingStats.innings > 0 || player.battingStats.runs > 0)
                 .sort((a, b) => b.battingStats.runs - a.battingStats.runs);
@@ -386,6 +350,7 @@ export default function TeamDetailScreen() {
                     )}
                     ListEmptyComponent={
                         <View style={styles.emptyStats}>
+                            <FontAwesome name="bar-chart" size={40} color={colors.ccc} style={styles.emptyIcon} />
                             <Text style={styles.emptyText}>No batting statistics available</Text>
                         </View>
                     }
@@ -394,7 +359,6 @@ export default function TeamDetailScreen() {
         }
 
         if (activeTab === 'bowling') {
-            // Filter out players who haven't bowled for better display
             const bowlingStats = playerStats
                 .filter(player => player.bowlingStats.overs > 0 || player.bowlingStats.wickets > 0)
                 .sort((a, b) => b.bowlingStats.wickets - a.bowlingStats.wickets);
@@ -415,13 +379,12 @@ export default function TeamDetailScreen() {
                         </View>
                     )}
                     renderItem={({ item }) => {
-                        // Format overs correctly for display (overs.balls)
                         const oversFormat = () => {
                             const completeOvers = Math.floor(item.bowlingStats.overs);
-                            const balls = Math.round((item.bowlingStats.overs - completeOvers) * 10); // Convert decimal to balls
+                            const balls = Math.round((item.bowlingStats.overs - completeOvers) * 10);
                             return `${completeOvers}.${balls}`;
                         };
-                        
+
                         return (
                             <View style={styles.tableRow}>
                                 <Text style={[styles.cell, styles.nameCell]}>{item.name}</Text>
@@ -436,6 +399,7 @@ export default function TeamDetailScreen() {
                     }}
                     ListEmptyComponent={
                         <View style={styles.emptyStats}>
+                            <FontAwesome name="bar-chart" size={40} color={colors.ccc} style={styles.emptyIcon} />
                             <Text style={styles.emptyText}>No bowling statistics available</Text>
                         </View>
                     }
@@ -444,7 +408,6 @@ export default function TeamDetailScreen() {
         }
 
         if (activeTab === 'fielding') {
-            // Filter players who have at least caught or run out
             const fieldingStats = playerStats
                 .filter(player => player.fieldingStats.catches > 0 || player.fieldingStats.runouts > 0)
                 .sort((a, b) => (b.fieldingStats.catches + b.fieldingStats.runouts) - 
@@ -474,6 +437,7 @@ export default function TeamDetailScreen() {
                     )}
                     ListEmptyComponent={
                         <View style={styles.emptyStats}>
+                            <FontAwesome name="bar-chart" size={40} color={colors.ccc} style={styles.emptyIcon} />
                             <Text style={styles.emptyText}>No fielding statistics available</Text>
                         </View>
                     }
@@ -489,288 +453,81 @@ export default function TeamDetailScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            {/* Team header */}
-            {team && (
-                <View style={styles.teamHeader}>
-                    <Text style={styles.teamName}>{team.teamName}</Text>
-                    <Text style={styles.playerCount}>{team.players.length} Players</Text>
+        <SafeAreaView style={styles.safeArea}>
+            <View style={styles.container}>
+                {team && (
+                    <View style={styles.teamHeader}>
+                        <View style={styles.teamHeaderContent}>
+                            <Text style={styles.teamName}>{team.teamName}</Text>
+                            <View style={styles.teamMetaInfo}>
+                                <View style={styles.teamStatBadge}>
+                                    <FontAwesome name="users" size={16} color={colors.white} style={styles.teamStatIcon} />
+                                    <Text style={styles.teamStatText}>{team.players.length} Players</Text>
+                                </View>
+                                
+                                <View style={styles.teamStatBadge}>
+                                    <FontAwesome name="trophy" size={16} color={colors.white} style={styles.teamStatIcon} />
+                                    <Text style={styles.teamStatText}>{teamMatches.length} Matches</Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                )}
+
+                <View style={styles.tabContainer}>
+                    <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.tabScrollContent}
+                    >
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'batting' && styles.activeTab]}
+                            onPress={() => setActiveTab('batting')}
+                        >
+                            <FontAwesome name="user" size={16} color={activeTab === 'batting' ? colors.brandBlue : colors.brandDark} style={styles.tabIcon} />
+                            <Text style={[styles.tabText, activeTab === 'batting' && styles.activeTabText]}>
+                                Batting
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'bowling' && styles.activeTab]}
+                            onPress={() => setActiveTab('bowling')}
+                        >
+                            <FontAwesome name="dot-circle-o" size={16} color={activeTab === 'bowling' ? colors.brandBlue : colors.brandDark} style={styles.tabIcon} />
+                            <Text style={[styles.tabText, activeTab === 'bowling' && styles.activeTabText]}>
+                                Bowling
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'fielding' && styles.activeTab]}
+                            onPress={() => setActiveTab('fielding')}
+                        >
+                            <FontAwesome name="hand-paper-o" size={16} color={activeTab === 'fielding' ? colors.brandBlue : colors.brandDark} style={styles.tabIcon} />
+                            <Text style={[styles.tabText, activeTab === 'fielding' && styles.activeTabText]}>
+                                Fielding
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tab, activeTab === 'insights' && styles.activeTab]}
+                            onPress={() => setActiveTab('insights')}
+                        >
+                            <FontAwesome name="lightbulb-o" size={16} color={activeTab === 'insights' ? colors.brandBlue : colors.brandDark} style={styles.tabIcon} />
+                            <Text style={[styles.tabText, activeTab === 'insights' && styles.activeTabText]}>
+                                Insights
+                            </Text>
+                        </TouchableOpacity>
+                    </ScrollView>
                 </View>
-            )}
 
-            {/* Tab selector */}
-            <View style={styles.tabContainer}>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === 'batting' && styles.activeTab]}
-                    onPress={() => setActiveTab('batting')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'batting' && styles.activeTabText]}>
-                        Batting
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === 'bowling' && styles.activeTab]}
-                    onPress={() => setActiveTab('bowling')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'bowling' && styles.activeTabText]}>
-                        Bowling
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === 'fielding' && styles.activeTab]}
-                    onPress={() => setActiveTab('fielding')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'fielding' && styles.activeTabText]}>
-                        Fielding
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === 'insights' && styles.activeTab]}
-                    onPress={() => setActiveTab('insights')}
-                >
-                    <Text style={[styles.tabText, activeTab === 'insights' && styles.activeTabText]}>
-                        Insights
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.statsContainer}>
+                    {renderPlayerStats()}
+                </View>
             </View>
-
-            {/* Stats tables */}
-            <View style={styles.statsContainer}>
-                {renderPlayerStats()}
-            </View>
-        </View>
+        </SafeAreaView>
     );
 }
 
-// Add these functions before the TeamInsights component
-
-// Calculate team's performance at different batting positions
-const calculatePositionalStrength = (matches: SavedMatch[], teamId: string) => {
-    // Initialize position stats
-    const positionStats: { [key: number]: { runs: number, balls: number } } = {};
-
-    // Initialize positions 1-7
-    for (let i = 1; i <= 7; i++) {
-        positionStats[i] = { runs: 0, balls: 0 };
-    }
-
-    matches.forEach(match => {
-        // Process both innings
-        [match.innings1, match.innings2].forEach(innings => {
-            // Only analyze when this team was batting
-            if (innings.battingTeamId === teamId) {
-                // Get batting positions based on the order players batted
-                const battingOrder = new Map<string, number>();
-                let position = 1;
-
-                // Go through the deliveries and assign positions
-                innings.deliveries.forEach(delivery => {
-                    if (delivery.strikerId && !battingOrder.has(delivery.strikerId)) {
-                        battingOrder.set(delivery.strikerId, position);
-                        position++;
-                    }
-
-                    // Track runs and balls faced
-                    if (delivery.strikerId) {
-                        const pos = battingOrder.get(delivery.strikerId) || 0;
-                        if (pos <= 7) { // Only track positions 1-7
-                            positionStats[pos].runs += delivery.runs || 0;
-                            positionStats[pos].balls += 1;
-                        }
-                    }
-                });
-            }
-        });
-    });
-
-    // Calculate strike rates for each position
-    const positionPerformance = Object.keys(positionStats).map(pos => {
-        const numPos = Number(pos);
-        const stats = positionStats[numPos];
-        return {
-            position: numPos,
-            strikeRate: stats.balls > 0 ? (stats.runs / stats.balls) * 100 : 0,
-            runs: stats.runs,
-            balls: stats.balls
-        };
-    });
-
-    // Sort positions by strike rate
-    positionPerformance.sort((a, b) => b.strikeRate - a.strikeRate);
-
-    // Define strong and weak positions (need minimum 20 balls to be considered)
-    const strongPositions = positionPerformance
-        .filter(pos => pos.balls >= 20 && pos.strikeRate > 120)
-        .map(pos => pos.position);
-
-    const weakPositions = positionPerformance
-        .filter(pos => pos.balls >= 20 && pos.strikeRate < 100)
-        .map(pos => pos.position);
-
-    return { strongPositions, weakPositions, positionPerformance };
-};
-
-// Calculate powerplay performance (overs 1-6)
-const calculatePowerPlayPerformance = (matches: SavedMatch[], teamId: string) => {
-    let totalPowerplayRuns = 0;
-    let totalPowerplayBalls = 0;
-    let totalPowerplayWickets = 0;
-
-    matches.forEach(match => {
-        [match.innings1, match.innings2].forEach(innings => {
-            // Only analyze when this team was batting
-            if (innings.battingTeamId === teamId) {
-                // Filter deliveries in first 6 overs
-                const powerplayDeliveries = innings.deliveries.filter(delivery => {
-                    const overNumber = Math.floor(innings.deliveries.indexOf(delivery) / 6) + 1;
-                    return overNumber <= 6;
-                });
-
-                // Calculate stats
-                powerplayDeliveries.forEach(delivery => {
-                    totalPowerplayRuns += delivery.runs || 0;
-                    totalPowerplayBalls++;
-                    if (delivery.wicket) totalPowerplayWickets++;
-                });
-            }
-        });
-    });
-
-    // Calculate powerplay strike rate
-    const powerplayStrikeRate = totalPowerplayBalls > 0 ?
-        (totalPowerplayRuns / totalPowerplayBalls) * 100 : 0;
-
-    // Calculate wicket rate
-    const wicketRate = totalPowerplayBalls > 0 ?
-        (totalPowerplayWickets / totalPowerplayBalls) * 100 : 0;
-
-    // Consider batting strong if strike rate is over 120 and wicket rate is under 4%
-    const isBattingStrong = powerplayStrikeRate > 120 && wicketRate < 4;
-
-    return {
-        isBattingStrong,
-        powerplayStrikeRate,
-        wicketRate,
-        totalPowerplayRuns,
-        totalPowerplayWickets
-    };
-};
-
-// Calculate death overs performance (last 4 overs)
-const calculateDeathOversPerformance = (matches: SavedMatch[], teamId: string) => {
-    let totalDeathRunsConceded = 0;
-    let totalDeathBalls = 0;
-    let totalDeathWickets = 0;
-
-    matches.forEach(match => {
-        [match.innings1, match.innings2].forEach(innings => {
-            // Only analyze when this team was bowling
-            if (innings.bowlingTeamId === teamId) {
-                const totalOvers = innings.completedOvers + (innings.ballInCurrentOver > 0 ? 1 : 0);
-
-                // If the innings wasn't long enough, skip
-                if (totalOvers < 4) return;
-
-                // Define death overs (last 4 overs)
-                const deathOversStart = (totalOvers - 4) * 6;
-
-                // Filter deliveries in death overs
-                const deathDeliveries = innings.deliveries.slice(deathOversStart);
-
-                // Calculate stats
-                deathDeliveries.forEach(delivery => {
-                    totalDeathRunsConceded += delivery.runs || 0;
-                    totalDeathBalls++;
-                    if (delivery.wicket && delivery.bowlerId) totalDeathWickets++;
-                });
-            }
-        });
-    });
-
-    // Calculate death overs economy
-    const deathEconomy = totalDeathBalls > 0 ?
-        (totalDeathRunsConceded / totalDeathBalls) * 6 : 0;
-
-    // Calculate wicket rate
-    const wicketRate = totalDeathBalls > 0 ?
-        (totalDeathWickets / totalDeathBalls) * 100 : 0;
-
-    // Consider bowling strong if economy is under 8.5 and wicket rate is over 5%
-    const isBowlingStrong = deathEconomy < 8.5 && wicketRate > 5;
-
-    return {
-        isBowlingStrong,
-        deathEconomy,
-        wicketRate,
-        totalDeathRunsConceded,
-        totalDeathWickets
-    };
-};
-
-// Add this function to TeamDetailScreen
-
-const calculateBestEleven = (playerStats: PlayerStats[]): PlayerStats[] => {
-    // Clone the array to avoid modifying the original
-    const stats = [...playerStats];
-
-    // Sort batters by batting average
-    const bestBatters = stats
-        .filter(player => player.battingStats.innings >= 2)
-        .sort((a, b) => b.battingStats.average - a.battingStats.average)
-        .slice(0, 6); // Take top 6 batters
-
-    // Sort bowlers by bowling average (lower is better)
-    const bestBowlers = stats
-        .filter(player => player.bowlingStats.overs >= 2)
-        .sort((a, b) => {
-            // Handle Infinity for players with no wickets
-            if (a.bowlingStats.average === 0) return 1;
-            if (b.bowlingStats.average === 0) return -1;
-            return a.bowlingStats.average - b.bowlingStats.average;
-        })
-        .slice(0, 5); // Take top 5 bowlers
-
-    // Combine best batters and bowlers, remove duplicates
-    const bestPlayerIds = new Set();
-    const bestEleven: PlayerStats[] = [];
-
-    // Add batters first
-    bestBatters.forEach(player => {
-        if (!bestPlayerIds.has(player.id)) {
-            bestPlayerIds.add(player.id);
-            bestEleven.push(player);
-        }
-    });
-
-    // Then add bowlers
-    bestBowlers.forEach(player => {
-        if (!bestPlayerIds.has(player.id)) {
-            bestPlayerIds.add(player.id);
-            bestEleven.push(player);
-        }
-    });
-
-    // If we still have less than 11 players, add the rest based on overall contribution
-    if (bestEleven.length < 11) {
-        stats
-            .filter(player => !bestPlayerIds.has(player.id))
-            .sort((a, b) => {
-                // Calculate an overall value metric
-                const aValue = a.battingStats.average + a.fieldingStats.catches + a.bowlingStats.wickets * 2;
-                const bValue = b.battingStats.average + b.fieldingStats.catches + b.bowlingStats.wickets * 2;
-                return bValue - aValue;
-            })
-            .slice(0, 11 - bestEleven.length)
-            .forEach(player => bestEleven.push(player));
-    }
-
-    return bestEleven;
-};
-
-// Modify the TeamInsights component to include Best XI
-
 const TeamInsights = ({ team, playerStats, matches }) => {
-    // Calculate various insights
     const topRunScorer = playerStats.reduce((prev, current) =>
         prev.battingStats.runs > current.battingStats.runs ? prev : current, playerStats[0]);
 
@@ -783,15 +540,12 @@ const TeamInsights = ({ team, playerStats, matches }) => {
     const bestEconomy = playerStats.reduce((prev, current) =>
         (current.bowlingStats.overs > 0 && prev.bowlingStats.economy > current.bowlingStats.economy) ? current : prev, playerStats[0]);
 
-    // Calculate team strengths and weaknesses
     const battingPositionStrength = calculatePositionalStrength(matches, team.id);
     const powerPlayPerformance = calculatePowerPlayPerformance(matches, team.id);
     const deathOversPerformance = calculateDeathOversPerformance(matches, team.id);
 
-    // Calculate best XI
     const bestEleven = calculateBestEleven(playerStats);
 
-    // Separate best eleven into batters, all-rounders, and bowlers
     const batters = bestEleven.filter(p =>
         p.battingStats.average > 20 && p.bowlingStats.wickets < 3);
 
@@ -801,7 +555,7 @@ const TeamInsights = ({ team, playerStats, matches }) => {
     const bowlers = bestEleven.filter(p =>
         p.battingStats.average < 20 && p.bowlingStats.wickets >= 3);
 
-    const [showingTab, setShowingTab] = useState('insights'); // 'insights' or 'bestXI'
+    const [showingTab, setShowingTab] = useState('insights');
 
     return (
         <ScrollView style={styles.insightsContainer}>
@@ -955,174 +709,432 @@ const TeamInsights = ({ team, playerStats, matches }) => {
     );
 };
 
+const calculatePositionalStrength = (matches: SavedMatch[], teamId: string) => {
+    const positionStats: { [key: number]: { runs: number, balls: number } } = {};
+
+    for (let i = 1; i <= 7; i++) {
+        positionStats[i] = { runs: 0, balls: 0 };
+    }
+
+    matches.forEach(match => {
+        [match.innings1, match.innings2].forEach(innings => {
+            if (innings.battingTeamId === teamId) {
+                const battingOrder = new Map<string, number>();
+                let position = 1;
+
+                innings.deliveries.forEach(delivery => {
+                    if (delivery.strikerId && !battingOrder.has(delivery.strikerId)) {
+                        battingOrder.set(delivery.strikerId, position);
+                        position++;
+                    }
+
+                    if (delivery.strikerId) {
+                        const pos = battingOrder.get(delivery.strikerId) || 0;
+                        if (pos <= 7) {
+                            positionStats[pos].runs += delivery.runs || 0;
+                            positionStats[pos].balls += 1;
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    const positionPerformance = Object.keys(positionStats).map(pos => {
+        const numPos = Number(pos);
+        const stats = positionStats[numPos];
+        return {
+            position: numPos,
+            strikeRate: stats.balls > 0 ? (stats.runs / stats.balls) * 100 : 0,
+            runs: stats.runs,
+            balls: stats.balls
+        };
+    });
+
+    positionPerformance.sort((a, b) => b.strikeRate - a.strikeRate);
+
+    const strongPositions = positionPerformance
+        .filter(pos => pos.balls >= 20 && pos.strikeRate > 120)
+        .map(pos => pos.position);
+
+    const weakPositions = positionPerformance
+        .filter(pos => pos.balls >= 20 && pos.strikeRate < 100)
+        .map(pos => pos.position);
+
+    return { strongPositions, weakPositions, positionPerformance };
+};
+
+const calculatePowerPlayPerformance = (matches: SavedMatch[], teamId: string) => {
+    let totalPowerplayRuns = 0;
+    let totalPowerplayBalls = 0;
+    let totalPowerplayWickets = 0;
+
+    matches.forEach(match => {
+        [match.innings1, match.innings2].forEach(innings => {
+            if (innings.battingTeamId === teamId) {
+                const powerplayDeliveries = innings.deliveries.filter(delivery => {
+                    const overNumber = Math.floor(innings.deliveries.indexOf(delivery) / 6) + 1;
+                    return overNumber <= 6;
+                });
+
+                powerplayDeliveries.forEach(delivery => {
+                    totalPowerplayRuns += delivery.runs || 0;
+                    totalPowerplayBalls++;
+                    if (delivery.wicket) totalPowerplayWickets++;
+                });
+            }
+        });
+    });
+
+    const powerplayStrikeRate = totalPowerplayBalls > 0 ?
+        (totalPowerplayRuns / totalPowerplayBalls) * 100 : 0;
+
+    const wicketRate = totalPowerplayBalls > 0 ?
+        (totalPowerplayWickets / totalPowerplayBalls) * 100 : 0;
+
+    const isBattingStrong = powerplayStrikeRate > 120 && wicketRate < 4;
+
+    return {
+        isBattingStrong,
+        powerplayStrikeRate,
+        wicketRate,
+        totalPowerplayRuns,
+        totalPowerplayWickets
+    };
+};
+
+const calculateDeathOversPerformance = (matches: SavedMatch[], teamId: string) => {
+    let totalDeathRunsConceded = 0;
+    let totalDeathBalls = 0;
+    let totalDeathWickets = 0;
+
+    matches.forEach(match => {
+        [match.innings1, match.innings2].forEach(innings => {
+            if (innings.bowlingTeamId === teamId) {
+                const totalOvers = innings.completedOvers + (innings.ballInCurrentOver > 0 ? 1 : 0);
+
+                if (totalOvers < 4) return;
+
+                const deathOversStart = (totalOvers - 4) * 6;
+
+                const deathDeliveries = innings.deliveries.slice(deathOversStart);
+
+                deathDeliveries.forEach(delivery => {
+                    totalDeathRunsConceded += delivery.runs || 0;
+                    totalDeathBalls++;
+                    if (delivery.wicket && delivery.bowlerId) totalDeathWickets++;
+                });
+            }
+        });
+    });
+
+    const deathEconomy = totalDeathBalls > 0 ?
+        (totalDeathRunsConceded / totalDeathBalls) * 6 : 0;
+
+    const wicketRate = totalDeathBalls > 0 ?
+        (totalDeathWickets / totalDeathBalls) * 100 : 0;
+
+    const isBowlingStrong = deathEconomy < 8.5 && wicketRate > 5;
+
+    return {
+        isBowlingStrong,
+        deathEconomy,
+        wicketRate,
+        totalDeathRunsConceded,
+        totalDeathWickets
+    };
+};
+
+const calculateBestEleven = (playerStats: PlayerStats[]): PlayerStats[] => {
+    const stats = [...playerStats];
+
+    const bestBatters = stats
+        .filter(player => player.battingStats.innings >= 2)
+        .sort((a, b) => b.battingStats.average - a.battingStats.average)
+        .slice(0, 6);
+
+    const bestBowlers = stats
+        .filter(player => player.bowlingStats.overs >= 2)
+        .sort((a, b) => {
+            if (a.bowlingStats.average === 0) return 1;
+            if (b.bowlingStats.average === 0) return -1;
+            return a.bowlingStats.average - b.bowlingStats.average;
+        })
+        .slice(0, 5);
+
+    const bestPlayerIds = new Set();
+    const bestEleven: PlayerStats[] = [];
+
+    bestBatters.forEach(player => {
+        if (!bestPlayerIds.has(player.id)) {
+            bestPlayerIds.add(player.id);
+            bestEleven.push(player);
+        }
+    });
+
+    bestBowlers.forEach(player => {
+        if (!bestPlayerIds.has(player.id)) {
+            bestPlayerIds.add(player.id);
+            bestEleven.push(player);
+        }
+    });
+
+    if (bestEleven.length < 11) {
+        stats
+            .filter(player => !bestPlayerIds.has(player.id))
+            .sort((a, b) => {
+                const aValue = a.battingStats.average + a.fieldingStats.catches + a.bowlingStats.wickets * 2;
+                const bValue = b.battingStats.average + b.fieldingStats.catches + b.bowlingStats.wickets * 2;
+                return bValue - aValue;
+            })
+            .slice(0, 11 - bestEleven.length)
+            .forEach(player => bestEleven.push(player));
+    }
+
+    return bestEleven;
+};
+
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: colors.white,
+    },
     container: {
         flex: 1,
-        backgroundColor: '#FFF',
+        backgroundColor: colors.brandLight,
     },
     teamHeader: {
-        padding: 16,
-        backgroundColor: '#1B5E20',
+        backgroundColor: colors.brandBlue,
+        paddingVertical: spacing.lg,
+        paddingHorizontal: spacing.lg,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    teamHeaderContent: {
         alignItems: 'center',
     },
     teamName: {
         fontSize: 24,
-        fontWeight: 'bold',
-        color: '#FFF',
+        fontWeight: '700',
+        color: colors.white,
+        marginBottom: spacing.xs,
     },
-    playerCount: {
-        fontSize: 16,
-        color: '#FFF',
+    teamMetaInfo: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: spacing.sm,
+    },
+    teamStatBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderRadius: radius.xl,
+        marginHorizontal: spacing.xs,
+    },
+    teamStatIcon: {
+        marginRight: spacing.xs,
+    },
+    teamStatText: {
+        color: colors.white,
+        fontWeight: '500',
+        fontSize: 14,
     },
     tabContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
+        backgroundColor: colors.white,
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
+        borderBottomColor: colors.brandLight,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    tabScrollContent: {
+        flexDirection: 'row',
     },
     tab: {
-        paddingVertical: 12,
+        flexDirection: 'row',
         alignItems: 'center',
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.lg,
+        borderBottomWidth: 3,
+        borderBottomColor: 'transparent',
     },
     activeTab: {
-        borderBottomWidth: 2,
-        borderBottomColor: '#1B5E20',
+        borderBottomColor: colors.brandBlue,
+    },
+    tabIcon: {
+        marginRight: spacing.xs,
     },
     tabText: {
-        fontSize: 16,
-        color: '#666',
+        fontSize: 15,
+        fontWeight: '500',
+        color: colors.brandDark,
     },
     activeTabText: {
-        fontWeight: 'bold',
-        color: '#1B5E20',
+        color: colors.brandBlue,
+        fontWeight: '600',
     },
     statsContainer: {
         flex: 1,
+        backgroundColor: colors.white,
     },
     tableHeader: {
         flexDirection: 'row',
-        paddingVertical: 10,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
-        backgroundColor: '#F5F5F5',
+        borderBottomColor: colors.brandLight,
+        backgroundColor: colors.brandLight,
     },
     headerCell: {
         flex: 1,
-        fontWeight: 'bold',
+        fontWeight: '600',
         textAlign: 'center',
+        color: colors.brandBlue,
+        fontSize: 15,
     },
     nameCell: {
         flex: 3,
         textAlign: 'left',
+        paddingLeft: spacing.md,
     },
     tableRow: {
         flexDirection: 'row',
-        paddingVertical: 12,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: '#E0E0E0',
+        borderBottomColor: colors.brandLight,
     },
     cell: {
         flex: 1,
         textAlign: 'center',
+        color: colors.brandDark,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.xxl,
+    },
+    loadingText: {
+        color: colors.brandBlue,
+        marginTop: spacing.md,
+        fontSize: 16,
+    },
+    emptyStats: {
+        padding: spacing.xxl,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emptyIcon: {
+        marginBottom: spacing.md,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: colors.ccc,
+        fontStyle: 'italic',
+        textAlign: 'center',
     },
     insightsContainer: {
-        padding: 16,
+        padding: spacing.md,
     },
     insightCard: {
-        marginBottom: 16,
-        padding: 16,
-        backgroundColor: '#FFF',
-        borderRadius: 8,
-        shadowColor: '#000',
+        marginBottom: spacing.md,
+        padding: spacing.md,
+        backgroundColor: colors.white,
+        borderRadius: radius.md,
+        shadowColor: colors.black,
         shadowOpacity: 0.1,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
     },
     insightTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        marginBottom: 8,
+        marginBottom: spacing.sm,
+        color: colors.brandDark,
     },
     leaderItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 4,
+        marginBottom: spacing.xs,
     },
     leaderLabel: {
-        fontWeight: 'bold',
+        fontWeight: '600',
+        color: colors.brandDark,
     },
     leaderValue: {
-        color: '#1B5E20',
+        color: colors.brandBlue,
+        fontWeight: '500',
     },
     insightText: {
-        marginBottom: 4,
+        marginBottom: spacing.xs,
+        color: colors.brandDark,
     },
-
     insightTabs: {
         flexDirection: 'row',
-        marginBottom: 16,
+        marginBottom: spacing.md,
     },
     insightTab: {
         flex: 1,
         alignItems: 'center',
-        paddingVertical: 12,
-        backgroundColor: '#F5F5F5',
-        borderRadius: 8,
-        marginHorizontal: 4,
+        paddingVertical: spacing.md,
+        backgroundColor: colors.brandLight,
+        borderRadius: radius.md,
+        marginHorizontal: spacing.xs,
     },
     activeInsightTab: {
-        backgroundColor: '#E8F5E9',
+        backgroundColor: colors.brandBlue + '15',
     },
     insightTabText: {
-        color: '#666',
+        color: colors.brandDark,
         fontWeight: '500',
     },
     activeInsightTabText: {
-        color: '#1B5E20',
-        fontWeight: 'bold',
+        color: colors.brandBlue,
+        fontWeight: '600',
     },
     insightSubheading: {
         fontSize: 16,
-        fontWeight: 'bold',
-        marginTop: 8,
-        marginBottom: 4,
-        color: '#555',
+        fontWeight: '600',
+        marginTop: spacing.sm,
+        marginBottom: spacing.xs,
+        color: colors.brandDark,
     },
     playerItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 6,
+        paddingVertical: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        borderBottomColor: colors.brandLight,
     },
     playerItemNumber: {
         width: 24,
         fontSize: 14,
-        fontWeight: 'bold',
+        fontWeight: '600',
+        color: colors.brandDark,
     },
     playerItemName: {
         flex: 1,
         fontSize: 15,
+        color: colors.brandDark,
     },
     playerItemRole: {
         fontSize: 13,
-        color: '#1B5E20',
+        color: colors.brandBlue,
         fontWeight: '500',
     },
     insufficientDataText: {
         fontStyle: 'italic',
         fontSize: 13,
-        color: '#F57C00',
-        marginVertical: 8,
-    },
-    emptyStats: {
-        padding: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#999',
-        fontStyle: 'italic',
+        color: colors.orange,
+        marginVertical: spacing.sm,
     },
 });

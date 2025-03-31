@@ -14,27 +14,34 @@ export default function ScoringButtons({
     const runButtons = [0, 1, 2, 3, 4, 6];
 
     return (
-        <View>
+        <View style={styles.container}>
+            {/* Main Scoring Buttons */}
             <View style={styles.scoringRow}>
                 {runButtons.map((runs) => (
                     <TouchableOpacity
                         key={runs}
                         style={[
                             styles.runButton,
+                            runs === 0 ? styles.dotButton : null,
                             runs === 4 ? styles.fourButton : null,
                             runs === 6 ? styles.sixButton : null,
                             !canScore ? styles.disabledButton : null
                         ]}
                         onPress={() => onScore(runs)}
                         disabled={!canScore}
+                        activeOpacity={0.7}
                     >
-                        <Text style={[
-                            styles.runText,
-                            (runs === 4 || runs === 6) ? styles.boundaryText : null,
-                            !canScore ? styles.disabledText : null
-                        ]}>
-                            {runs}
-                        </Text>
+                        {runs === 0 ? (
+                            <Text style={styles.dotCircle}>0</Text>
+                        ) : (
+                            <Text style={[
+                                styles.runText,
+                                runs === 4 || runs === 6 ? styles.boundaryText : null,
+                                !canScore ? styles.disabledText : null
+                            ]}>
+                                {runs}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 ))}
             </View>
@@ -43,23 +50,41 @@ export default function ScoringButtons({
 }
 
 const styles = StyleSheet.create({
+    container: {
+        marginBottom: spacing.md,
+    },
     scoringRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        marginBottom: spacing.sm,
+    },
+    actionButtonsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: spacing.xs,
     },
     runButton: {
         flex: 1,
-        marginRight: spacing.xs,
-        borderRadius: radius.sm,
-        paddingVertical: spacing.md,
+        marginHorizontal: spacing.xs,
+        height: 60,
+        borderRadius: radius.md,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: colors.brandBlue,
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
     },
-    runText: {
-        color: colors.white,
-        fontFamily: typography.fontFamilyBold,
-        fontSize: typography.sizeMD,
+    dotButton: {
+        backgroundColor: colors.brandCharcoal,
+    },
+    dotCircle: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: colors.white,
     },
     fourButton: {
         backgroundColor: colors.brandGreen,
@@ -67,22 +92,55 @@ const styles = StyleSheet.create({
     sixButton: {
         backgroundColor: colors.brandRed,
     },
-    boundaryText: {
-        fontWeight: typography.weightBold,
+    runText: {
+        color: colors.white,
+        fontFamily: typography.fontFamilyBold || 'System',
+        fontSize: typography.sizeLG,
+        fontWeight: '700',
     },
-
-    
+    boundaryText: {
+        fontWeight: typography.weightBold || '800',
+        fontSize: typography.sizeXL,
+    },
+    actionButton: {
+        flex: 1,
+        flexDirection: 'row',
+        height: 48,
+        marginHorizontal: spacing.xs,
+        borderRadius: radius.md,
+        paddingHorizontal: spacing.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: colors.black,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        elevation: 3,
+    },
+    extraButton: {
+        backgroundColor: colors.orange,
+    },
     wicketButton: {
-        backgroundColor: '#D32F2F',
+        backgroundColor: colors.brandRed,
+    },
+    buttonIcon: {
+        marginRight: spacing.xs,
+    },
+    actionButtonText: {
+        color: colors.white,
+        fontFamily: typography.fontFamilyBold || 'System',
+        fontSize: typography.sizeMD,
+        fontWeight: '600',
     },
     wicketText: {
-        color: 'white',
+        color: colors.white,
     },
-
     disabledButton: {
-        backgroundColor: colors.ccc,
+        backgroundColor: colors.brandLight,
+        shadowOpacity: 0,
+        elevation: 0,
     },
     disabledText: {
-        color: colors.brandDark,
+        color: colors.ccc,
     }
 });

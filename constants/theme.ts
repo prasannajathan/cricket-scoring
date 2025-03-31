@@ -11,6 +11,7 @@ export const colors = {
     white: '#FFFFFF',
     ccc: '#cccccc',
     brandGreen: '#106400',
+    brandTeal: '#008080',
     orange: '#FFA000',
 };
 

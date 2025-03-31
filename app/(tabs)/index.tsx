@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   ScrollView, 
   SafeAreaView,
-  Alert
+  Alert,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
@@ -24,6 +26,7 @@ import {
 } from '@/store/cricket/scoreboardSlice';
 import { Team } from '@/types';
 import { getAllTeams } from '@/utils/matchStorage';
+import { colors, spacing, typography, radius, shadows, commonStyles } from '@/constants/theme';
 
 const determineBattingTeam = (
   tossWinner: 'teamA' | 'teamB',
@@ -56,7 +59,6 @@ export default function NewMatchScreen() {
   useEffect(() => {
     const loadTeams = async () => {
       try {
-        // Use the utility function to get all teams
         const teams = await getAllTeams();
         setAllTeams(teams);
       } catch (error) {
@@ -70,7 +72,6 @@ export default function NewMatchScreen() {
   // Handle filtering team suggestions
   const filterTeamSuggestions = (text: string, isTeamA: boolean) => {
     if (text.length === 0) {
-      // If the input is empty, don't show any suggestions
       if (isTeamA) {
         setShowTeamASuggestions(false);
       } else {
@@ -139,345 +140,351 @@ export default function NewMatchScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      {/* Use TouchableWithoutFeedback to dismiss the keyboard when tapping outside */}
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>Cricket Scorer</Text>
-          <TouchableOpacity>
-            <FontAwesome name="cog" size={24} color="#2E7D32" />
-          </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.logo}>CricScoring</Text>
+            <TouchableOpacity style={styles.settingsButton}>
+              <FontAwesome name="cog" size={24} color={colors.brandBlue} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView 
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.pageTitle}>New Match Setup</Text>
+            
+            {/* Teams Section */}
+            <View style={styles.section}>
+              {/* <Text style={styles.sectionTitle}>Teams</Text> */}
+              
+              <View style={styles.card}>
+                <Text style={styles.label}>Team A</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter team name"
+                    placeholderTextColor={colors.ccc}
+                    value={teamA.teamName}
+                    onChangeText={(value) => {
+                      dispatch(setTeamName({ team: 'teamA', name: value }));
+                      filterTeamSuggestions(value, true);
+                    }}
+                    onFocus={() => {
+                      if (teamA.teamName.length > 0) {
+                        filterTeamSuggestions(teamA.teamName, true);
+                      }
+                    }}
+                  />
+                  
+                  {/* Team A suggestions */}
+                  {showTeamASuggestions && (
+                    <View style={styles.suggestionsContainer}>
+                      {teamASuggestions.length > 0 ? (
+                        teamASuggestions.map(item => (
+                          <TouchableOpacity 
+                            key={item.id}
+                            style={styles.suggestionItem}
+                            onPress={() => handleSelectTeam(item, true)}
+                          >
+                            <Text style={styles.suggestionText}>{item.teamName}</Text>
+                            <Text style={styles.suggestionSubtext}>
+                              {item.players.length} players
+                            </Text>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <Text style={styles.noSuggestionsText}>No teams found</Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.label}>Team B</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="Enter team name"
+                    placeholderTextColor={colors.ccc}
+                    value={teamB.teamName}
+                    onChangeText={(value) => {
+                      dispatch(setTeamName({ team: 'teamB', name: value }));
+                      filterTeamSuggestions(value, false);
+                    }}
+                    onFocus={() => {
+                      if (teamB.teamName.length > 0) {
+                        filterTeamSuggestions(teamB.teamName, false);
+                      }
+                    }}
+                  />
+                  
+                  {/* Team B suggestions */}
+                  {showTeamBSuggestions && (
+                    <View style={styles.suggestionsContainer}>
+                      {teamBSuggestions.length > 0 ? (
+                        teamBSuggestions.map(item => (
+                          <TouchableOpacity 
+                            key={item.id}
+                            style={styles.suggestionItem}
+                            onPress={() => handleSelectTeam(item, false)}
+                          >
+                            <Text style={styles.suggestionText}>{item.teamName}</Text>
+                            <Text style={styles.suggestionSubtext}>
+                              {item.players.length} players
+                            </Text>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <Text style={styles.noSuggestionsText}>No teams found</Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+
+            {/* Toss Section */}
+            <View style={styles.section}>
+              {/* <Text style={styles.sectionTitle}>Toss</Text> */}
+              
+              <View style={styles.card}>
+                <Text style={styles.label}>Toss won by</Text>
+                <View style={styles.radioGroup}>
+                  <TouchableOpacity
+                    style={styles.radioOption}
+                    onPress={() => dispatch(setTossWinner('teamA'))}
+                  >
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        tossWinner === 'teamA' && styles.radioSelected,
+                      ]}
+                    />
+                    <Text style={styles.radioLabel}>{teamA.teamName.trim() || 'Team A'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.radioOption}
+                    onPress={() => dispatch(setTossWinner('teamB'))}
+                  >
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        tossWinner === 'teamB' && styles.radioSelected,
+                      ]}
+                    />
+                    <Text style={styles.radioLabel}>{teamB.teamName.trim() || 'Team B'}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.label}>Opted to</Text>
+                <View style={styles.radioGroup}>
+                  <TouchableOpacity
+                    style={styles.radioOption}
+                    onPress={() => dispatch(setTossChoice('bat'))}
+                  >
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        tossChoice === 'bat' && styles.radioSelected,
+                      ]}
+                    />
+                    <Text style={styles.radioLabel}>Bat</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.radioOption}
+                    onPress={() => dispatch(setTossChoice('bowl'))}
+                  >
+                    <View
+                      style={[
+                        styles.radioCircle,
+                        tossChoice === 'bowl' && styles.radioSelected,
+                      ]}
+                    />
+                    <Text style={styles.radioLabel}>Bowl</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Match Format Section */}
+            <View style={styles.section}>
+              {/* <Text style={styles.sectionTitle}>Match Format</Text> */}
+              
+              <View style={styles.card}>
+                <Text style={styles.label}>Number of Overs</Text>
+                <TextInput
+                  style={styles.textInput}
+                  keyboardType="number-pad"
+                  placeholder="e.g. 20"
+                  placeholderTextColor={colors.ccc}
+                  value={totalOvers ? String(totalOvers) : ''}
+                  onChangeText={(value) => 
+                    dispatch(setTotalOvers(parseInt(value, 10) || 0))
+                  }
+                />
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={commonStyles.button}
+                onPress={handleStartMatch}
+                activeOpacity={0.8}
+              >
+                <Text style={commonStyles.buttonText}>Select Players & Start</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
-        
-        <ScrollView 
-          keyboardShouldPersistTaps="handled"
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Text style={styles.title}>Set up your new match</Text>
-          <Text style={styles.screenTitle}>Teams</Text>
-
-          <View style={styles.inputCard}>
-            <Text style={styles.label}>Team A Name</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Team A Name"
-                value={teamA.teamName}
-                onChangeText={(value) => {
-                  dispatch(setTeamName({ team: 'teamA', name: value }));
-                  filterTeamSuggestions(value, true);
-                }}
-                onFocus={() => {
-                  if (teamA.teamName.length > 0) {
-                    filterTeamSuggestions(teamA.teamName, true);
-                  }
-                }}
-              />
-              
-              {/* Team A suggestions (outside ScrollView) */}
-              {showTeamASuggestions && (
-                <View style={styles.suggestionsContainer}>
-                  {teamASuggestions.length > 0 ? (
-                    teamASuggestions.map(item => (
-                      <TouchableOpacity 
-                        key={item.id}
-                        style={styles.suggestionItem}
-                        onPress={() => handleSelectTeam(item, true)}
-                      >
-                        <Text style={styles.suggestionText}>{item.teamName}</Text>
-                        <Text style={styles.suggestionSubtext}>
-                          {item.players.length} players
-                        </Text>
-                      </TouchableOpacity>
-                    ))
-                  ) : (
-                    <Text></Text>
-                  )}
-                </View>
-              )}
-            </View>
-
-            <Text style={styles.label}>Team B Name</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Team B Name"
-                value={teamB.teamName}
-                onChangeText={(value) => {
-                  dispatch(setTeamName({ team: 'teamB', name: value }));
-                  filterTeamSuggestions(value, false);
-                }}
-                onFocus={() => {
-                  if (teamB.teamName.length > 0) {
-                    filterTeamSuggestions(teamB.teamName, false);
-                  }
-                }}
-              />
-              
-              {/* Team B suggestions (outside ScrollView) */}
-              {showTeamBSuggestions && (
-                <View style={styles.suggestionsContainer}>
-                  {teamBSuggestions.length > 0 ? (
-                    teamBSuggestions.map(item => (
-                      <TouchableOpacity 
-                        key={item.id}
-                        style={styles.suggestionItem}
-                        onPress={() => handleSelectTeam(item, false)}
-                      >
-                        <Text style={styles.suggestionText}>{item.teamName}</Text>
-                        <Text style={styles.suggestionSubtext}>
-                          {item.players.length} players
-                        </Text>
-                      </TouchableOpacity>
-                    ))
-                  ) : (
-                    <Text style={styles.noSuggestionsText}>No teams found</Text>
-                  )}
-                </View>
-              )}
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Toss won by?</Text>
-          <View style={styles.radioGroup}>
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => dispatch(setTossWinner('teamA'))}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  tossWinner === 'teamA' && styles.radioSelected,
-                ]}
-              />
-              <Text style={styles.radioLabel}>{teamA.teamName.trim() || 'Team A'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => dispatch(setTossWinner('teamB'))}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  tossWinner === 'teamB' && styles.radioSelected,
-                ]}
-              />
-              <Text style={styles.radioLabel}>{teamB.teamName.trim() || 'Team B'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.sectionTitle}>Opted to?</Text>
-          <View style={styles.radioGroup}>
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => dispatch(setTossChoice('bat'))}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  tossChoice === 'bat' && styles.radioSelected,
-                ]}
-              />
-              <Text style={styles.radioLabel}>Bat</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioOption}
-              onPress={() => dispatch(setTossChoice('bowl'))}
-            >
-              <View
-                style={[
-                  styles.radioCircle,
-                  tossChoice === 'bowl' && styles.radioSelected,
-                ]}
-              />
-              <Text style={styles.radioLabel}>Bowl</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.sectionTitle}>Overs?</Text>
-          <TextInput
-            style={styles.textInput}
-            keyboardType="number-pad"
-            placeholder="20"
-            value={String(totalOvers)}
-            onChangeText={(value) => 
-              dispatch(setTotalOvers(parseInt(value, 10) || 0))
-            }
-          />
-
-          <View style={styles.buttonsRow}>
-            <TouchableOpacity
-              style={[styles.button, styles.filledButton]}
-              onPress={handleStartMatch}
-            >
-              <Text style={[styles.buttonText, styles.filledButtonText]}>
-                Next
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
+    backgroundColor: colors.brandLight,
   },
   scrollContent: {
-    paddingTop: 10,
-    paddingBottom: 30,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.brandLight,
+    ...shadows.card
+  },
+  logo: {
+    fontSize: typography.sizeLG,
+    fontWeight: typography.weightBold,
+    color: colors.brandBlue,
+  },
+  settingsButton: {
+    padding: spacing.xs,
+  },
+  pageTitle: {
+    fontSize: typography.sizeLG,
+    fontWeight: typography.weightBold,
+    color: colors.brandDark,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  section: {
+    marginBottom: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: typography.sizeLG,
+    fontWeight: typography.weightSemiBold,
+    color: colors.brandBlue,
+    marginBottom: spacing.md,
+  },
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    ...shadows.card
+  },
+  label: {
+    fontSize: typography.sizeSM,
+    fontWeight: typography.weightSemiBold,
+    color: colors.brandDark,
+    marginBottom: spacing.xs,
   },
   inputWrapper: {
     position: 'relative',
+    marginBottom: spacing.lg,
     zIndex: 1,
-    marginBottom: 16,
+  },
+  textInput: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.ccc,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    fontSize: typography.sizeMD,
+    color: colors.brandDark,
   },
   suggestionsContainer: {
     position: 'absolute',
-    top: 40, // Position below the input
+    top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: 'white',
-    borderRadius: 4,
+    backgroundColor: colors.white,
+    borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: '#EEEEEE',
+    borderColor: colors.brandLight,
     maxHeight: 150,
     zIndex: 10,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...shadows.card
   },
   suggestionItem: {
-    padding: 12,
+    padding: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: colors.brandLight,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   suggestionText: {
-    fontSize: 16,
+    fontSize: typography.sizeMD,
+    color: colors.brandDark,
   },
   suggestionSubtext: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: typography.sizeXS,
+    color: colors.brandBlue,
   },
   noSuggestionsText: {
-    padding: 12,
-    fontSize: 14,
-    color: '#666',
+    padding: spacing.md,
+    fontSize: typography.sizeSM,
+    color: colors.ccc,
     fontStyle: 'italic',
     textAlign: 'center',
   },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  logo: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32' },
-  settings: { fontSize: 16 },
-  title: { fontSize: 18, marginBottom: 24 },
-  screenTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    marginVertical: 8,
-  },
-  inputCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-  },
-  label: {
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  textInput: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#CCC',
-    marginBottom: 12,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-  },
-  suggestionsList: {
-    maxHeight: 150,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EEEEEE',
-    borderRadius: 4,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    color: '#2E7D32',
-    marginVertical: 8,
-  },
   radioGroup: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   radioOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 20,
+    marginRight: spacing.xl,
   },
   radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#2E7D32',
-    marginRight: 6,
+    borderColor: colors.brandBlue,
+    marginRight: spacing.sm,
   },
   radioSelected: {
-    backgroundColor: '#2E7D32',
+    backgroundColor: colors.brandBlue,
   },
   radioLabel: {
-    fontSize: 15,
-    color: '#333',
+    fontSize: typography.sizeMD,
+    color: colors.brandDark,
   },
-  buttonsRow: {
-    flexDirection: 'row',
-    marginTop: 24,
-    justifyContent: 'space-between',
-    marginBottom: 30,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 6,
-    marginHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  outlineButton: {
-    borderWidth: 1,
-    borderColor: '#2E7D32',
-  },
-  outlineButtonText: {
-    color: '#2E7D32',
-  },
-  filledButton: {
-    backgroundColor: '#2E7D32',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  filledButtonText: {
-    color: '#FFFFFF',
+  buttonContainer: {
+    marginTop: spacing.md,
   },
 });

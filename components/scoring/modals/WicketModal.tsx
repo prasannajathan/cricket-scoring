@@ -16,8 +16,10 @@ import { Dropdown } from 'react-native-element-dropdown';
 import { useDispatch } from 'react-redux';
 import { addPlayer } from '@/store/cricket/scoreboardSlice';
 import { createCricketer } from '@/utils';
+import { FontAwesome } from '@expo/vector-icons';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
+import { colors, spacing, radius, typography, shadows } from '@/constants/theme';
 
 interface WicketModalProps {
     visible: boolean;
@@ -126,6 +128,22 @@ export default function WicketModal({
             case 'stumped': return 'Stumped by';
             case 'run out': return 'Run out by';
             default: return '';
+        }
+    };
+
+    // Function to get wicket type icon
+    const getWicketTypeIcon = (type: string) => {
+        switch (type) {
+            case 'bowled': return 'stumbleupon';
+            case 'caught': return 'hand-paper-o';
+            case 'caught & bowled': return 'hand-paper-o';
+            case 'lbw': return 'ban';
+            case 'run out': return 'running';
+            case 'stumped': return 'hand-pointer-o';
+            case 'hit wicket': return 'arrow-left';
+            case 'retired hurt': return 'medkit';
+            case 'retired out': return 'sign-out';
+            default: return 'times-circle';
         }
     };
 
@@ -259,302 +277,458 @@ export default function WicketModal({
             transparent
             animationType="slide"
         >
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.modalContainer}
-            >
-                <View style={styles.modalContent}>
-                    <Text style={styles.title}>Wicket Details</Text>
-
-                    <ScrollView style={styles.formContainer}>
-                        {/* Out Batsman */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Who is out?</Text>
-                            <Dropdown
-                                style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
-                                placeholderStyle={styles.placeholderStyle}
-                                selectedTextStyle={styles.selectedTextStyle}
-                                data={batsmenData}
-                                maxHeight={300}
-                                labelField="label"
-                                valueField="value"
-                                placeholder="Select batsman"
-                                value={outBatsmanId}
-                                onFocus={() => setIsFocus(true)}
-                                onBlur={() => setIsFocus(false)}
-                                onChange={item => {
-                                    setOutBatsmanId(item.value);
-                                    setIsFocus(false);
-                                }}
-                            />
+            <View style={styles.overlay}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    style={styles.modalContainer}
+                >
+                    <View style={styles.modalContent}>
+                        <View style={styles.header}>
+                            <Text style={styles.title}>
+                                <FontAwesome name="stumbleupon" size={20} color={colors.brandRed} style={styles.titleIcon} />
+                                {' Wicket Details'}
+                            </Text>
+                            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                                <FontAwesome name="times" size={20} color={colors.ccc} />
+                            </TouchableOpacity>
                         </View>
 
-                        {/* Wicket Type */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>How was the batsman dismissed?</Text>
-                            <Dropdown
-                                style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
-                                placeholderStyle={styles.placeholderStyle}
-                                selectedTextStyle={styles.selectedTextStyle}
-                                data={wicketTypeData}
-                                maxHeight={300}
-                                labelField="label"
-                                valueField="value"
-                                placeholder="Select wicket type"
-                                value={wicketType}
-                                onFocus={() => setIsFocus(true)}
-                                onBlur={() => setIsFocus(false)}
-                                onChange={item => {
-                                    setWicketType(item.value);
-                                    setIsFocus(false);
-                                }}
-                            />
-                        </View>
-
-                        {/* Fielder (if needed) */}
-                        {needsFielder && (
+                        <ScrollView style={styles.formContainer}>
+                            {/* Out Batsman */}
                             <View style={styles.section}>
-                                <Text style={styles.sectionTitle}>{getFielderLabel()}</Text>
+                                <View style={styles.sectionTitleRow}>
+                                    <FontAwesome name="user" size={16} color={colors.brandBlue} style={styles.sectionIcon} />
+                                    <Text style={styles.sectionTitle}>Who is out?</Text>
+                                </View>
                                 <Dropdown
-                                    style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
+                                    style={[styles.dropdown, isFocus && styles.dropdownFocus]}
                                     placeholderStyle={styles.placeholderStyle}
                                     selectedTextStyle={styles.selectedTextStyle}
-                                    data={fielderData}
+                                    data={batsmenData}
                                     maxHeight={300}
                                     labelField="label"
                                     valueField="value"
-                                    placeholder="Select fielder"
-                                    value={fielderId || ''}
+                                    placeholder="Select batsman"
+                                    value={outBatsmanId}
                                     onFocus={() => setIsFocus(true)}
                                     onBlur={() => setIsFocus(false)}
                                     onChange={item => {
-                                        if (item.value) {
-                                            setFielderId(item.value);
-                                            setFielderName('');
-                                        }
+                                        setOutBatsmanId(item.value);
                                         setIsFocus(false);
                                     }}
-                                />
-
-                                <Text style={styles.orText}>OR</Text>
-
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Enter fielder name"
-                                    value={fielderName}
-                                    onChangeText={text => {
-                                        setFielderName(text);
-                                        setFielderId(undefined);
-                                    }}
+                                    renderLeftIcon={() => (
+                                        <FontAwesome 
+                                            name="user-circle" 
+                                            size={16} 
+                                            color={colors.brandBlue} 
+                                            style={styles.dropdownIcon}
+                                        />
+                                    )}
                                 />
                             </View>
-                        )}
 
-                        {/* Next Batsman */}
-                        <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Select next batsman</Text>
-
-                            {nextWicketAllOut ? (
-                                <Text style={styles.allOutText}>
-                                    This wicket will cause the team to be all out. No next batsman needed.
-                                </Text>
-                            ) : (
-                                <>
-                                    {availableBatsmen.length > 0 ? (
-                                        <Dropdown
-                                            style={[styles.dropdown, isFocus && { borderColor: '#D32F2F' }]}
-                                            placeholderStyle={styles.placeholderStyle}
-                                            selectedTextStyle={styles.selectedTextStyle}
-                                            data={nextBatsmenData}
-                                            maxHeight={300}
-                                            labelField="label"
-                                            valueField="value"
-                                            placeholder="Select next batsman"
-                                            value={nextBatsmanId}
-                                            onFocus={() => setIsFocus(true)}
-                                            onBlur={() => setIsFocus(false)}
-                                            onChange={item => {
-                                                setNextBatsmanId(item.value);
-                                                setNewBatsmanName(''); // Clear new name if a dropdown option is chosen
-                                                setIsFocus(false);
-                                            }}
+                            {/* Wicket Type */}
+                            <View style={styles.section}>
+                                <View style={styles.sectionTitleRow}>
+                                    <FontAwesome name={getWicketTypeIcon(wicketType)} size={16} color={colors.brandRed} style={styles.sectionIcon} />
+                                    <Text style={styles.sectionTitle}>How was the batsman dismissed?</Text>
+                                </View>
+                                <Dropdown
+                                    style={[styles.dropdown, isFocus && styles.dropdownFocus]}
+                                    placeholderStyle={styles.placeholderStyle}
+                                    selectedTextStyle={styles.selectedTextStyle}
+                                    data={wicketTypeData}
+                                    maxHeight={300}
+                                    labelField="label"
+                                    valueField="value"
+                                    placeholder="Select wicket type"
+                                    value={wicketType}
+                                    onFocus={() => setIsFocus(true)}
+                                    onBlur={() => setIsFocus(false)}
+                                    onChange={item => {
+                                        setWicketType(item.value);
+                                        setIsFocus(false);
+                                    }}
+                                    renderLeftIcon={() => (
+                                        <FontAwesome 
+                                            name={getWicketTypeIcon(wicketType)} 
+                                            size={16} 
+                                            color={colors.brandRed} 
+                                            style={styles.dropdownIcon}
                                         />
-                                    ) : (
-                                        <Text style={styles.noPlayersText}>No available batsmen - add a new player</Text>
                                     )}
+                                />
+                            </View>
 
-                                    <Text style={styles.orText}>OR</Text>
+                            {/* Fielder (if needed) */}
+                            {needsFielder && (
+                                <View style={styles.section}>
+                                    <View style={styles.sectionTitleRow}>
+                                        <FontAwesome name="hand-paper-o" size={16} color={colors.brandGreen} style={styles.sectionIcon} />
+                                        <Text style={styles.sectionTitle}>{getFielderLabel()}</Text>
+                                    </View>
+                                    <Dropdown
+                                        style={[styles.dropdown, isFocus && styles.dropdownFocus]}
+                                        placeholderStyle={styles.placeholderStyle}
+                                        selectedTextStyle={styles.selectedTextStyle}
+                                        data={fielderData}
+                                        maxHeight={300}
+                                        labelField="label"
+                                        valueField="value"
+                                        placeholder="Select fielder"
+                                        value={fielderId || ''}
+                                        onFocus={() => setIsFocus(true)}
+                                        onBlur={() => setIsFocus(false)}
+                                        onChange={item => {
+                                            if (item.value) {
+                                                setFielderId(item.value);
+                                                setFielderName('');
+                                            }
+                                            setIsFocus(false);
+                                        }}
+                                        renderLeftIcon={() => (
+                                            <FontAwesome 
+                                                name="user-circle" 
+                                                size={16} 
+                                                color={colors.brandGreen} 
+                                                style={styles.dropdownIcon}
+                                            />
+                                        )}
+                                    />
 
-                                    <View style={styles.newBatsmanContainer}>
+                                    <View style={styles.orContainer}>
+                                        <View style={styles.divider} />
+                                        <Text style={styles.orText}>OR</Text>
+                                        <View style={styles.divider} />
+                                    </View>
+
+                                    <View style={styles.inputContainer}>
+                                        <FontAwesome name="plus-circle" size={16} color={colors.ccc} style={styles.inputIcon} />
                                         <TextInput
                                             style={styles.input}
-                                            placeholder="New batsman name"
-                                            value={newBatsmanName}
+                                            placeholder="Enter new fielder name"
+                                            value={fielderName}
                                             onChangeText={text => {
-                                                setNewBatsmanName(text);
-                                                if (text.trim()) {
-                                                    setNextBatsmanId(undefined);
-                                                }
+                                                setFielderName(text);
+                                                setFielderId(undefined);
                                             }}
+                                            placeholderTextColor={colors.ccc}
                                         />
                                     </View>
-                                </>
+                                </View>
                             )}
+
+                            {/* Next Batsman */}
+                            <View style={styles.section}>
+                                <View style={styles.sectionTitleRow}>
+                                    <FontAwesome name="exchange" size={16} color={colors.brandBlue} style={styles.sectionIcon} />
+                                    <Text style={styles.sectionTitle}>Select next batsman</Text>
+                                </View>
+
+                                {nextWicketAllOut ? (
+                                    <View style={styles.allOutContainer}>
+                                        <FontAwesome name="exclamation-triangle" size={18} color={colors.brandRed} style={styles.allOutIcon} />
+                                        <Text style={styles.allOutText}>
+                                            This wicket will cause the team to be all out. No next batsman needed.
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    <>
+                                        {availableBatsmen.length > 0 ? (
+                                            <Dropdown
+                                                style={[styles.dropdown, isFocus && styles.dropdownFocus]}
+                                                placeholderStyle={styles.placeholderStyle}
+                                                selectedTextStyle={styles.selectedTextStyle}
+                                                data={nextBatsmenData}
+                                                maxHeight={300}
+                                                labelField="label"
+                                                valueField="value"
+                                                placeholder="Select next batsman"
+                                                value={nextBatsmanId}
+                                                onFocus={() => setIsFocus(true)}
+                                                onBlur={() => setIsFocus(false)}
+                                                onChange={item => {
+                                                    setNextBatsmanId(item.value);
+                                                    setNewBatsmanName(''); // Clear new name if a dropdown option is chosen
+                                                    setIsFocus(false);
+                                                }}
+                                                renderLeftIcon={() => (
+                                                    <FontAwesome 
+                                                        name="user-circle" 
+                                                        size={16} 
+                                                        color={colors.brandBlue} 
+                                                        style={styles.dropdownIcon}
+                                                    />
+                                                )}
+                                            />
+                                        ) : (
+                                            <View style={styles.noPlayersContainer}>
+                                                <FontAwesome name="info-circle" size={16} color={colors.brandBlue} style={styles.noPlayersIcon} />
+                                                <Text style={styles.noPlayersText}>No available batsmen - add a new player</Text>
+                                            </View>
+                                        )}
+
+                                        <View style={styles.orContainer}>
+                                            <View style={styles.divider} />
+                                            <Text style={styles.orText}>OR</Text>
+                                            <View style={styles.divider} />
+                                        </View>
+
+                                        <View style={styles.inputContainer}>
+                                            <FontAwesome name="plus-circle" size={16} color={colors.ccc} style={styles.inputIcon} />
+                                            <TextInput
+                                                style={styles.input}
+                                                placeholder="Enter new batsman name"
+                                                value={newBatsmanName}
+                                                onChangeText={text => {
+                                                    setNewBatsmanName(text);
+                                                    if (text.trim()) {
+                                                        setNextBatsmanId(undefined);
+                                                    }
+                                                }}
+                                                placeholderTextColor={colors.ccc}
+                                            />
+                                        </View>
+                                    </>
+                                )}
+                            </View>
+                        </ScrollView>
+
+                        {/* Modal Buttons */}
+                        <View style={styles.buttonContainer}>
+                            <TouchableOpacity
+                                style={[styles.button, styles.cancelButton]}
+                                onPress={onClose}
+                                activeOpacity={0.7}
+                            >
+                                <FontAwesome name="times" size={16} color={colors.brandDark} style={styles.buttonIcon} />
+                                <Text style={styles.cancelText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[
+                                    styles.button,
+                                    styles.confirmButton,
+                                    (!outBatsmanId || 
+                                    (needsFielder && !fielderId && !fielderName.trim()) || 
+                                    (!nextWicketAllOut && !nextBatsmanId && !newBatsmanName.trim())) 
+                                    && styles.disabledButton
+                                ]}
+                                onPress={handleConfirm}
+                                disabled={
+                                    !outBatsmanId || 
+                                    (needsFielder && !fielderId && !fielderName.trim()) || 
+                                    (!nextWicketAllOut && !nextBatsmanId && !newBatsmanName.trim())
+                                }
+                                activeOpacity={0.7}
+                            >
+                                <FontAwesome name="check" size={16} color={colors.white} style={styles.buttonIcon} />
+                                <Text style={styles.confirmText}>Confirm Wicket</Text>
+                            </TouchableOpacity>
                         </View>
-                    </ScrollView>
-
-                    {/* Modal Buttons */}
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity
-                            style={[styles.button, styles.cancelButton]}
-                            onPress={onClose}
-                        >
-                            <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.button,
-                                styles.confirmButton,
-                                (!outBatsmanId || 
-                                 (needsFielder && !fielderId && !fielderName.trim()) || 
-                                 (!nextWicketAllOut && !nextBatsmanId && !newBatsmanName.trim())) 
-                                && styles.disabledButton
-                            ]}
-                            onPress={handleConfirm}
-                            disabled={
-                                !outBatsmanId || 
-                                (needsFielder && !fielderId && !fielderName.trim()) || 
-                                (!nextWicketAllOut && !nextBatsmanId && !newBatsmanName.trim())
-                            }
-                        >
-                            <Text style={styles.confirmText}>Confirm</Text>
-                        </TouchableOpacity>
                     </View>
-                </View>
-            </KeyboardAvoidingView>
+                </KeyboardAvoidingView>
+            </View>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    modalContainer: {
+    overlay: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
+    modalContainer: {
+        width: '93%',
+        maxHeight: '90%',
+    },
     modalContent: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        padding: 20,
-        width: '90%',
-        maxHeight: '85%',
-        elevation: 5,
+        backgroundColor: colors.white,
+        borderRadius: radius.lg,
+        overflow: 'hidden',
+        ...shadows.modal,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: spacing.md,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.brandLight,
+        backgroundColor: colors.white,
     },
     title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 16,
-        textAlign: 'center',
-        color: '#D32F2F',
+        fontSize: 18,
+        fontWeight: '700',
+        color: colors.brandDark,
+        flex: 1,
+    },
+    titleIcon: {
+        marginRight: spacing.xs,
+    },
+    closeButton: {
+        padding: spacing.xs,
     },
     formContainer: {
-        maxHeight: '75%',
+        maxHeight: 500,
+        padding: spacing.md,
     },
     section: {
-        marginBottom: 16,
-        backgroundColor: '#f9f9f9',
-        padding: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
+        marginBottom: spacing.lg,
+        backgroundColor: colors.white,
+        borderRadius: radius.md,
+        overflow: 'hidden',
+    },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing.sm,
+    },
+    sectionIcon: {
+        marginRight: spacing.xs,
     },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 8,
-        color: '#333',
+        fontWeight: '600',
+        color: colors.brandDark,
     },
     dropdown: {
         height: 50,
-        backgroundColor: '#fff',
-        borderRadius: 8,
+        backgroundColor: colors.white,
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: '#E0E0E0',
-        paddingHorizontal: 12,
+        borderColor: colors.brandLight,
+        paddingHorizontal: spacing.md,
+        ...shadows.subtle,
+    },
+    dropdownFocus: {
+        borderColor: colors.brandBlue,
+    },
+    dropdownIcon: {
+        marginRight: spacing.md,
     },
     placeholderStyle: {
-        fontSize: 16,
-        color: '#888',
+        fontSize: 15,
+        color: colors.ccc,
     },
     selectedTextStyle: {
-        fontSize: 16,
-        color: '#000',
+        fontSize: 15,
+        color: colors.brandDark,
     },
-    orText: {
-        textAlign: 'center',
-        marginVertical: 8,
-        color: '#757575',
-        fontWeight: '500',
+    inputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.brandLight,
+        borderRadius: radius.md,
+        backgroundColor: colors.white,
+        paddingHorizontal: spacing.md,
+        height: 50,
+        ...shadows.subtle,
+    },
+    inputIcon: {
+        marginRight: spacing.sm,
     },
     input: {
-        backgroundColor: '#fff',
-        borderRadius: 8,
+        flex: 1,
+        fontSize: 15,
+        color: colors.brandDark,
+        height: '100%',
+    },
+    orContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: spacing.md,
+    },
+    divider: {
+        flex: 1,
+        height: 1,
+        backgroundColor: colors.brandLight,
+    },
+    orText: {
+        marginHorizontal: spacing.md,
+        color: colors.ccc,
+        fontWeight: '500',
+        fontSize: 14,
+    },
+    allOutContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.md,
+        backgroundColor: colors.brandRed + '10',
+        borderRadius: radius.md,
         borderWidth: 1,
-        borderColor: '#E0E0E0',
-        padding: 12,
-        fontSize: 16,
-        height: 50,
+        borderColor: colors.brandRed + '20',
     },
-    newBatsmanContainer: {
-        marginTop: 8,
-    },
-    noPlayersText: {
-        padding: 12,
-        backgroundColor: '#f5f5f5',
-        textAlign: 'center',
-        fontStyle: 'italic',
-        borderRadius: 8,
+    allOutIcon: {
+        marginRight: spacing.sm,
     },
     allOutText: {
-        padding: 12,
-        backgroundColor: '#ffebee',
-        textAlign: 'center',
+        flex: 1,
+        fontSize: 14,
+        color: colors.brandRed,
         fontWeight: '500',
-        borderRadius: 8,
-        color: '#D32F2F',
+    },
+    noPlayersContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.md,
+        backgroundColor: colors.brandLight,
+        borderRadius: radius.md,
+    },
+    noPlayersIcon: {
+        marginRight: spacing.sm,
+    },
+    noPlayersText: {
+        flex: 1,
+        fontSize: 14,
+        fontStyle: 'italic',
+        color: colors.brandBlue,
     },
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: colors.brandLight,
+        padding: spacing.md,
+        backgroundColor: colors.white,
     },
     button: {
-        flex: 1,
-        padding: 12,
-        borderRadius: 8,
+        flexDirection: 'row',
         alignItems: 'center',
-        marginHorizontal: 4,
+        justifyContent: 'center',
+        padding: spacing.md,
+        borderRadius: radius.md,
+        flex: 1,
+        marginHorizontal: spacing.xs,
+        ...shadows.button,
+    },
+    buttonIcon: {
+        marginRight: spacing.xs,
     },
     cancelButton: {
-        backgroundColor: '#E0E0E0',
+        backgroundColor: colors.white,
+        borderWidth: 1,
+        borderColor: colors.brandLight,
     },
     confirmButton: {
-        backgroundColor: '#D32F2F',
+        backgroundColor: colors.brandRed,
     },
     disabledButton: {
-        backgroundColor: '#E0E0E0',
-        opacity: 0.7,
+        backgroundColor: colors.brandLight,
+        shadowOpacity: 0,
+        elevation: 0,
     },
     cancelText: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#000',
+        fontSize: 15,
+        fontWeight: '600',
+        color: colors.brandDark,
     },
     confirmText: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#fff',
+        fontSize: 15,
+        fontWeight: '600',
+        color: colors.white,
     },
 });

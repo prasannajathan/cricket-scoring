@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { InningsData, DeliveryEvent, Team } from '@/types';
-import { colors, spacing, typography } from '@/constants/theme';
+import { FontAwesome } from '@expo/vector-icons';
+import { colors, spacing, typography, radius, shadows } from '@/constants/theme';
 
 interface CommentaryFeedProps {
   innings: InningsData;
@@ -13,8 +14,14 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
   if (!innings.deliveries || innings.deliveries.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Commentary</Text>
-        <Text style={styles.emptyText}>No deliveries yet</Text>
+        <View style={styles.header}>
+          <FontAwesome name="commenting" size={16} color={colors.brandDark} style={styles.headerIcon} />
+          <Text style={styles.title}>Commentary</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <FontAwesome name="info-circle" size={24} color={colors.brandLight} style={styles.emptyIcon} />
+          <Text style={styles.emptyText}>No deliveries yet</Text>
+        </View>
       </View>
     );
   }
@@ -35,6 +42,44 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
     if (!id) return 'Unknown';
     const player = bowlingTeam.players.find(p => p.id === id);
     return player?.name || 'Unknown';
+  };
+
+  // Get appropriate icon for delivery type
+  const getDeliveryIcon = (delivery: DeliveryEvent) => {
+    if (delivery.wicket) {
+      return "trophy";
+    } else if (delivery.extraType === 'wide') {
+      return "arrows-h";
+    } else if (delivery.extraType === 'no-ball') {
+      return "times-circle";
+    } else if (delivery.extraType === 'bye' || delivery.extraType === 'leg-bye') {
+      return "share";
+    } else if (delivery.runs === 4) {
+      return "flag-checkered";
+    } else if (delivery.runs === 6) {
+      return "bolt";
+    } else if (delivery.runs === 0) {
+      return "dot-circle-o";
+    } else {
+      return "circle";
+    }
+  };
+
+  // Get color for delivery type
+  const getDeliveryColor = (delivery: DeliveryEvent) => {
+    if (delivery.wicket) {
+      return colors.brandRed;
+    } else if (delivery.extraType) {
+      return colors.orange;
+    } else if (delivery.runs === 4) {
+      return colors.brandBlue;
+    } else if (delivery.runs === 6) {
+      return colors.brandGreen;
+    } else if (delivery.runs === 0) {
+      return colors.brandLight;
+    } else {
+      return colors.brandDark;
+    }
   };
   
   const formatCommentary = (delivery: DeliveryEvent) => {
@@ -87,14 +132,70 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
     
     return commentary;
   };
+
+  // Function to highlight keywords in commentary
+  const highlightCommentary = (text: string) => {
+    // Keywords to highlight and their respective styles
+    const keywords = [
+      { word: 'OUT!', style: styles.wicketText },
+      { word: 'WIDE', style: styles.extrasText },
+      { word: 'NO BALL', style: styles.extrasText },
+      { word: 'BYE', style: styles.extrasText },
+      { word: 'BYES', style: styles.extrasText },
+      { word: 'LEG BYE', style: styles.extrasText },
+      { word: 'LEG BYES', style: styles.extrasText },
+      { word: 'FOUR!', style: styles.boundaryText },
+      { word: 'SIX!', style: styles.bigBoundaryText },
+      { word: 'dot ball', style: styles.dotText },
+    ];
+
+    let parts = [text];
+
+    // For each keyword, split and modify the parts array
+    keywords.forEach(({ word, style }) => {
+      parts = parts.flatMap(part => {
+        if (typeof part === 'string') {
+          const splitParts = part.split(new RegExp(`(${word})`, 'gi'));
+          return splitParts.map((subPart, index) => 
+            subPart.toLowerCase() === word.toLowerCase() ? 
+              <Text key={index} style={style}>{subPart}</Text> : 
+              subPart
+          );
+        }
+        return part;
+      });
+    });
+
+    return parts;
+  };
   
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Commentary</Text>
-      <ScrollView style={styles.commentaryScroll}>
+      <View style={styles.header}>
+        <FontAwesome name="commenting" size={16} color={colors.brandDark} style={styles.headerIcon} />
+        <Text style={styles.title}>Commentary</Text>
+      </View>
+      <ScrollView 
+        style={styles.commentaryScroll}
+        showsVerticalScrollIndicator={false}
+      >
         {recentDeliveries.map((delivery, index) => (
           <View key={index} style={styles.commentaryItem}>
-            <Text style={styles.deliveryText}>{formatCommentary(delivery)}</Text>
+            <View style={styles.ballIconContainer}>
+              <View style={[styles.ballIcon, { backgroundColor: getDeliveryColor(delivery) }]}>
+                <FontAwesome 
+                  name={getDeliveryIcon(delivery)} 
+                  size={12} 
+                  color={colors.white} 
+                />
+              </View>
+              <View style={styles.deliveryLine} />
+            </View>
+            <View style={styles.commentaryContent}>
+              <Text style={styles.deliveryText}>
+                {highlightCommentary(formatCommentary(delivery))}
+              </Text>
+            </View>
           </View>
         ))}
       </ScrollView>
@@ -105,31 +206,92 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.white,
-    borderRadius: 8,
+    borderRadius: radius.md,
     padding: spacing.md,
     marginVertical: spacing.md,
+    ...shadows.card,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  headerIcon: {
+    marginRight: spacing.xs,
   },
   title: {
     fontSize: typography.sizeLG,
-    fontWeight: 'bold',
+    fontFamily: typography.fontFamilyBold,
+    fontWeight: typography.weightBold,
     color: colors.brandDark,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  emptyIcon: {
     marginBottom: spacing.sm,
-  },
-  commentaryScroll: {
-    maxHeight: 200,
-  },
-  commentaryItem: {
-    paddingVertical: spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.brandLight,
-  },
-  deliveryText: {
-    fontSize: typography.sizeSM,
-    color: colors.brandDark,
   },
   emptyText: {
     fontSize: typography.sizeMD,
     color: colors.brandLight,
     fontStyle: 'italic',
-  }
+    textAlign: 'center',
+  },
+  commentaryScroll: {
+    maxHeight: 250,
+  },
+  commentaryItem: {
+    flexDirection: 'row',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.brandLight + '40', // 40% opacity
+  },
+  ballIconContainer: {
+    alignItems: 'center',
+    width: 30,
+    marginRight: spacing.sm,
+  },
+  ballIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  deliveryLine: {
+    flex: 1,
+    width: 1,
+    backgroundColor: colors.brandLight,
+  },
+  commentaryContent: {
+    flex: 1,
+  },
+  deliveryText: {
+    fontSize: typography.sizeSM,
+    lineHeight: typography.sizeSM * 1.4,
+    color: colors.brandDark + 'E6', // 90% opacity
+  },
+  wicketText: {
+    color: colors.brandRed,
+    fontWeight: typography.weightBold,
+  },
+  extrasText: {
+    color: colors.orange,
+    fontWeight: typography.weightSemiBold,
+  },
+  boundaryText: {
+    color: colors.brandBlue,
+    fontWeight: typography.weightBold,
+  },
+  bigBoundaryText: {
+    color: colors.brandGreen,
+    fontWeight: typography.weightBold,
+  },
+  dotText: {
+    color: colors.brandDark,
+    fontStyle: 'italic',
+  },
 });

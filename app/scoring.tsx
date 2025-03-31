@@ -26,8 +26,6 @@ import CommentaryFeed from '@/components/scoring/CommentaryFeed';
 import { ScoreModals } from '@/components/scoring/ScoreModals';
 import { colors, spacing, typography } from '@/constants/theme';
 
-import { runMatchSimulation } from '@/utils/simulation/testRunner';
-
 const SHOWN_MATCH_ALERTS = new Set<string>();
 
 export default function ScoringScreen() {
@@ -336,35 +334,6 @@ export default function ScoringScreen() {
                 currentInnings={currentInnings}
                 totalPlayers={state.totalPlayers}
             />
-
-            <TouchableOpacity
-                style={styles.debugButton}
-                onPress={() => {
-                    // Debug info
-                    console.log('DEBUG CURRENT STATE:', {
-                        completedOvers: currentInnings?.completedOvers,
-                        ballInCurrentOver: currentInnings?.ballInCurrentOver,
-                        inningsStriker: currentInnings?.currentStrikerId,
-                        inningsNonStriker: currentInnings?.currentNonStrikerId
-                    });
-                }}
-            >
-                <Text style={styles.debugButtonText}>Debug</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={[styles.debugButton, { backgroundColor: '#4CAF50' }]}
-                onPress={() => {
-                    runMatchSimulation(dispatch, (result) => {
-                        // This will be called after simulation is complete
-                        // You might want to switch to the scorecard tab
-                        setActiveTabPersistent('scorecard');
-                    });
-                }}
-            >
-                <Text style={styles.debugButtonText}>Test Overs</Text>
-            </TouchableOpacity>
-
         </ScrollView>
     );
 }
@@ -407,32 +376,5 @@ const styles = StyleSheet.create({
     activeTabText: {
         color: colors.brandBlue,
         fontWeight: '600',
-    },
-    // debugButton: {
-    //     backgroundColor: colors.brandBlue,
-    //     padding: spacing.md,
-    //     borderRadius: 5,
-    //     alignItems: 'center',
-    //     marginTop: spacing.lg,
-    // },
-    // debugButtonText: {
-    //     color: colors.white,
-    //     fontSize: typography.sizeMD,
-    //     fontWeight: '600',
-    // },
-
-    debugButton: {
-        position: 'absolute',
-        right: 10,
-        bottom: 10,
-        backgroundColor: '#2196F3',
-        padding: 8,
-        borderRadius: 4,
-        opacity: 0.8,
-        marginLeft: 10, // Add this to separate the buttons
-    },
-    debugButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
     },
 });
