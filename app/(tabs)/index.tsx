@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TextInput,
   TouchableOpacity,
-  ScrollView, 
+  ScrollView,
   SafeAreaView,
   Alert,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Keyboard
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
@@ -39,7 +40,7 @@ const determineBattingTeam = (
 export default function NewMatchScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  
+
   const {
     teamA,
     teamB,
@@ -55,6 +56,10 @@ export default function NewMatchScreen() {
   const [showTeamASuggestions, setShowTeamASuggestions] = useState(false);
   const [showTeamBSuggestions, setShowTeamBSuggestions] = useState(false);
 
+  // Refs for input fields
+  const teamAInputRef = useRef<TextInput>(null);
+  const teamBInputRef = useRef<TextInput>(null);
+
   // Load all saved teams
   useEffect(() => {
     const loadTeams = async () => {
@@ -65,13 +70,27 @@ export default function NewMatchScreen() {
         console.error('Error loading teams:', error);
       }
     };
-    
+
     loadTeams();
+
+    // Add keyboard listener to handle focus out
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setShowTeamASuggestions(false);
+        setShowTeamBSuggestions(false);
+      }
+    );
+
+    return () => {
+      keyboardDidHideListener.remove();
+    };
   }, []);
 
   // Handle filtering team suggestions
   const filterTeamSuggestions = (text: string, isTeamA: boolean) => {
-    if (text.length === 0) {
+    // Only show suggestions if 2 or more characters are typed
+    if (text.length < 2) {
       if (isTeamA) {
         setShowTeamASuggestions(false);
       } else {
@@ -79,16 +98,22 @@ export default function NewMatchScreen() {
       }
       return;
     }
-    
-    const filteredTeams = allTeams.filter(team => 
+
+    // Filter teams based on text input
+    const filteredTeams = allTeams.filter(team =>
       team.teamName.toLowerCase().includes(text.toLowerCase())
     );
-    
+
+    // Remove duplicate teams
+    const uniqueTeams = filteredTeams.filter((team, index, self) =>
+      index === self.findIndex((t) => t.id === team.id)
+    );
+
     if (isTeamA) {
-      setTeamASuggestions(filteredTeams);
+      setTeamASuggestions(uniqueTeams);
       setShowTeamASuggestions(true);
     } else {
-      setTeamBSuggestions(filteredTeams);
+      setTeamBSuggestions(uniqueTeams);
       setShowTeamBSuggestions(true);
     }
   };
@@ -98,10 +123,26 @@ export default function NewMatchScreen() {
     if (isTeamA) {
       dispatch(setTeam({ team: 'teamA', teamData: team }));
       setShowTeamASuggestions(false);
+      // Focus on next input after selection
+      teamBInputRef.current?.focus();
     } else {
       dispatch(setTeam({ team: 'teamB', teamData: team }));
       setShowTeamBSuggestions(false);
+      // Hide keyboard after selecting Team B
+      Keyboard.dismiss();
     }
+  };
+
+  // Handle focus outside the input fields
+  const handleBlur = (isTeamA: boolean) => {
+    // Use setTimeout to allow clicks on suggestion items to complete
+    setTimeout(() => {
+      if (isTeamA) {
+        setShowTeamASuggestions(false);
+      } else {
+        setShowTeamBSuggestions(false);
+      }
+    }, 150);
   };
 
   const handleStartMatch = () => {
@@ -113,19 +154,19 @@ export default function NewMatchScreen() {
     };
 
     if (Object.values(validationErrors).some(Boolean)) {
-      const errorMessage = validationErrors.teams 
+      const errorMessage = validationErrors.teams
         ? 'Please enter names for both teams'
         : validationErrors.toss
-        ? 'Please complete toss details'
-        : 'Please enter valid number of overs';
-      
+          ? 'Please complete toss details'
+          : 'Please enter valid number of overs';
+
       Alert.alert('Error', errorMessage);
       return;
     }
 
     try {
       const battingTeam = determineBattingTeam(tossWinner, tossChoice);
-      
+
       // Initialize first innings with proper team IDs
       dispatch(initializeInnings({
         battingTeamId: battingTeam === 'teamA' ? teamA.id : teamB.id,
@@ -141,7 +182,7 @@ export default function NewMatchScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
@@ -152,23 +193,22 @@ export default function NewMatchScreen() {
               <FontAwesome name="cog" size={24} color={colors.brandBlue} />
             </TouchableOpacity>
           </View>
-          
-          <ScrollView 
+
+          <ScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.pageTitle}>New Match Setup</Text>
-            
+            <Text style={commonStyles.pageTitle}>New Match Setup</Text>
+
             {/* Teams Section */}
             <View style={styles.section}>
-              {/* <Text style={styles.sectionTitle}>Teams</Text> */}
-              
-              <View style={styles.card}>
-                <Text style={styles.label}>Team A</Text>
-                <View style={styles.inputWrapper}>
+              <View>
+                <Text style={commonStyles.label}>Team A</Text>
+                <View style={commonStyles.inputWrapper}>
                   <TextInput
-                    style={styles.textInput}
+                    ref={teamAInputRef}
+                    style={commonStyles.textInput}
                     placeholder="Enter team name"
                     placeholderTextColor={colors.ccc}
                     value={teamA.teamName}
@@ -177,18 +217,19 @@ export default function NewMatchScreen() {
                       filterTeamSuggestions(value, true);
                     }}
                     onFocus={() => {
-                      if (teamA.teamName.length > 0) {
+                      if (teamA.teamName.length >= 2) {
                         filterTeamSuggestions(teamA.teamName, true);
                       }
                     }}
+                    onBlur={() => handleBlur(true)}
                   />
-                  
+
                   {/* Team A suggestions */}
                   {showTeamASuggestions && (
                     <View style={styles.suggestionsContainer}>
                       {teamASuggestions.length > 0 ? (
                         teamASuggestions.map(item => (
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             key={item.id}
                             style={styles.suggestionItem}
                             onPress={() => handleSelectTeam(item, true)}
@@ -206,10 +247,11 @@ export default function NewMatchScreen() {
                   )}
                 </View>
 
-                <Text style={styles.label}>Team B</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={commonStyles.label}>Team B</Text>
+                <View style={commonStyles.inputWrapper}>
                   <TextInput
-                    style={styles.textInput}
+                    ref={teamBInputRef}
+                    style={commonStyles.textInput}
                     placeholder="Enter team name"
                     placeholderTextColor={colors.ccc}
                     value={teamB.teamName}
@@ -218,18 +260,19 @@ export default function NewMatchScreen() {
                       filterTeamSuggestions(value, false);
                     }}
                     onFocus={() => {
-                      if (teamB.teamName.length > 0) {
+                      if (teamB.teamName.length >= 2) {
                         filterTeamSuggestions(teamB.teamName, false);
                       }
                     }}
+                    onBlur={() => handleBlur(false)}
                   />
-                  
+
                   {/* Team B suggestions */}
                   {showTeamBSuggestions && (
                     <View style={styles.suggestionsContainer}>
                       {teamBSuggestions.length > 0 ? (
                         teamBSuggestions.map(item => (
-                          <TouchableOpacity 
+                          <TouchableOpacity
                             key={item.id}
                             style={styles.suggestionItem}
                             onPress={() => handleSelectTeam(item, false)}
@@ -251,10 +294,8 @@ export default function NewMatchScreen() {
 
             {/* Toss Section */}
             <View style={styles.section}>
-              {/* <Text style={styles.sectionTitle}>Toss</Text> */}
-              
-              <View style={styles.card}>
-                <Text style={styles.label}>Toss won by</Text>
+              <View>
+                <Text style={commonStyles.label}>Toss won by</Text>
                 <View style={styles.radioGroup}>
                   <TouchableOpacity
                     style={styles.radioOption}
@@ -283,7 +324,7 @@ export default function NewMatchScreen() {
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.label}>Opted to</Text>
+                <Text style={commonStyles.label}>Opted to</Text>
                 <View style={styles.radioGroup}>
                   <TouchableOpacity
                     style={styles.radioOption}
@@ -316,17 +357,15 @@ export default function NewMatchScreen() {
 
             {/* Match Format Section */}
             <View style={styles.section}>
-              {/* <Text style={styles.sectionTitle}>Match Format</Text> */}
-              
-              <View style={styles.card}>
-                <Text style={styles.label}>Number of Overs</Text>
+              <View>
+                <Text style={commonStyles.label}>Number of Overs</Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={commonStyles.textInput}
                   keyboardType="number-pad"
                   placeholder="e.g. 20"
                   placeholderTextColor={colors.ccc}
                   value={totalOvers ? String(totalOvers) : ''}
-                  onChangeText={(value) => 
+                  onChangeText={(value) =>
                     dispatch(setTotalOvers(parseInt(value, 10) || 0))
                   }
                 />
@@ -336,11 +375,11 @@ export default function NewMatchScreen() {
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={commonStyles.button}
+                style={commonStyles.buttonLg}
                 onPress={handleStartMatch}
                 activeOpacity={0.8}
               >
-                <Text style={commonStyles.buttonText}>Select Players & Start</Text>
+                <Text style={commonStyles.buttonLgText}>Next (select payers & start)</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -357,7 +396,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.brandLight,
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,
@@ -382,47 +420,8 @@ const styles = StyleSheet.create({
   settingsButton: {
     padding: spacing.xs,
   },
-  pageTitle: {
-    fontSize: typography.sizeLG,
-    fontWeight: typography.weightBold,
-    color: colors.brandDark,
-    marginTop: spacing.xl,
-    marginBottom: spacing.md,
-  },
   section: {
     marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: typography.sizeLG,
-    fontWeight: typography.weightSemiBold,
-    color: colors.brandBlue,
-    marginBottom: spacing.md,
-  },
-  card: {
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    ...shadows.card
-  },
-  label: {
-    fontSize: typography.sizeSM,
-    fontWeight: typography.weightSemiBold,
-    color: colors.brandDark,
-    marginBottom: spacing.xs,
-  },
-  inputWrapper: {
-    position: 'relative',
-    marginBottom: spacing.lg,
-    zIndex: 1,
-  },
-  textInput: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.ccc,
-    borderRadius: radius.sm,
-    padding: spacing.md,
-    fontSize: typography.sizeMD,
-    color: colors.brandDark,
   },
   suggestionsContainer: {
     position: 'absolute',

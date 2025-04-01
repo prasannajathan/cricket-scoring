@@ -1,5 +1,5 @@
 // theme.js
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const colors = {
     brandDark: '#403940',    // deep grey/plum
@@ -13,6 +13,7 @@ export const colors = {
     brandGreen: '#106400',
     brandTeal: '#008080',
     orange: '#FFA000',
+    completedBadge: '#A0A0A0',
 };
 
 // #f5f5f5 
@@ -59,9 +60,9 @@ export const typography = {
     sizeXXL: 32,
 
     /* Weights */
-    weightRegular: '400',
-    weightSemiBold: '600',
-    weightBold: '700',
+    weightRegular: '400' as '400',
+    weightSemiBold: '600' as '600',
+    weightBold: '700' as '700',
 };
 
 /**
@@ -75,15 +76,53 @@ export const shadows = {
             ios: {
                 shadowColor: colors.black,
                 shadowOpacity: 0.1,
-                shadowOffset: { width: 0, height: 2 },
-                shadowRadius: 4,
+                shadowOffset: { width: 0, height: 5 },
+                shadowRadius: 3,
             },
             android: {
                 elevation: 3,
             },
         }),
     },
-    // Add more shadow levels if needed
+    modal: {
+        ...Platform.select({
+            ios: {
+                shadowColor: colors.black,
+                shadowOpacity: 0.2,
+                shadowOffset: { width: 0, height: 10 },
+                shadowRadius: 6,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
+    },
+    subtle: {
+        ...Platform.select({
+            ios: {
+                shadowColor: colors.black,
+                shadowOpacity: 0.05,
+                shadowOffset: { width: 0, height: 1 },
+                shadowRadius: 1,
+            },
+            android: {
+                elevation: 1,
+            },
+        }),
+    },
+    button: {
+        ...Platform.select({
+            ios: {
+                shadowColor: colors.black,
+                shadowOpacity: 0.1,
+                shadowOffset: { width: 0, height: 2 },
+                shadowRadius: 3,
+            },
+            android: {
+                elevation: 2,
+            },
+        }),
+    },
 };
 
 /**
@@ -101,7 +140,7 @@ export const breakpoints = {
  * Commonly used styles
  * You can define a few shared style objects for easy re-use
  */
-export const commonStyles = {
+export const commonStyles =  StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.brandLight,
@@ -143,11 +182,62 @@ export const commonStyles = {
         fontWeight: typography.weightSemiBold,
         color: colors.white,
     },
+    buttonLg: {
+        backgroundColor: colors.brandBlue,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: spacing.md,
+        borderRadius: radius.md,
+        marginTop: spacing.xl,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    buttonLgText: {
+        color: colors.white,
+        fontSize: 18,
+        fontWeight: '600',
+    },
     sectionTitle: {
         fontFamily: typography.fontFamilyBold,
         fontSize: typography.sizeSM,
         fontWeight: typography.weightBold,
         color: colors.brandCharcoal,
         marginBottom: spacing.sm,
-    }
-};
+    },
+    pageTitle: {
+        fontSize: typography.sizeLG,
+        fontWeight: typography.weightBold,
+        color: colors.brandDark,
+        // marginTop: spacing.xl,
+        marginBottom: spacing.xl,
+    },
+    label: {
+        fontSize: typography.sizeSM,
+        fontWeight: typography.weightSemiBold,
+        color: colors.brandDark,
+        marginBottom: spacing.xs,
+    },
+    inputWrapper: {
+        position: 'relative',
+        marginBottom: spacing.lg,
+        zIndex: 1,
+    },
+    textInput: {
+        borderWidth: 1,
+        borderColor: colors.ccc,
+        borderRadius: radius.sm,
+        paddingHorizontal: spacing.md,
+        paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
+        backgroundColor: colors.white,
+        fontSize: 16,
+        color: colors.brandDark,
+    },
+    disabledInput: {
+        backgroundColor: colors.brandLight,
+        color: colors.ccc,
+    },
+});

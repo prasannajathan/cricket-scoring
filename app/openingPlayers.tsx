@@ -7,8 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
-  SafeAreaView,
-  Platform
+  SafeAreaView
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
@@ -20,11 +19,10 @@ import type { RootState } from '@/store';
 import { createCricketer } from '@/utils';
 import {
   addPlayer,
-  updateInningsPlayers,
-  startInnings2
+  updateInningsPlayers
 } from '@/store/cricket/scoreboardSlice';
 import { selectBattingTeam, selectBowlingTeam } from '@/store/cricket/selectors';
-import { colors, spacing, radius } from '@/constants/theme';
+import { colors, spacing, radius, commonStyles } from '@/constants/theme';
 
 export default function OpeningPlayersScreen() {
   const router = useRouter();
@@ -38,6 +36,19 @@ export default function OpeningPlayersScreen() {
   // Get the batting and bowling teams based on the current innings
   const battingTeam = useSelector(selectBattingTeam);
   const bowlingTeam = useSelector(selectBowlingTeam);
+
+  // useLayoutEffect(() => {
+  //   navigation.setOptions({
+  //     title: isSecondInnings ? 'Second Innings Setup' : 'Select Opening Players',
+  //     headerBackTitle: 'Back',
+  //   });
+  // }, [navigation, isSecondInnings]);
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerBackTitleVisible: false, // Hides the "Back" text
+      headerTitle: '',               // Hides the header title
+    });
+  }, [navigation]);
 
   // When showing players for the second innings, make sure to set currentInning and apply startInnings2 
   useEffect(() => {
@@ -70,13 +81,6 @@ export default function OpeningPlayersScreen() {
   // Filter the existing players for the new batting side.
   const existingBattingPlayers = battingTeam.players.filter(p => !p.isOut);
   const existingBowlingPlayers = bowlingTeam.players;
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: isSecondInnings ? 'Second Innings Setup' : 'Select Opening Players',
-      headerBackTitle: 'Back',
-    });
-  }, [navigation, isSecondInnings]);
 
   const validatePlayerSelection = (selectedId: string, newName: string): boolean => {
     return !selectedId && !newName.trim();
@@ -161,10 +165,10 @@ export default function OpeningPlayersScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
-          <Text style={styles.title}>
+          <Text style={commonStyles.pageTitle}>
             {isSecondInnings ? 'Second Innings' : 'First Innings'}
           </Text>
-          <Text style={styles.subtitle}>Select Playing XI</Text>
+          {/* <Text style={styles.subtitle}>Select Playing XI</Text> */}
         </View>
 
         {/* First innings summary - only show for second innings */}
@@ -188,7 +192,7 @@ export default function OpeningPlayersScreen() {
         {/* Striker Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Striker</Text>
+            <Text style={commonStyles.label}>Striker</Text>
             <View style={styles.teamBadge}>
               <Text style={styles.teamBadgeText}>{battingTeam.teamName}</Text>
             </View>
@@ -224,10 +228,10 @@ export default function OpeningPlayersScreen() {
           <View style={styles.inputContainer}>
             <TextInput
               style={[
-                styles.textInput, 
-                selectedStrikerId ? styles.disabledInput : {}
+                commonStyles.textInput, 
+                selectedStrikerId ? commonStyles.disabledInput : {}
               ]}
-              placeholder="Add new Striker name"
+              placeholder="Add Striker name"
               placeholderTextColor={colors.ccc}
               value={newStrikerName}
               onChangeText={text => {
@@ -238,19 +242,13 @@ export default function OpeningPlayersScreen() {
               }}
               editable={!selectedStrikerId}
             />
-            {!selectedStrikerId && newStrikerName.trim() && (
-              <View style={styles.inputNotice}>
-                <FontAwesome name="info-circle" size={14} color={colors.brandBlue} style={styles.inputNoticeIcon} />
-                <Text style={styles.inputNoticeText}>New player will be added to team</Text>
-              </View>
-            )}
           </View>
         </View>
 
         {/* Non-striker Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Non-Striker</Text>
+            <Text style={commonStyles.label}>Non-Striker</Text>
             <View style={styles.teamBadge}>
               <Text style={styles.teamBadgeText}>{battingTeam.teamName}</Text>
             </View>
@@ -289,10 +287,10 @@ export default function OpeningPlayersScreen() {
           <View style={styles.inputContainer}>
             <TextInput
               style={[
-                styles.textInput, 
-                selectedNonStrikerId ? styles.disabledInput : {}
+                commonStyles.textInput, 
+                selectedNonStrikerId ? commonStyles.disabledInput : {}
               ]}
-              placeholder="Add new Non-Striker name"
+              placeholder="Add Non-Striker name"
               placeholderTextColor={colors.ccc}
               value={newNonStrikerName}
               onChangeText={text => {
@@ -303,19 +301,13 @@ export default function OpeningPlayersScreen() {
               }}
               editable={!selectedNonStrikerId}
             />
-            {!selectedNonStrikerId && newNonStrikerName.trim() && (
-              <View style={styles.inputNotice}>
-                <FontAwesome name="info-circle" size={14} color={colors.brandBlue} style={styles.inputNoticeIcon} />
-                <Text style={styles.inputNoticeText}>New player will be added to team</Text>
-              </View>
-            )}
           </View>
         </View>
 
         {/* Bowler Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Opening Bowler</Text>
+            <Text style={commonStyles.label}>Opening Bowler</Text>
             <View style={styles.teamBadge}>
               <Text style={styles.teamBadgeText}>{bowlingTeam.teamName}</Text>
             </View>
@@ -351,10 +343,10 @@ export default function OpeningPlayersScreen() {
           <View style={styles.inputContainer}>
             <TextInput
               style={[
-                styles.textInput, 
-                selectedBowlerId ? styles.disabledInput : {}
+                commonStyles.textInput, 
+                selectedBowlerId ? commonStyles.disabledInput : {}
               ]}
-              placeholder="Add new Bowler name"
+              placeholder="Add Bowler name"
               placeholderTextColor={colors.ccc}
               value={newBowlerName}
               onChangeText={text => {
@@ -365,23 +357,17 @@ export default function OpeningPlayersScreen() {
               }}
               editable={!selectedBowlerId}
             />
-            {!selectedBowlerId && newBowlerName.trim() && (
-              <View style={styles.inputNotice}>
-                <FontAwesome name="info-circle" size={14} color={colors.brandBlue} style={styles.inputNoticeIcon} />
-                <Text style={styles.inputNoticeText}>New player will be added to team</Text>
-              </View>
-            )}
           </View>
         </View>
 
         {/* Start Match Button */}
         <TouchableOpacity 
-          style={styles.startButton} 
+          style={commonStyles.buttonLg} 
           onPress={handleStartScoring}
           activeOpacity={0.8}
         >
           <FontAwesome name="play-circle" size={18} color={colors.white} style={styles.startButtonIcon} />
-          <Text style={styles.startButtonText}>
+          <Text style={commonStyles.buttonLgText}>
             {isSecondInnings ? 'Start Second Innings' : 'Start Match'}
           </Text>
         </TouchableOpacity>
@@ -397,21 +383,26 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.brandLight,
+    // backgroundColor: colors.brandLight,
   },
   contentContainer: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl * 2,
   },
   header: {
-    marginBottom: spacing.xl,
+    // marginBottom: spacing.xl,
+    display: 'flex',
+    columnGap: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.brandDark,
-    marginBottom: spacing.xs,
-  },
+  // title: {
+  //   fontSize: 24,
+  //   fontWeight: '700',
+  //   color: colors.brandDark,
+  //   marginBottom: spacing.xs,
+  // },
   subtitle: {
     fontSize: 16,
     color: colors.brandBlue,
@@ -467,13 +458,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.brandDark,
-    marginRight: spacing.md,
-  },
   teamBadge: {
+    marginLeft: spacing.md,
     backgroundColor: colors.brandBlue,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -514,56 +500,9 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   inputContainer: {
-    marginBottom: spacing.xs,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: colors.ccc,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? spacing.md : spacing.sm,
-    backgroundColor: colors.white,
-    fontSize: 16,
-    color: colors.brandDark,
-  },
-  disabledInput: {
-    backgroundColor: colors.brandLight,
-    color: colors.ccc,
-  },
-  inputNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xs,
-    marginLeft: spacing.xs,
-  },
-  inputNoticeIcon: {
-    marginRight: spacing.xs,
-  },
-  inputNoticeText: {
-    fontSize: 12,
-    color: colors.brandBlue,
-    fontStyle: 'italic',
-  },
-  startButton: {
-    backgroundColor: colors.brandBlue,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    marginTop: spacing.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    // marginBottom: spacing.xs,
   },
   startButtonIcon: {
     marginRight: spacing.sm,
-  },
-  startButtonText: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: '600',
   },
 });

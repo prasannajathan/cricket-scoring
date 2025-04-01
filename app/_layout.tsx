@@ -57,7 +57,7 @@ function RootLayoutNav() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="scoring" options={{ 
             title: 'Live Score',
-            headerBackTitleVisible: false,
+            // headerBackTitleVisible: false,
             headerTintColor: '#fff', // changes arrow & text color
             headerStyle: { backgroundColor: '#1570BF' }, 
             }} />
