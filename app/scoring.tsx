@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View, TouchableOpacity, Text, Alert } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { RootState } from '@/store';
 
 import { selectCurrentInnings, selectBattingTeam, selectBowlingTeam } from '@/store/cricket/selectors';
@@ -24,7 +25,7 @@ import OverRowDisplay from '@/components/scoring/OverRowDisplay';
 import ScorecardTab from '@/components/scoring/ScorecardTab';
 import CommentaryFeed from '@/components/scoring/CommentaryFeed';
 import { ScoreModals } from '@/components/scoring/ScoreModals';
-import { colors, shadows, spacing, typography } from '@/constants/theme';
+import { colors, shadows, spacing, typography, radius } from '@/constants/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SHOWN_MATCH_ALERTS = new Set<string>();
@@ -222,6 +223,19 @@ export default function ScoringScreen() {
                 totalOvers={state.totalOvers}
             />
 
+            {state.currentInning === 1 && currentInnings?.isCompleted && (
+                <View style={styles.secondInningsPrompt}>
+                    <FontAwesome name="arrow-right" size={16} color={colors.white} style={styles.promptIcon} />
+                    <Text style={styles.promptText}>First innings complete. Tap to start second innings.</Text>
+                    <TouchableOpacity
+                        style={styles.promptButton}
+                        onPress={() => setShowEndInningsModal(true)}
+                    >
+                        <Text style={styles.promptButtonText}>Start 2nd Innings</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
             <View style={styles.tabContainer}>
                 <TouchableOpacity
                     style={[
@@ -378,6 +392,34 @@ const styles = StyleSheet.create({
     },
     container: {
         padding: spacing.md,
+    },
+    secondInningsPrompt: {
+        backgroundColor: colors.brandBlue,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: spacing.md,
+        // marginBottom: spacing.md,
+        // borderRadius: radius.md,
+        // ...shadows.card,
+    },
+    promptIcon: {
+        marginRight: spacing.sm,
+    },
+    promptText: {
+        flex: 1,
+        color: colors.white,
+        fontSize: typography.sizeMD,
+        fontWeight: '500',
+    },
+    promptButton: {
+        backgroundColor: colors.white,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.sm,
+    },
+    promptButtonText: {
+        color: colors.brandBlue,
+        fontWeight: '600',
     },
     // New styles for tabs
     tabContainer: {

@@ -162,7 +162,7 @@ export default function OpeningPlayersScreen() {
         {isSecondInnings && targetScore && (
           <View style={styles.card}>
             <View style={styles.firstInningsSummary}>
-              <Text style={styles.firstInningsHeading}>First Innings Summary</Text>
+              {/* <Text style={styles.firstInningsHeading}>First Innings Summary</Text> */}
               <Text style={styles.firstInningsScore}>
                 {firstInningsTeamName}: {firstInningsScore}/{firstInningsWickets} ({firstInningsOvers} overs)
               </Text>
@@ -396,17 +396,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   card: {
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    marginBottom: spacing.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    // backgroundColor: colors.white,
+    // borderRadius: radius.md,
+    // marginBottom: spacing.xl,
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
+    // elevation: 3,
   },
   firstInningsSummary: {
-    padding: spacing.lg,
+    // padding: spacing.lg,
   },
   firstInningsHeading: {
     fontSize: 16,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.brandDark,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   targetContainer: {
     flexDirection: 'row',
@@ -428,6 +428,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.sm,
     alignSelf: 'flex-start',
+    marginBottom: spacing.md,
   },
   targetIcon: {
     marginRight: spacing.sm,
