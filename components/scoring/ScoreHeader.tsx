@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     heroImage: {
+        backgroundColor: colors.white,
         width: '100%',
         minHeight: 180,
         justifyContent: 'flex-end',

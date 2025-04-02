@@ -243,7 +243,7 @@ export default function NextBowlerModal({
                                     value={newPlayerName}
                                     onChangeText={setNewPlayerName}
                                     placeholder="Enter new bowler name"
-                                    placeholderTextColor={colors.ccc}
+                                    placeholderTextColor={colors.bitDarkGrey}
                                     returnKeyType="done"
                                     onSubmitEditing={handleAddPlayer}
                                 />

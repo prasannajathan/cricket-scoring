@@ -219,7 +219,7 @@ export default function OpeningPlayersScreen() {
                 selectedStrikerId ? commonStyles.disabledInput : {}
               ]}
               placeholder="Add Striker name"
-              placeholderTextColor={colors.ccc}
+              placeholderTextColor={colors.bitDarkGrey}
               value={newStrikerName}
               onChangeText={text => {
                 setNewStrikerName(text);
@@ -278,7 +278,7 @@ export default function OpeningPlayersScreen() {
                 selectedNonStrikerId ? commonStyles.disabledInput : {}
               ]}
               placeholder="Add Non-Striker name"
-              placeholderTextColor={colors.ccc}
+              placeholderTextColor={colors.bitDarkGrey}
               value={newNonStrikerName}
               onChangeText={text => {
                 setNewNonStrikerName(text);
@@ -334,7 +334,7 @@ export default function OpeningPlayersScreen() {
                 selectedBowlerId ? commonStyles.disabledInput : {}
               ]}
               placeholder="Add Bowler name"
-              placeholderTextColor={colors.ccc}
+              placeholderTextColor={colors.bitDarkGrey}
               value={newBowlerName}
               onChangeText={text => {
                 setNewBowlerName(text);

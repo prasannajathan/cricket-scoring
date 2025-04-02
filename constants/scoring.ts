@@ -36,10 +36,6 @@ export const T20_MATCH_RULES = getDefaultMatchRules();
 // console.log(rules.MAX_OVERS_PER_BOWLER); // 10 overs
 // console.log(rules.MIN_BOWLERS); // 5 bowlers
 
-// const t10Rules = getMatchRules({ totalOvers: 10, totalPlayers: 11 }); // For T10
-// console.log(t10Rules.MAX_OVERS_PER_BOWLER); // 2 overs
-// console.log(t10Rules.MIN_BOWLERS); // 5 bowlers
-
 export const WICKET_TYPES: Record<WicketType, string> = {
     'bowled': 'b',
     'caught': 'c',

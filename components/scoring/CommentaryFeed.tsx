@@ -38,11 +38,12 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
     return player?.name || 'Unknown';
   };
   
-  const getBowlerName = (id?: string) => {
+  const getBowlerFielderName = (id?: string) => {
     if (!id) return 'Unknown';
     const player = bowlingTeam.players.find(p => p.id === id);
     return player?.name || 'Unknown';
   };
+
 
   // Get appropriate icon for delivery type
   const getDeliveryIcon = (delivery: DeliveryEvent) => {
@@ -115,7 +116,7 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
     } else {
       // For extras, show the over they occurred in (based on previous legal delivery)
       overNumber = Math.floor(legalBallsBeforeThis / 6);
-      ballNumber = (legalBallsBeforeThis % 6);
+      ballNumber = (legalBallsBeforeThis % 6) + 1;
       
       // If it's the first ball of an over, show previous over's 6th ball
       if (ballNumber === 0 && overNumber > 0) {
@@ -127,7 +128,7 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
       }
     }
     
-    const bowlerName = getBowlerName(delivery.bowlerId);
+    const bowlerName = getBowlerFielderName(delivery.bowlerId);
     const batsmanName = getBatsmanName(delivery.batsmanId);
     
     let commentary = `${overNumber}.${ballNumber} ${bowlerName} to ${batsmanName}, `;
@@ -136,7 +137,7 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
     if (delivery.wicket) {
       commentary += `OUT! ${delivery.wicketType}`;
       if (delivery.wicketType === 'caught' && delivery.fielderId) {
-        const fielderName = getBowlerName(delivery.fielderId);
+        const fielderName = getBowlerFielderName(delivery.fielderId);
         commentary += ` by ${fielderName}`;
       }
     } else if (delivery.extraType) {
@@ -186,7 +187,7 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
       { word: 'dot ball', style: styles.dotText },
     ];
 
-    let parts = [text];
+    let parts: (string | React.ReactNode)[] = [text];
 
     // For each keyword, split and modify the parts array
     keywords.forEach(({ word, style }) => {

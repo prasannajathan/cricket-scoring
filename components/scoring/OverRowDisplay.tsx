@@ -89,13 +89,6 @@ function getCurrentOverBalls(innings: InningsData): DeliveryEvent[] {
     overToShow = 0;
   }
 
-  console.log("Over display debug:", {
-    completedOvers: innings.completedOvers,
-    ballInCurrentOver: innings.ballInCurrentOver,
-    calculatedOverToShow: overToShow,
-    deliveriesInOver: deliveriesWithOverNumber.filter(item => item.overNumber === overToShow).length
-  });
-
   // Filter and return only the deliveries from our target over
   return deliveriesWithOverNumber
     .filter(item => item.overNumber === overToShow)

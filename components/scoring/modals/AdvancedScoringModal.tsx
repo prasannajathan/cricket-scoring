@@ -66,7 +66,7 @@ export default function AdvancedScoringModal({
                             onChangeText={setRuns}
                             keyboardType="number-pad"
                             placeholder="Enter runs"
-                            placeholderTextColor={colors.ccc}
+                            placeholderTextColor={colors.bitDarkGrey}
                             returnKeyType="done"
                             onSubmitEditing={isValidInput ? handleSubmit : undefined}
                             autoFocus={true}

@@ -146,7 +146,7 @@ export default function ExtrasModal({ visible, onClose, onAddExtras }: ExtrasMod
                                             onChangeText={setExtraRuns}
                                             keyboardType="number-pad"
                                             placeholder="Enter runs"
-                                            placeholderTextColor={colors.ccc}
+                                            placeholderTextColor={colors.bitDarkGrey}
                                             returnKeyType="done"
                                             onSubmitEditing={() => extraRuns.trim() ? handleSubmit() : null}
                                         />

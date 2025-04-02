@@ -138,7 +138,7 @@ export default function WicketModal({
             case 'caught': return 'hand-paper-o';
             case 'caught & bowled': return 'hand-paper-o';
             case 'lbw': return 'ban';
-            case 'run out': return 'running';
+            case 'run out': return 'exchange';
             case 'stumped': return 'hand-pointer-o';
             case 'hit wicket': return 'arrow-left';
             case 'retired hurt': return 'medkit';
@@ -285,7 +285,7 @@ export default function WicketModal({
                     <View style={styles.modalContent}>
                         <View style={styles.header}>
                             <Text style={styles.title}>
-                                <FontAwesome name="stumbleupon" size={20} color={colors.brandRed} style={styles.titleIcon} />
+                                {/* <FontAwesome name="stumbleupon" size={20} color={colors.brandRed} style={styles.titleIcon} /> */}
                                 {' Wicket Details'}
                             </Text>
                             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -316,14 +316,14 @@ export default function WicketModal({
                                         setOutBatsmanId(item.value);
                                         setIsFocus(false);
                                     }}
-                                    renderLeftIcon={() => (
-                                        <FontAwesome 
-                                            name="user-circle" 
-                                            size={16} 
-                                            color={colors.brandBlue} 
-                                            style={styles.dropdownIcon}
-                                        />
-                                    )}
+                                    // renderLeftIcon={() => (
+                                    //     <FontAwesome 
+                                    //         name="user-circle" 
+                                    //         size={16} 
+                                    //         color={colors.brandBlue} 
+                                    //         style={styles.dropdownIcon}
+                                    //     />
+                                    // )}
                                 />
                             </View>
 
@@ -349,14 +349,14 @@ export default function WicketModal({
                                         setWicketType(item.value);
                                         setIsFocus(false);
                                     }}
-                                    renderLeftIcon={() => (
-                                        <FontAwesome 
-                                            name={getWicketTypeIcon(wicketType)} 
-                                            size={16} 
-                                            color={colors.brandRed} 
-                                            style={styles.dropdownIcon}
-                                        />
-                                    )}
+                                    // renderLeftIcon={() => (
+                                    //     <FontAwesome 
+                                    //         name={getWicketTypeIcon(wicketType)} 
+                                    //         size={16} 
+                                    //         color={colors.brandRed} 
+                                    //         style={styles.dropdownIcon}
+                                    //     />
+                                    // )}
                                 />
                             </View>
 
@@ -386,14 +386,14 @@ export default function WicketModal({
                                             }
                                             setIsFocus(false);
                                         }}
-                                        renderLeftIcon={() => (
-                                            <FontAwesome 
-                                                name="user-circle" 
-                                                size={16} 
-                                                color={colors.brandGreen} 
-                                                style={styles.dropdownIcon}
-                                            />
-                                        )}
+                                        // renderLeftIcon={() => (
+                                        //     <FontAwesome 
+                                        //         name="user-circle" 
+                                        //         size={16} 
+                                        //         color={colors.brandGreen} 
+                                        //         style={styles.dropdownIcon}
+                                        //     />
+                                        // )}
                                     />
 
                                     <View style={styles.orContainer}>
@@ -412,7 +412,7 @@ export default function WicketModal({
                                                 setFielderName(text);
                                                 setFielderId(undefined);
                                             }}
-                                            placeholderTextColor={colors.ccc}
+                                            placeholderTextColor={colors.bitDarkGrey}
                                         />
                                     </View>
                                 </View>
@@ -452,14 +452,14 @@ export default function WicketModal({
                                                     setNewBatsmanName(''); // Clear new name if a dropdown option is chosen
                                                     setIsFocus(false);
                                                 }}
-                                                renderLeftIcon={() => (
-                                                    <FontAwesome 
-                                                        name="user-circle" 
-                                                        size={16} 
-                                                        color={colors.brandBlue} 
-                                                        style={styles.dropdownIcon}
-                                                    />
-                                                )}
+                                                // renderLeftIcon={() => (
+                                                //     <FontAwesome 
+                                                //         name="user-circle" 
+                                                //         size={16} 
+                                                //         color={colors.brandBlue} 
+                                                //         style={styles.dropdownIcon}
+                                                //     />
+                                                // )}
                                             />
                                         ) : (
                                             <View style={styles.noPlayersContainer}>
@@ -486,7 +486,7 @@ export default function WicketModal({
                                                         setNextBatsmanId(undefined);
                                                     }
                                                 }}
-                                                placeholderTextColor={colors.ccc}
+                                                placeholderTextColor={colors.bitDarkGrey}
                                             />
                                         </View>
                                     </>
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     },
     orText: {
         marginHorizontal: spacing.md,
-        color: colors.ccc,
+        color: colors.brandDark,
         fontWeight: '500',
         fontSize: 14,
     },
@@ -718,6 +718,7 @@ const styles = StyleSheet.create({
     },
     disabledButton: {
         backgroundColor: colors.brandLight,
+        // color: colors.brandDark,
         shadowOpacity: 0,
         elevation: 0,
     },

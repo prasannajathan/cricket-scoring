@@ -97,14 +97,6 @@ export const inningsReducers = {
         // CRITICAL: Set target score for second innings
         state.targetScore = state.innings1.totalRuns + 1;
         
-        console.log("Starting Innings 2:", {
-            battingTeam: state.innings2.battingTeamId === state.teamA.id ? "Team A" : "Team B",
-            bowlingTeam: state.innings2.bowlingTeamId === state.teamA.id ? "Team A" : "Team B",
-            teamABatting: state.teamA.isBatting,
-            teamBBatting: state.teamB.isBatting,
-            targetScore: state.targetScore,
-            innings1Runs: state.innings1.totalRuns
-        });
     },
 
     setTargetScore: (state: ScoreboardState, action: PayloadAction<number>) => {
