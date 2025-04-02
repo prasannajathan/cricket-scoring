@@ -24,7 +24,8 @@ import OverRowDisplay from '@/components/scoring/OverRowDisplay';
 import ScorecardTab from '@/components/scoring/ScorecardTab';
 import CommentaryFeed from '@/components/scoring/CommentaryFeed';
 import { ScoreModals } from '@/components/scoring/ScoreModals';
-import { colors, spacing, typography } from '@/constants/theme';
+import { colors, shadows, spacing, typography } from '@/constants/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SHOWN_MATCH_ALERTS = new Set<string>();
 
@@ -267,7 +268,7 @@ export default function ScoringScreen() {
 
                     <OverRowDisplay />
 
-
+                    <ScoringButtons onScore={handleScore} canScore={canScore} />
 
                     <ExtrasToggle
                         wide={wide}
@@ -286,7 +287,6 @@ export default function ScoringScreen() {
                         disabled={!canScore}
                     />
 
-                    <ScoringButtons onScore={handleScore} canScore={canScore} />
                     <CommentaryFeed
                         innings={currentInnings}
                         battingTeam={battingTeam}
@@ -371,13 +371,9 @@ const styles = StyleSheet.create({
     tabContainer: {
         flexDirection: 'row',
         backgroundColor: colors.white,
-        elevation: 4, // Increased for Android
-        shadowColor: colors.black,
-        shadowOffset: { width: 0, height: 2 }, // More pronounced shadow
-        shadowOpacity: 0.2, // More visible shadow
-        shadowRadius: 3,
         borderBottomWidth: 1,
-        borderBottomColor: colors.brandLight// '#e0e0e0',
+        borderBottomColor: colors.brandLight,// '#e0e0e0',
+        ...shadows.card,
     },
     tabButton: {
         flex: 1,

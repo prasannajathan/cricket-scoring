@@ -16,6 +16,7 @@ import { useDispatch } from 'react-redux';
 import { resetGame } from '@/store/cricket/scoreboardSlice';
 import { FontAwesome } from '@expo/vector-icons';
 import { colors, spacing, radius } from '@/constants/theme';
+import Header from '@/components/scoring/Header';
 
 export default function HistoryScreen() {
   const [savedMatches, setSavedMatches] = useState<SavedMatch[]>([]);
@@ -202,9 +203,7 @@ export default function HistoryScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Match History</Text>
-        </View>
+        <Header />
         
         <FlatList
           data={savedMatches}
@@ -242,23 +241,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.brandLight,
-  },
-  header: {
-    padding: spacing.lg,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.brandLight,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.brandDark,
+    // backgroundColor: colors.brandLight,
   },
   listContent: {
     padding: spacing.lg,

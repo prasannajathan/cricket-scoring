@@ -13,7 +13,8 @@ import { useRouter } from 'expo-router';
 import { Team } from '@/types';
 import { FontAwesome } from '@expo/vector-icons';
 import { getSavedMatches } from '@/utils/matchStorage';
-import { colors, spacing, radius } from '@/constants/theme';
+import { colors, spacing, radius, shadows } from '@/constants/theme';
+import Header from '@/components/scoring/Header';
 
 export default function TeamsScreen() {
   const [teams, setTeams] = useState<Team[]>([]);
@@ -109,9 +110,7 @@ export default function TeamsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Teams</Text>
-        </View>
+        <Header />
         
         {loading && !refreshing ? (
           <View style={styles.loadingContainer}>
@@ -214,24 +213,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: colors.brandLight,
-  },
-  header: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.brandLight,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.brandDark,
+    // backgroundColor: colors.brandLight,
   },
   listContent: {
     padding: spacing.lg,
@@ -241,12 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: radius.md,
     marginBottom: spacing.md,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    overflow: 'hidden',
+    ...shadows.card,
   },
   teamHeader: {
     flexDirection: 'row',

@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
 
 import type { RootState } from '@/store';
 import {
@@ -28,6 +27,7 @@ import {
 import { Team } from '@/types';
 import { getAllTeams } from '@/utils/matchStorage';
 import { colors, spacing, typography, radius, shadows, commonStyles } from '@/constants/theme';
+import Header from '@/components/scoring/Header';
 
 const determineBattingTeam = (
   tossWinner: 'teamA' | 'teamB',
@@ -186,20 +186,15 @@ export default function NewMatchScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.logo}>CricScoring</Text>
-            <TouchableOpacity style={styles.settingsButton}>
-              <FontAwesome name="cog" size={24} color={colors.brandBlue} />
-            </TouchableOpacity>
-          </View>
+        <Header />
 
+        <View style={commonStyles.container}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={commonStyles.pageTitle}>New Match Setup</Text>
+            {/* <Text style={commonStyles.pageTitle}>Setup new match</Text> */}
 
             {/* Teams Section */}
             <View style={styles.section}>
@@ -210,7 +205,7 @@ export default function NewMatchScreen() {
                     ref={teamAInputRef}
                     style={commonStyles.textInput}
                     placeholder="Enter team name"
-                    placeholderTextColor={colors.ccc}
+                    placeholderTextColor={colors.bitDarkGrey}
                     value={teamA.teamName}
                     onChangeText={(value) => {
                       dispatch(setTeamName({ team: 'teamA', name: value }));
@@ -251,7 +246,7 @@ export default function NewMatchScreen() {
                     ref={teamBInputRef}
                     style={commonStyles.textInput}
                     placeholder="Enter team name"
-                    placeholderTextColor={colors.ccc}
+                    placeholderTextColor={colors.bitDarkGrey}
                     value={teamB.teamName}
                     onChangeText={(value) => {
                       dispatch(setTeamName({ team: 'teamB', name: value }));
@@ -359,7 +354,7 @@ export default function NewMatchScreen() {
                   style={commonStyles.textInput}
                   keyboardType="number-pad"
                   placeholder="e.g. 20"
-                  placeholderTextColor={colors.ccc}
+                  placeholderTextColor={colors.bitDarkGrey}
                   value={totalOvers ? String(totalOvers) : ''}
                   onChangeText={(value) =>
                     dispatch(setTotalOvers(parseInt(value, 10) || 0))
@@ -390,34 +385,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.white,
   },
-  container: {
-    flex: 1,
-  },
+  // container: {
+  //   flex: 1,
+  // },
   scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.md,
+    // paddingHorizontal: spacing.lg,
+    // paddingBottom: spacing.xxl,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.brandLight,
-    ...shadows.card
-  },
-  logo: {
-    fontSize: typography.sizeLG,
-    fontWeight: typography.weightBold,
-    color: colors.brandBlue,
-  },
-  settingsButton: {
-    padding: spacing.xs,
-  },
+
+
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   suggestionsContainer: {
     position: 'absolute',
@@ -433,12 +412,13 @@ const styles = StyleSheet.create({
     ...shadows.card
   },
   suggestionItem: {
-    padding: spacing.md,
+    padding: spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: colors.brandLight,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    zIndex: 10,
   },
   suggestionText: {
     fontSize: typography.sizeMD,
@@ -447,13 +427,6 @@ const styles = StyleSheet.create({
   suggestionSubtext: {
     fontSize: typography.sizeXS,
     color: colors.brandBlue,
-  },
-  noSuggestionsText: {
-    padding: spacing.md,
-    fontSize: typography.sizeSM,
-    color: colors.ccc,
-    fontStyle: 'italic',
-    textAlign: 'center',
   },
   radioGroup: {
     flexDirection: 'row',
@@ -480,6 +453,6 @@ const styles = StyleSheet.create({
     color: colors.brandDark,
   },
   buttonContainer: {
-    marginTop: spacing.md,
+    // marginTop: spacing.md,
   },
 });

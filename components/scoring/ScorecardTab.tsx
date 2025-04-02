@@ -492,7 +492,7 @@ interface BatsmanRowProps {
     container: {
       flex: 1,
       padding: spacing.md,
-      backgroundColor: colors.brandLight,
+      // backgroundColor: colors.brandLight,
     },
     loadingContainer: {
       alignItems: 'center',

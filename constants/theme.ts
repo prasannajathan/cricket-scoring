@@ -10,6 +10,7 @@ export const colors = {
     black: '#000000',
     white: '#FFFFFF',
     ccc: '#cccccc',
+    bitDarkGrey: '#595959', // on white background for accessibility
     brandGreen: '#106400',
     brandTeal: '#008080',
     orange: '#FFA000',
@@ -143,7 +144,7 @@ export const breakpoints = {
 export const commonStyles =  StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.brandLight,
+        // backgroundColor: colors.brandLight,
         paddingHorizontal: spacing.md,
         paddingTop: spacing.md,
     },
@@ -216,10 +217,10 @@ export const commonStyles =  StyleSheet.create({
         marginBottom: spacing.xl,
     },
     label: {
-        fontSize: typography.sizeSM,
+        fontSize: typography.sizeMD,
         fontWeight: typography.weightSemiBold,
         color: colors.brandDark,
-        marginBottom: spacing.xs,
+        marginBottom: spacing.sm,
     },
     inputWrapper: {
         position: 'relative',
