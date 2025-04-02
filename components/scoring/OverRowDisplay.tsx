@@ -29,7 +29,7 @@ export default function OverRowDisplay() {
             </View>
           ))
         ) : (
-          <Text style={commonStyles.sectionTitle}>New over</Text>
+          <Text>New over</Text>
         )}
       </View>
     </View>
@@ -157,6 +157,13 @@ function getBallStyle(ball: string) {
 }
 
 const styles = StyleSheet.create({
+  sectionHeaderRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
   overBallsRow: {
     flexDirection: 'row',
   },
@@ -169,6 +176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: spacing.xs,
   },
+
   ballText: {
     color: colors.black,
     fontWeight: typography.weightBold,

@@ -83,19 +83,56 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
   };
   
   const formatCommentary = (delivery: DeliveryEvent) => {
-    // Calculate over number
-    const legalBallIndex = innings.deliveries.filter(d => 
+    // Get array of all legal deliveries (excluding wides and no-balls)
+    const legalDeliveries = innings.deliveries.filter(d => 
       !d.extraType || (d.extraType !== 'wide' && d.extraType !== 'no-ball')
-    ).indexOf(delivery);
+    );
     
-    const overNumber = Math.floor(legalBallIndex / 6);
-    const ballNumber = (legalBallIndex % 6) + 1;
+    // Find the index of the current delivery in all deliveries
+    const deliveryIndex = innings.deliveries.indexOf(delivery);
+    
+    // Count legal deliveries up to this point
+    let legalBallsBeforeThis = 0;
+    for (let i = 0; i < deliveryIndex; i++) {
+      if (!innings.deliveries[i].extraType || 
+          (innings.deliveries[i].extraType !== 'wide' && 
+           innings.deliveries[i].extraType !== 'no-ball')) {
+        legalBallsBeforeThis++;
+      }
+    }
+    
+    // Calculate over and ball number
+    const isLegalDelivery = !delivery.extraType || 
+                            (delivery.extraType !== 'wide' && 
+                             delivery.extraType !== 'no-ball');
+    
+    // For wides and no balls, use previous legal delivery's over.ball
+    let overNumber, ballNumber;
+    
+    if (isLegalDelivery) {
+      overNumber = Math.floor(legalBallsBeforeThis / 6);
+      ballNumber = (legalBallsBeforeThis % 6) + 1;
+    } else {
+      // For extras, show the over they occurred in (based on previous legal delivery)
+      overNumber = Math.floor(legalBallsBeforeThis / 6);
+      ballNumber = (legalBallsBeforeThis % 6);
+      
+      // If it's the first ball of an over, show previous over's 6th ball
+      if (ballNumber === 0 && overNumber > 0) {
+        ballNumber = 6;
+        overNumber -= 1;
+      } else if (ballNumber === 0) {
+        // Edge case: first ball of the innings is a wide/no-ball
+        ballNumber = 1;
+      }
+    }
     
     const bowlerName = getBowlerName(delivery.bowlerId);
     const batsmanName = getBatsmanName(delivery.batsmanId);
     
     let commentary = `${overNumber}.${ballNumber} ${bowlerName} to ${batsmanName}, `;
     
+    // Rest of the function remains the same
     if (delivery.wicket) {
       commentary += `OUT! ${delivery.wicketType}`;
       if (delivery.wicketType === 'caught' && delivery.fielderId) {

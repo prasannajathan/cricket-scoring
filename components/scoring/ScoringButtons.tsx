@@ -5,11 +5,13 @@ import { colors, spacing, radius, typography } from '@/constants/theme';
 interface ScoringButtonsProps {
     onScore: (runs: number) => void;
     canScore: boolean;
+    disabled?: boolean;
 }
 
 export default function ScoringButtons({
     onScore,
-    canScore
+    canScore,
+    disabled 
 }: ScoringButtonsProps) {
     const runButtons = [0, 1, 2, 3, 4, 6];
 
@@ -22,14 +24,17 @@ export default function ScoringButtons({
                         key={runs}
                         style={[
                             styles.runButton,
+                            disabled ? styles.disabledButton : null,
                             runs === 0 ? styles.dotButton : null,
                             runs === 4 ? styles.fourButton : null,
                             runs === 6 ? styles.sixButton : null,
-                            !canScore ? styles.disabledButton : null
+                            // !canScore ? styles.disabledButton : null
                         ]}
                         onPress={() => onScore(runs)}
-                        disabled={!canScore}
-                        activeOpacity={0.7}
+                        // disabled={!canScore}
+                        // activeOpacity={0.7}
+                        activeOpacity={disabled ? 1 : 0.7}
+                        disabled={disabled}
                     >
                         {runs === 0 ? (
                             <Text style={styles.dotCircle}>0</Text>
@@ -81,10 +86,11 @@ const styles = StyleSheet.create({
         backgroundColor: colors.brandCharcoal,
     },
     dotCircle: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
+        width: 16,
+        height: 16,
+        borderRadius: 100,
         backgroundColor: colors.white,
+        color: colors.white
     },
     fourButton: {
         backgroundColor: colors.brandGreen,
@@ -136,7 +142,8 @@ const styles = StyleSheet.create({
         color: colors.white,
     },
     disabledButton: {
-        backgroundColor: colors.brandLight,
+        backgroundColor: colors.brandLight + '80',
+        opacity: 0.7,
         shadowOpacity: 0,
         elevation: 0,
     },

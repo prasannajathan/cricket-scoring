@@ -88,7 +88,6 @@ export default function ScoringScreen() {
 
     // 6.5) Show NextBowlerModal automatically when a new over starts
     useEffect(() => {
-
         if (
             currentInnings?.ballInCurrentOver === 0 &&
             (currentInnings?.completedOvers || 0) > 0 &&
@@ -113,6 +112,12 @@ export default function ScoringScreen() {
             Alert.alert('Match Completed', 'The match is already over.');
             return;
         }
+        // Check if first innings is complete but user hasn't started second innings
+        if (state.currentInning === 1 && currentInnings?.isCompleted) {
+            setShowEndInningsModal(true);
+            return;
+        }
+
         if (!canScore) {
             setShowBowlerModal(true);
             return;
@@ -154,6 +159,13 @@ export default function ScoringScreen() {
         if (state.matchOver) {
             setShowWicketModal(false);
             Alert.alert('Match Completed', 'The match is already over.');
+            return;
+        }
+
+        // Check if first innings is complete but user hasn't started second innings
+        if (state.currentInning === 1 && currentInnings?.isCompleted) {
+            setShowWicketModal(false);
+            setShowEndInningsModal(true);
             return;
         }
 
@@ -268,8 +280,6 @@ export default function ScoringScreen() {
 
                     <OverRowDisplay />
 
-                    <ScoringButtons onScore={handleScore} canScore={canScore} />
-
                     <ExtrasToggle
                         wide={wide}
                         noBall={noBall}
@@ -280,6 +290,8 @@ export default function ScoringScreen() {
                         setBye={(v) => setScoringState(prev => ({ ...prev, bye: v }))}
                         setLegBye={(v) => setScoringState(prev => ({ ...prev, legBye: v }))}
                     />
+
+                    <ScoringButtons onScore={handleScore} canScore={canScore} disabled={state.currentInning === 1 && currentInnings?.isCompleted} />
 
                     <WicketToggle
                         wicket={wicket}

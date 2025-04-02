@@ -169,11 +169,6 @@ export default function ExtrasToggle({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: colors.white,
-        borderRadius: radius.md,
-        padding: spacing.md,
-        marginBottom: spacing.md,
-        ...shadows.card,
     },
     headerRow: {
         flexDirection: 'row',

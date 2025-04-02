@@ -41,6 +41,13 @@ export default function EndInningsModal({
                     <View style={styles.headerContainer}>
                         <FontAwesome name="flag-checkered" size={24} color={colors.brandBlue} style={styles.headerIcon} />
                         <Text style={styles.title}>First Innings Complete</Text>
+                        <TouchableOpacity 
+                            style={styles.closeButton} 
+                            onPress={onClose}
+                            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                        >
+                            <FontAwesome name="times" size={20} color={colors.ccc} />
+                        </TouchableOpacity>
                     </View>
                     
                     <View style={styles.infoContainer}>
@@ -75,16 +82,18 @@ export default function EndInningsModal({
                         </View>
                     </View>
                     
-                    <TouchableOpacity 
-                        style={styles.button}
-                        onPress={onConfirm}
-                        activeOpacity={0.7}
-                    >
-                        <FontAwesome name="play" size={16} color={colors.white} style={styles.buttonIcon} />
-                        <Text style={styles.buttonText}>
-                            Start Second Innings
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity 
+                            style={styles.button}
+                            onPress={onConfirm}
+                            activeOpacity={0.7}
+                        >
+                            <FontAwesome name="play" size={16} color={colors.white} style={styles.buttonIcon} />
+                            <Text style={styles.buttonText}>
+                                Start Second Innings
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </Modal>
@@ -114,16 +123,20 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: colors.brandLight,
         width: '100%',
-        justifyContent: 'center',
     },
     headerIcon: {
         marginRight: spacing.sm,
     },
     title: {
-        fontSize: typography.sizeXL,
+        fontSize: typography.sizeLG,
         fontFamily: typography.fontFamilyBold,
         fontWeight: typography.weightBold,
         color: colors.brandBlue,
+        flex: 1,
+        textAlign: 'left',
+    },
+    closeButton: {
+        padding: spacing.xs,
     },
     infoContainer: {
         alignItems: 'center',
@@ -193,15 +206,33 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: colors.brandRed,
     },
-    button: {
-        backgroundColor: colors.brandGreen,
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        gap: spacing.sm,
+    },
+    cancelButton: {
+        backgroundColor: colors.white,
         paddingVertical: spacing.md,
-        paddingHorizontal: spacing.xl,
+        paddingHorizontal: spacing.md,
         borderRadius: radius.md,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '100%',
+        flex: 1,
+        borderWidth: 1,
+        borderColor: colors.brandLight,
+    },
+    button: {
+        backgroundColor: colors.brandGreen,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.md,
+        borderRadius: radius.md,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flex: 2,
         ...shadows.button,
     },
     buttonIcon: {
@@ -210,6 +241,12 @@ const styles = StyleSheet.create({
     buttonText: {
         color: colors.white,
         fontSize: typography.sizeLG,
+        fontFamily: typography.fontFamilyBold,
+        fontWeight: typography.weightBold,
+    },
+    cancelText: {
+        color: colors.brandDark,
+        fontSize: typography.sizeMD,
         fontFamily: typography.fontFamilyBold,
         fontWeight: typography.weightBold,
     },
