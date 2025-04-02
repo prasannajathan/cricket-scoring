@@ -1,4 +1,4 @@
-import React, {useCallback} from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, ImageBackground, StatusBar, SafeAreaView, TouchableOpacity } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
@@ -32,15 +32,15 @@ export default function ScoreHeader({
 
     useFocusEffect(
         useCallback(() => {
-          StatusBar.setTranslucent(true);
-          StatusBar.setBarStyle('light-content');
-    
-          return () => {
-            StatusBar.setTranslucent(false);
-            StatusBar.setBarStyle('dark-content');
-          };
+            // StatusBar.setTranslucent(true);
+            StatusBar.setBarStyle('light-content');
+
+            return () => {
+                // StatusBar.setTranslucent(false);
+                StatusBar.setBarStyle('dark-content');
+            };
         }, [])
-      );
+    );
 
     const computeRunRate = (runs: number, overs: number, balls: number) => {
         const totalOvers = overs + (balls / 6);
@@ -106,8 +106,8 @@ export default function ScoreHeader({
                     <View style={styles.heroContent}>
                         {/* Team and Current Score */}
                         <View style={styles.scoreHeader}>
-                        <TouchableOpacity style={styles.back}
-                             onPress={homeTab}>
+                            <TouchableOpacity style={styles.back}
+                                onPress={homeTab}>
                                 <FontAwesome name="chevron-left" size={24} color={colors.white} style={styles.backIcon} />
                             </TouchableOpacity>
                             <Text style={styles.teamName}>

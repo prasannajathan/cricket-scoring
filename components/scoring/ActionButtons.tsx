@@ -49,12 +49,12 @@ export default function ActionButtons({
     }) => {
         const icon = getIconForAction(label);
         const buttonWidth = size === 'small' ? '31%' : size === 'large' ? '100%' : '48%';
-        
+
         return (
             <TouchableOpacity
                 style={[
-                    styles.actionButton, 
-                    { 
+                    styles.actionButton,
+                    {
                         backgroundColor: color,
                         width: buttonWidth
                     }
@@ -62,11 +62,11 @@ export default function ActionButtons({
                 onPress={onPress}
                 activeOpacity={0.7}
             >
-                <FontAwesome 
-                    name={icon} 
-                    size={16} 
-                    color={colors.white} 
-                    style={styles.buttonIcon} 
+                <FontAwesome
+                    name={icon}
+                    size={16}
+                    color={colors.white}
+                    style={styles.buttonIcon}
                 />
                 <Text style={styles.actionButtonText}>{label}</Text>
             </TouchableOpacity>
@@ -76,38 +76,38 @@ export default function ActionButtons({
     return (
         <View style={styles.container}>
             <View style={styles.topRow}>
-                <ActionButton 
-                    label="Undo" 
-                    onPress={onUndo} 
-                    color={colors.brandRed} 
-                    size="small" 
+                <ActionButton
+                    label="Undo"
+                    onPress={onUndo}
+                    color={colors.brandRed}
+                    size="small"
                 />
-                <ActionButton 
-                    label="Swap" 
-                    onPress={onSwap} 
-                    color={colors.brandBlue} 
-                    size="small" 
+                <ActionButton
+                    label="Swap"
+                    onPress={onSwap}
+                    color={colors.brandBlue}
+                    size="small"
                 />
-                <ActionButton 
-                    label="Partnership" 
-                    onPress={onPartnership} 
-                    color={colors.orange} 
-                    size="small" 
+                <ActionButton
+                    label="Partnership"
+                    onPress={onPartnership}
+                    color={colors.orange}
+                    size="small"
                 />
             </View>
-            
+
             <View style={styles.bottomRow}>
-                <ActionButton 
-                    label="Extras" 
-                    onPress={onExtras} 
-                    color={colors.brandGreen} 
-                    size="normal" 
+                <ActionButton
+                    label="Extras"
+                    onPress={onExtras}
+                    color={colors.brandGreen}
+                    size="normal"
                 />
-                <ActionButton 
-                    label="Penalty" 
-                    onPress={onAdvancedScore} 
-                    color={colors.brandCharcoal} 
-                    size="normal" 
+                <ActionButton
+                    label="Penalty"
+                    onPress={onAdvancedScore}
+                    color={colors.brandCharcoal}
+                    size="normal"
                 />
             </View>
         </View>
@@ -116,11 +116,8 @@ export default function ActionButtons({
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: colors.white,
-        borderRadius: radius.md,
-        padding: spacing.sm,
-        marginVertical: spacing.sm,
-        ...shadows.card,
+        marginVertical: spacing.lg,
+        paddingBottom: spacing.md,
     },
     topRow: {
         flexDirection: 'row',

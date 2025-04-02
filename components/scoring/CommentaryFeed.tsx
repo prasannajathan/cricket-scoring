@@ -29,7 +29,7 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
   // Get last 10 deliveries in reverse (most recent first)
   const recentDeliveries = [...innings.deliveries]
     .reverse()
-    .slice(0, 10);
+    .slice(0, 40);
   
   // Helper functions to get player names
   const getBatsmanName = (id?: string) => {
@@ -214,7 +214,6 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
         <Text style={styles.title}>Commentary</Text>
       </View>
       <ScrollView 
-        style={styles.commentaryScroll}
         showsVerticalScrollIndicator={false}
       >
         {recentDeliveries.map((delivery, index) => (
@@ -243,11 +242,11 @@ export default function CommentaryFeed({ innings, battingTeam, bowlingTeam }: Co
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginVertical: spacing.md,
-    ...shadows.card,
+    // backgroundColor: colors.white,
+    // borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    marginVertical: spacing.lg,
+    // ...shadows.card,
   },
   header: {
     flexDirection: 'row',
@@ -277,9 +276,9 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
   },
-  commentaryScroll: {
-    maxHeight: 250,
-  },
+  // commentaryScroll: {
+  //   maxHeight: 250,
+  // },
   commentaryItem: {
     flexDirection: 'row',
     paddingVertical: spacing.sm,

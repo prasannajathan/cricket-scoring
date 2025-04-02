@@ -26,7 +26,6 @@ import ScorecardTab from '@/components/scoring/ScorecardTab';
 import CommentaryFeed from '@/components/scoring/CommentaryFeed';
 import { ScoreModals } from '@/components/scoring/ScoreModals';
 import { colors, shadows, spacing, typography, radius } from '@/constants/theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const SHOWN_MATCH_ALERTS = new Set<string>();
 
@@ -211,7 +210,6 @@ export default function ScoringScreen() {
         ]);
     }, [state.matchOver, state.matchResult]);
 
-
     return (
         <ScrollView style={styles.safeArea}>
             <ScoreHeader
@@ -304,20 +302,13 @@ export default function ScoringScreen() {
                         setBye={(v) => setScoringState(prev => ({ ...prev, bye: v }))}
                         setLegBye={(v) => setScoringState(prev => ({ ...prev, legBye: v }))}
                     />
-
-                    <ScoringButtons onScore={handleScore} canScore={canScore} disabled={state.currentInning === 1 && currentInnings?.isCompleted} />
-
                     <WicketToggle
                         wicket={wicket}
                         setWicket={(v) => setScoringState(prev => ({ ...prev, wicket: v }))}
                         disabled={!canScore}
                     />
+                    <ScoringButtons onScore={handleScore} canScore={canScore} disabled={state.currentInning === 1 && currentInnings?.isCompleted} />
 
-                    <CommentaryFeed
-                        innings={currentInnings}
-                        battingTeam={battingTeam}
-                        bowlingTeam={bowlingTeam}
-                    />
                     <ActionButtons
                         onUndo={() => dispatch(undoLastBall())}
                         onSwap={() => dispatch(swapBatsmen())}
@@ -343,9 +334,11 @@ export default function ScoringScreen() {
 
             {/* Scorecard tab - Detailed stats */}
             {activeTab === 'commentary' && (
-                <View style={styles.container}>
-                    <Text>Commentary</Text>
-                </View>
+                <CommentaryFeed
+                    innings={currentInnings}
+                    battingTeam={battingTeam}
+                    bowlingTeam={bowlingTeam}
+                />
             )}
 
             {/* Our new consolidated modals */}
