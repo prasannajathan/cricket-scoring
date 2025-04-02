@@ -227,7 +227,7 @@ export default function NewMatchScreen() {
                   {/* Team A suggestions */}
                   {showTeamASuggestions && (
                     <View style={styles.suggestionsContainer}>
-                      {teamASuggestions.length > 0 ? (
+                      {teamASuggestions.length > 0 && (
                         teamASuggestions.map(item => (
                           <TouchableOpacity
                             key={item.id}
@@ -240,8 +240,6 @@ export default function NewMatchScreen() {
                             </Text>
                           </TouchableOpacity>
                         ))
-                      ) : (
-                        <Text style={styles.noSuggestionsText}>No teams found</Text>
                       )}
                     </View>
                   )}
@@ -270,7 +268,7 @@ export default function NewMatchScreen() {
                   {/* Team B suggestions */}
                   {showTeamBSuggestions && (
                     <View style={styles.suggestionsContainer}>
-                      {teamBSuggestions.length > 0 ? (
+                      {teamBSuggestions.length > 0 && (
                         teamBSuggestions.map(item => (
                           <TouchableOpacity
                             key={item.id}
@@ -283,8 +281,6 @@ export default function NewMatchScreen() {
                             </Text>
                           </TouchableOpacity>
                         ))
-                      ) : (
-                        <Text style={styles.noSuggestionsText}>No teams found</Text>
                       )}
                     </View>
                   )}

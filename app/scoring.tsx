@@ -31,6 +31,7 @@ const SHOWN_MATCH_ALERTS = new Set<string>();
 export default function ScoringScreen() {
     const dispatch = useDispatch();
     const router = useRouter();
+
     const { matchId, activeTab: tabParam } = useLocalSearchParams();
 
     // 1) Load match data
@@ -55,12 +56,12 @@ export default function ScoringScreen() {
     const [showEndInningsModal, setShowEndInningsModal] = useState(false);
 
     // 5) Manage tabs
-    const activeTabRef = useRef<'live' | 'scorecard'>(
+    const activeTabRef = useRef<'live' | 'scorecard' | 'commentary'>(
         tabParam === 'scorecard' ? 'scorecard' : 'live'
     );
-    const [activeTab, setActiveTab] = useState<'live' | 'scorecard'>(activeTabRef.current);
+    const [activeTab, setActiveTab] = useState<'live' | 'scorecard' | 'commentary'>(activeTabRef.current);
 
-    const setActiveTabPersistent = (tab: 'live' | 'scorecard') => {
+    const setActiveTabPersistent = (tab: 'live' | 'scorecard' | 'commentary') => {
         activeTabRef.current = tab;
         setActiveTab(tab);
     };
@@ -86,10 +87,7 @@ export default function ScoringScreen() {
 
     // 6.5) Show NextBowlerModal automatically when a new over starts
     useEffect(() => {
-        // If we just finished an over:
-        //   ballInCurrentOver = 0
-        //   completedOvers > 0
-        // and the innings/match isn't over
+
         if (
             currentInnings?.ballInCurrentOver === 0 &&
             (currentInnings?.completedOvers || 0) > 0 &&
@@ -243,6 +241,22 @@ export default function ScoringScreen() {
                         Scorecard
                     </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[
+                        styles.tabButton,
+                        activeTab === 'commentary' && styles.activeTabButton
+                    ]}
+                    onPress={() => setActiveTabPersistent('commentary')}
+                    activeOpacity={0.7}
+                >
+                    <Text style={[
+                        styles.tabText,
+                        activeTab === 'commentary' && styles.activeTabText
+                    ]}>
+                        Commentary
+                    </Text>
+                </TouchableOpacity>
             </View>
 
             {/* Live tab - Ball by ball */}
@@ -253,11 +267,7 @@ export default function ScoringScreen() {
 
                     <OverRowDisplay />
 
-                    <CommentaryFeed
-                        innings={currentInnings}
-                        battingTeam={battingTeam}
-                        bowlingTeam={bowlingTeam}
-                    />
+
 
                     <ExtrasToggle
                         wide={wide}
@@ -277,7 +287,11 @@ export default function ScoringScreen() {
                     />
 
                     <ScoringButtons onScore={handleScore} canScore={canScore} />
-
+                    <CommentaryFeed
+                        innings={currentInnings}
+                        battingTeam={battingTeam}
+                        bowlingTeam={bowlingTeam}
+                    />
                     <ActionButtons
                         onUndo={() => dispatch(undoLastBall())}
                         onSwap={() => dispatch(swapBatsmen())}
@@ -299,6 +313,13 @@ export default function ScoringScreen() {
                     matchResult={state.matchResult}
                     state={state}
                 />
+            )}
+
+            {/* Scorecard tab - Detailed stats */}
+            {activeTab === 'commentary' && (
+                <View style={styles.container}>
+                    <Text>Commentary</Text>
+                </View>
             )}
 
             {/* Our new consolidated modals */}

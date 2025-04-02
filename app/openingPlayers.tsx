@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   SafeAreaView
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
@@ -27,7 +27,7 @@ import { colors, spacing, radius, commonStyles } from '@/constants/theme';
 export default function OpeningPlayersScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const navigation = useNavigation();
+
   const scoreboard = useSelector((state: RootState) => state.scoreboard);
   const { innings = '1' } = useLocalSearchParams();
   const isSecondInnings = innings === '2';
@@ -36,19 +36,6 @@ export default function OpeningPlayersScreen() {
   // Get the batting and bowling teams based on the current innings
   const battingTeam = useSelector(selectBattingTeam);
   const bowlingTeam = useSelector(selectBowlingTeam);
-
-  // useLayoutEffect(() => {
-  //   navigation.setOptions({
-  //     title: isSecondInnings ? 'Second Innings Setup' : 'Select Opening Players',
-  //     headerBackTitle: 'Back',
-  //   });
-  // }, [navigation, isSecondInnings]);
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerBackTitleVisible: false, // Hides the "Back" text
-      headerTitle: '',               // Hides the header title
-    });
-  }, [navigation]);
 
   // When showing players for the second innings, make sure to set currentInning and apply startInnings2 
   useEffect(() => {
