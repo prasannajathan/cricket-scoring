@@ -39,6 +39,8 @@ export interface DeliveryEvent {
     fielderId?: string;
     totalRuns?: number;
     preSwitchStrikerId?: string;
+    overNumber?: number;
+    ballInOver?: number;
     timestamp: number;
 }
 
