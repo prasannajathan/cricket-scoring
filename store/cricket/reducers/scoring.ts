@@ -39,7 +39,7 @@ export const scoringReducers = {
         // Update batsman stats
         updateBatsmanStats(battingTeam, currentInnings, runs, extraType);
         // Update bowler stats
-        updateBowlerStats(bowlingTeam, currentInnings, runs, extraType, wicket, wicketType);
+        updateBowlerStats(bowlingTeam, currentInnings, runs, extraType, wicket, wicketType, fielderId);
         // Update partnership stats
         updatePartnershipStats(currentInnings, totalRuns, isLegalDelivery);
 
@@ -124,14 +124,14 @@ export const scoringReducers = {
             // 3) Handle all-out case specially
             if (isAllOut) {
                 currentInnings.isAllOut = true;
-                
+
                 // For all-out in first innings, mark ready for innings 2
                 if (state.currentInning === 1) {
                     currentInnings.readyForInnings2 = true;
                 } else {
                     // For all-out in second innings, match is over
                     state.matchOver = true;
-                    
+
                     // Use centralized function to calculate result
                     calculateMatchResult(state);
                 }
@@ -340,11 +340,13 @@ function updateBowlerStats(
     runs: number,
     extraType: string | undefined,
     wicket: boolean | undefined,
-    wicketType: string | undefined
+    wicketType: string | undefined,
+    fielderId?: string | undefined
 ) {
     const bowler = bowlingTeam.players.find(
         p => p.id === currentInnings.currentBowlerId
     );
+    
     if (!bowler) return;
 
     // We don't charge wide runs to the bowler; no-ball is partially charged
@@ -370,6 +372,34 @@ function updateBowlerStats(
     // If it's a wicket of type other than runout/retired, increment bowler's wickets
     if (wicket && !['runout', 'retired'].includes(wicketType || '')) {
         bowler.wickets += 1;
+    }
+
+    // update fielder stats if applicable
+    if (wicket && fielderId) {
+        updateFielderStats(bowlingTeam, wicketType, fielderId);
+    }
+    
+}
+
+function updateFielderStats (
+    bowlingTeam: Team,
+    wicketType: string | undefined,
+    fielderId: string
+){
+    const fielder = bowlingTeam.players.find(
+        p => p.id === fielderId
+    );
+    if (!fielder) return;
+
+    const isFielder = wicketType === 'caught' || wicketType === 'run out' || wicketType === 'stumped'
+    if (fielder && isFielder) {
+        if (wicketType === 'caught') {
+            fielder.catches += 1;
+        } else if (wicketType === 'run out') {
+            fielder.runouts += 1;
+        } else if (wicketType === 'stumped') {
+            fielder.stumps += 1;
+        }
     }
 }
 

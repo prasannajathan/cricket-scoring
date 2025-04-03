@@ -1,9 +1,10 @@
+import { wicketTypes } from '@/constants/scoring';
 interface ScoringScreenProps {
     matchId?: string;
 }
 
 export type ExtraType = 'wide' | 'no-ball' | 'bye' | 'leg-bye';
-export type WicketType = 'bowled' | 'caught' | 'lbw' | 'run out' | 'stumped' | 'hit wicket' | 'retired hurt';
+export type WicketType = typeof wicketTypes[number]
 
 export interface ScoringState {
     wide: boolean;

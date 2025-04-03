@@ -99,7 +99,6 @@ export interface Cricketer {
     strikeRate: number;
     isOut: boolean;
     isWicketKeeper?: boolean;
-
     // Bowling fields
     overs: number;
     ballsThisOver: number;
@@ -111,7 +110,7 @@ export interface Cricketer {
     // Fielding fields
     catches: number;
     runouts: number;
-
+    stumps: number;
     // Team fields
     captain?: boolean;
     isRetired?: boolean;

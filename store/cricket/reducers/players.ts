@@ -3,6 +3,7 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { Cricketer, ScoreboardState } from '@/types';
+import { playerStats } from '@/utils/index';
 
 interface UpdateInningsPlayersPayload {
     currentStrikerId: string;
@@ -20,19 +21,7 @@ export const playerReducers = {
         state[team].players.push({
             ...player,
             id: player.id || uuidv4(),
-            runs: 0,
-            balls: 0,
-            fours: 0,
-            sixes: 0,
-            strikeRate: 0,
-            isOut: false,
-            // isRetired: false,
-            overs: 0,
-            ballsThisOver: 0,
-            runsConceded: 0,
-            wickets: 0,
-            economy: 0,
-            maidens: 0
+            ...playerStats
         });
     },
 

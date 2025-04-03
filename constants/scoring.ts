@@ -4,6 +4,22 @@ import { initialState } from '@/store/cricket/initialState';
 
 const BALLS_PER_OVER = 6
 
+export const wicketTypes = [
+    'bowled',
+    'caught',
+    'caught & bowled',
+    'lbw',
+    'run out',
+    'stumped',
+    'hit wicket',
+    'retired hurt',
+    'retired out',
+    'obstructing the field',
+    // 'hit the ball twice',
+    // 'timed out',
+    // 'handled the ball',
+] as const;
+
 export const getMatchRules = (state: ScoreboardState) => {
     const { totalOvers, totalPlayers } = state;
     
@@ -39,11 +55,14 @@ export const T20_MATCH_RULES = getDefaultMatchRules();
 export const WICKET_TYPES: Record<WicketType, string> = {
     'bowled': 'b',
     'caught': 'c',
+    'caught & bowled': 'c&b',
     'lbw': 'lbw',
     'run out': 'run out',
     'stumped': 'st',
     'hit wicket': 'hit wicket',
-    'retired hurt': 'retired hurt'
+    'retired hurt': 'retired hurt',
+    'retired out': 'retired out',
+    'obstructing the field': 'obstructing the field',
 } as const;
 
 export const EXTRA_TYPES: Record<ExtraType, string> = {

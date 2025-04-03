@@ -56,7 +56,7 @@ export default function ExtrasModal({ visible, onClose, onAddExtras }: ExtrasMod
     };
 
     // Get icon for each extra type
-    const getExtraIcon = (type: string) => {
+    const getExtraIcon = (type: string): keyof typeof FontAwesome.glyphMap => {
         switch(type) {
             case 'wides': return 'arrows-h';
             case 'noBalls': return 'warning';
@@ -190,7 +190,7 @@ export default function ExtrasModal({ visible, onClose, onAddExtras }: ExtrasMod
 interface ExtraRowProps {
     label: string;
     value: number;
-    icon: string;
+    icon: keyof typeof FontAwesome.glyphMap;
     isLast?: boolean;
 }
 

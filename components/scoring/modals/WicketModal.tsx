@@ -20,6 +20,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import 'react-native-get-random-values';
 import { v4 as uuidv4 } from 'uuid';
 import { colors, spacing, radius, typography, shadows } from '@/constants/theme';
+import { wicketTypes } from '@/constants/scoring';
 
 interface WicketModalProps {
     visible: boolean;
@@ -70,22 +71,6 @@ export default function WicketModal({
     
     // 3. Check if this wicket will cause all out
     const nextWicketAllOut = outPlayers + 1 >= maxWickets;
-
-    const wicketTypes = [
-        'bowled',
-        'caught',
-        'caught & bowled',
-        'lbw',
-        'run out',
-        'stumped',
-        'hit wicket',
-        'retired hurt',
-        'retired out',
-        'timed out',
-        'handled the ball',
-        'obstructing the field',
-        'hit the ball twice',
-    ];
 
     // Mapped data for <Dropdown>
     const wicketTypeData = wicketTypes.map(type => ({

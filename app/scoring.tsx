@@ -210,6 +210,9 @@ export default function ScoringScreen() {
         ]);
     }, [state.matchOver, state.matchResult]);
 
+    // TODO: Add a way to reset this set when the match is reset or a new match is loaded
+    // console.log('ScoringScreen: state', JSON.stringify(state));
+
     return (
         <ScrollView style={styles.safeArea}>
             <ScoreHeader
