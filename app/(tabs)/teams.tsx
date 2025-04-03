@@ -41,13 +41,28 @@ export default function TeamsScreen() {
           uniqueTeams.set(match.teamA.id, {
             ...match.teamA,
             matchCount: 1,
-            wins: match.matchResult?.includes(match.teamA.teamName + " wins") ? 1 : 0
+            wins: match.matchResult?.includes(match.teamA.teamName + " wins") ? 1 : 0,
+            runsScored: match.innings1?.battingTeamId === match.teamA.id ? match.innings1.totalRuns : 
+                         match.innings2?.battingTeamId === match.teamA.id ? match.innings2.totalRuns : 0,
+            runsConceded: match.innings1?.bowlingTeamId === match.teamA.id ? match.innings1.totalRuns : 
+                          match.innings2?.bowlingTeamId === match.teamA.id ? match.innings2.totalRuns : 0,
+            netRunRate: 0 // Will calculate after aggregating all matches
           });
         } else {
           // Update existing team
           const team = uniqueTeams.get(match.teamA.id)!;
           team.matchCount = (team.matchCount || 0) + 1;
           team.wins = (team.wins || 0) + (match.matchResult?.includes(match.teamA.teamName + " wins") ? 1 : 0);
+          
+          // Add runs from this match
+          const runsScored = match.innings1?.battingTeamId === match.teamA.id ? match.innings1.totalRuns : 
+                             match.innings2?.battingTeamId === match.teamA.id ? match.innings2.totalRuns : 0;
+          const runsConceded = match.innings1?.bowlingTeamId === match.teamA.id ? match.innings1.totalRuns : 
+                               match.innings2?.bowlingTeamId === match.teamA.id ? match.innings2.totalRuns : 0;
+          
+          team.runsScored = (team.runsScored || 0) + runsScored;
+          team.runsConceded = (team.runsConceded || 0) + runsConceded;
+          
           uniqueTeams.set(match.teamA.id, team);
         }
         
@@ -56,14 +71,37 @@ export default function TeamsScreen() {
           uniqueTeams.set(match.teamB.id, {
             ...match.teamB,
             matchCount: 1,
-            wins: match.matchResult?.includes(match.teamB.teamName + " wins") ? 1 : 0
+            wins: match.matchResult?.includes(match.teamB.teamName + " wins") ? 1 : 0,
+            runsScored: match.innings1?.battingTeamId === match.teamB.id ? match.innings1.totalRuns : 
+                         match.innings2?.battingTeamId === match.teamB.id ? match.innings2.totalRuns : 0,
+            runsConceded: match.innings1?.bowlingTeamId === match.teamB.id ? match.innings1.totalRuns : 
+                          match.innings2?.bowlingTeamId === match.teamB.id ? match.innings2.totalRuns : 0,
+            netRunRate: 0 // Will calculate after aggregating all matches
           });
         } else {
           // Update existing team
           const team = uniqueTeams.get(match.teamB.id)!;
           team.matchCount = (team.matchCount || 0) + 1;
           team.wins = (team.wins || 0) + (match.matchResult?.includes(match.teamB.teamName + " wins") ? 1 : 0);
+          
+          // Add runs from this match
+          const runsScored = match.innings1?.battingTeamId === match.teamB.id ? match.innings1.totalRuns : 
+                             match.innings2?.battingTeamId === match.teamB.id ? match.innings2.totalRuns : 0;
+          const runsConceded = match.innings1?.bowlingTeamId === match.teamB.id ? match.innings1.totalRuns : 
+                               match.innings2?.bowlingTeamId === match.teamB.id ? match.innings2.totalRuns : 0;
+          
+          team.runsScored = (team.runsScored || 0) + runsScored;
+          team.runsConceded = (team.runsConceded || 0) + runsConceded;
+          
           uniqueTeams.set(match.teamB.id, team);
+        }
+      });
+
+      // Calculate net run rate for each team
+      uniqueTeams.forEach(team => {
+        if (team.matchCount && team.matchCount > 0) {
+          team.netRunRate = parseFloat(((team.runsScored || 0) / (team.matchCount * 20) - 
+                                        (team.runsConceded || 0) / (team.matchCount * 20)).toFixed(2));
         }
       });
       
@@ -186,6 +224,17 @@ export default function TeamsScreen() {
                         </Text>
                       </View>
                     </View>
+
+                    {item.netRunRate !== undefined && (
+                      <View style={styles.netRunRateContainer}>
+                        <Text style={[
+                          styles.netRunRateText, 
+                          {color: item.netRunRate >= 0 ? colors.brandGreen : colors.brandRed}
+                        ]}>
+                          NRR: {item.netRunRate > 0 ? '+' : ''}{item.netRunRate.toFixed(2)}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                   
                   <View style={styles.footer}>
@@ -195,6 +244,14 @@ export default function TeamsScreen() {
                         {item.players.length} Player{item.players.length !== 1 ? 's' : ''}
                       </Text>
                     </View>
+                    
+                    {item.runsScored !== undefined && item.runsConceded !== undefined && (
+                      <View style={styles.runStatsContainer}>
+                        <Text style={styles.runStats}>
+                          Runs: {item.runsScored} / {item.runsConceded}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -283,12 +340,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  netRunRateContainer: {
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
+  netRunRateText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   footer: {
     flexDirection: 'row',
     padding: spacing.md,
     backgroundColor: colors.brandLight + '40', // 40% opacity
     borderTopWidth: 1,
     borderTopColor: colors.brandLight,
+    justifyContent: 'space-between',
   },
   playersCountContainer: {
     flexDirection: 'row',
@@ -300,6 +366,14 @@ const styles = StyleSheet.create({
   playerCount: {
     fontSize: 14,
     color: colors.brandDark + '90', // 90% opacity
+  },
+  runStatsContainer: {
+    alignItems: 'flex-end',
+  },
+  runStats: {
+    fontSize: 13,
+    color: colors.brandDark + '90',
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,

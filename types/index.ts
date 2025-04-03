@@ -130,6 +130,13 @@ export interface Team {
     completedOvers?: number;
     totalRuns?: number;
     ballInCurrentOver?: number;
+    // Optional fields for team stats
+    matchCount?: number;
+    wins?: number;
+    runsScored?: number;
+    runsConceded?: number;
+    netRunRate?: number;
+    oversBowled?: number;
 }
 
 export interface ScoreboardState {

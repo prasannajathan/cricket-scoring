@@ -1,7 +1,4 @@
 import { wicketTypes } from '@/constants/scoring';
-interface ScoringScreenProps {
-    matchId?: string;
-}
 
 export type ExtraType = 'wide' | 'no-ball' | 'bye' | 'leg-bye';
 export type WicketType = typeof wicketTypes[number]
@@ -84,4 +81,37 @@ export interface MatchState {
     bowlingTeamId: string;
     currentPartnership: Partnership;
     lastDelivery?: DeliveryDetails;
+}
+
+export interface PlayerStats {
+    id: string;
+    name: string;
+    matches: number;
+    battingStats: {
+        innings: number;
+        runs: number;
+        balls: number;
+        highScore: number;
+        average: number;
+        strikeRate: number;
+        fifties: number;
+        hundreds: number;
+        fours: number;
+        sixes: number;
+    };
+    bowlingStats: {
+        innings: number;
+        overs: number;
+        wickets: number;
+        runsConceded: number;
+        economy: number;
+        average: number; 
+        bestBowling: string; 
+        fiveWickets: number;
+    };
+    fieldingStats: {
+        catches: number;
+        runouts: number;
+        stumps: number; 
+    };
 }
