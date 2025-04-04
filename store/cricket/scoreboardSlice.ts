@@ -45,7 +45,8 @@ export const {
     setMatchOver,
     updateInningsPlayers,
     loadSavedMatch,
-    setCurrentInning
+    setCurrentInning,
+    resetPlayerStats,
 } = scoreboardSlice.actions;
 
 export default scoreboardSlice.reducer;

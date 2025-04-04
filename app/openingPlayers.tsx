@@ -118,6 +118,24 @@ export default function OpeningPlayersScreen() {
         }));
     }
 
+    // Reset stats for selected players
+    // This ensures stats are reset for this match even if they've played before
+    const resetPlayerStats = (teamKey: 'teamA' | 'teamB', playerId: string) => {
+        dispatch({
+            type: 'scoreboard/resetPlayerStats',
+            payload: { team: teamKey, playerId }
+        });
+    };
+
+    // Reset stats for batsmen
+    const battingTeamKey = battingTeam.id === teamA.id ? 'teamA' : 'teamB';
+    resetPlayerStats(battingTeamKey, strikerId);
+    resetPlayerStats(battingTeamKey, nonStrikerId);
+
+    // Reset stats for bowlers
+    const bowlingTeamKey = bowlingTeam.id === teamA.id ? 'teamA' : 'teamB';
+    resetPlayerStats(bowlingTeamKey, bowlerId);
+
     // Update innings with player IDs
     if (strikerId && nonStrikerId && bowlerId) {
         // Make sure second innings is properly initialized

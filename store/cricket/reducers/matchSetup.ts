@@ -1,16 +1,32 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import { initialState } from '@/store/cricket/initialState';
 import { ScoreboardState, SavedMatch, Team } from '@/types';
+import { playerStats } from '@/utils';
 
 export const matchSetupReducers = {
     setTeamName: (state: ScoreboardState, action: PayloadAction<{ team: 'teamA' | 'teamB'; name: string }>) => {
-        state[action.payload.team].teamName = action.payload.name;
+        const { team, name } = action.payload;
+
+        // If this is a new team name (not found in existing teams), reset the player array
+        if (name !== state[team].teamName) {
+            state[team].teamName = name;
+        }
     },
 
     setTeam: (state: ScoreboardState, action: PayloadAction<{ team: 'teamA' | 'teamB', teamData: Team }>) => {
         const { team, teamData } = action.payload;
-        state[team] = teamData;
-      },
+
+        // Initialize players with fresh stats for this match
+        const initializedPlayers = teamData.players.map(player => ({
+            ...player,
+            ...playerStats
+        }));
+
+        state[team] = {
+            ...teamData,
+            players: initializedPlayers
+        };
+    },
 
     setTossWinner: (state: ScoreboardState, action: PayloadAction<'teamA' | 'teamB'>) => {
         state.tossWinner = action.payload;
@@ -26,7 +42,7 @@ export const matchSetupReducers = {
     setTossChoice: (state: ScoreboardState, action: PayloadAction<'bat' | 'bowl'>) => {
         state.tossChoice = action.payload;
         const battingTeam = state.tossChoice === 'bat' ? state.tossWinner : (state.tossWinner === 'teamA' ? 'teamB' : 'teamA');
-        
+
         state.teamA.isBatting = battingTeam === 'teamA';
         state.teamA.isBowling = !state.teamA.isBatting;
         state.teamB.isBatting = !state.teamA.isBatting;
@@ -57,11 +73,11 @@ export const matchSetupReducers = {
     setMatchResult: (state: ScoreboardState, action: PayloadAction<string>) => {
         state.matchResult = action.payload;
     },
-    
+
     setMatchOver: (state: ScoreboardState, action: PayloadAction<boolean>) => {
         state.matchOver = action.payload;
     },
-    
+
     loadSavedMatch: (state: ScoreboardState, action: PayloadAction<SavedMatch>) => {
         // Load all saved match data into state
         return {

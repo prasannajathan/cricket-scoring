@@ -64,11 +64,11 @@ export const calculateMatchResult = (state: ScoreboardState): void => {
   else if (innings2.totalRuns > innings1.totalRuns) {
     // Team batting second won
     const remainingWickets = calculateRemainingWickets(team2, innings2.wickets, state);
-    state.matchResult = `${team2.teamName} wins by ${remainingWickets} wicket${remainingWickets !== 1 ? 's' : ''}`;
+    state.matchResult = `${team2.teamName} won by ${remainingWickets} wicket${remainingWickets !== 1 ? 's' : ''}`;
   }
   else {
     // Team batting first won
-    state.matchResult = `${team1.teamName} wins by ${runDifference} run${runDifference !== 1 ? 's' : ''}`;
+    state.matchResult = `${team1.teamName} won by ${runDifference} run${runDifference !== 1 ? 's' : ''}`;
   }
 
   // Set match as over

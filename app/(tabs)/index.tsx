@@ -27,6 +27,7 @@ import {
 import { Team } from '@/types';
 import { getAllTeams } from '@/utils/matchStorage';
 import { colors, spacing, typography, radius, shadows, commonStyles } from '@/constants/theme';
+import { playerStats } from '@/utils';
 import Header from '@/components/scoring/Header';
 
 const determineBattingTeam = (
@@ -90,14 +91,14 @@ export default function NewMatchScreen() {
   // Handle filtering team suggestions
   const filterTeamSuggestions = (text: string, isTeamA: boolean) => {
     // Only show suggestions if 2 or more characters are typed
-    if (text.length < 2) {
-      if (isTeamA) {
-        setShowTeamASuggestions(false);
-      } else {
-        setShowTeamBSuggestions(false);
-      }
-      return;
+    // if (text.length < 2) {
+    if (isTeamA) {
+      setShowTeamASuggestions(false);
+    } else {
+      setShowTeamBSuggestions(false);
     }
+    //   return;
+    // }
 
     // Filter teams based on text input
     const filteredTeams = allTeams.filter(team =>
@@ -121,12 +122,38 @@ export default function NewMatchScreen() {
   // Handle selecting a team from suggestions
   const handleSelectTeam = (team: Team, isTeamA: boolean) => {
     if (isTeamA) {
-      dispatch(setTeam({ team: 'teamA', teamData: team }));
+      // Reset all player stats before setting the team
+      const freshTeamPlayers = team.players.map(player => ({
+        ...player,
+        ...playerStats
+      }));
+
+      dispatch(setTeam({ 
+        team: 'teamA', 
+        teamData: {
+          ...team,
+          players: freshTeamPlayers
+        }
+      }));
+      
       setShowTeamASuggestions(false);
       // Focus on next input after selection
       teamBInputRef.current?.focus();
     } else {
-      dispatch(setTeam({ team: 'teamB', teamData: team }));
+      // Reset all player stats before setting the team
+      const freshTeamPlayers = team.players.map(player => ({
+        ...player,
+        ...playerStats
+      }));
+
+      dispatch(setTeam({ 
+        team: 'teamB', 
+        teamData: {
+          ...team, 
+          players: freshTeamPlayers
+        }
+      }));
+      
       setShowTeamBSuggestions(false);
       // Hide keyboard after selecting Team B
       Keyboard.dismiss();
@@ -167,6 +194,24 @@ export default function NewMatchScreen() {
     try {
       const battingTeam = determineBattingTeam(tossWinner, tossChoice);
 
+      // Safety check - ensure we have properly reset player stats
+      // If teams were modified manually, make sure players arrays are appropriate
+      if (teamA.players.length > 0) {
+        const freshTeamAPlayers = teamA.players.map(player => ({
+          ...player,
+          ...playerStats
+        }));
+        dispatch(setTeam({ team: 'teamA', teamData: {...teamA, players: freshTeamAPlayers} }));
+      }
+      
+      if (teamB.players.length > 0) {
+        const freshTeamBPlayers = teamB.players.map(player => ({
+          ...player,
+          ...playerStats
+        }));
+        dispatch(setTeam({ team: 'teamB', teamData: {...teamB, players: freshTeamBPlayers} }));
+      }
+
       // Initialize first innings with proper team IDs
       dispatch(initializeInnings({
         battingTeamId: battingTeam === 'teamA' ? teamA.id : teamB.id,
@@ -179,6 +224,44 @@ export default function NewMatchScreen() {
       console.error('Match initialization failed:', error);
     }
   };
+
+  // Add this effect to reset teams when names are manually changed
+  useEffect(() => {
+    // This ensures that whenever teams are manually changed (not from suggestions), 
+    // we reset the player arrays
+    const resetTeamPlayers = (teamKey: 'teamA' | 'teamB', teamName: string) => {
+      // Only reset if we have players but the name was changed manually
+      const team = teamKey === 'teamA' ? teamA : teamB;
+      
+      if (team.players.length > 0) {
+        // Check if this is not a team selected from suggestions
+        const isSuggestedTeam = allTeams.some(
+          savedTeam => savedTeam.teamName === teamName && 
+            savedTeam.players.length === team.players.length
+        );
+        
+        if (!isSuggestedTeam) {
+          // If not a suggested team, reset the players array
+          dispatch(setTeam({ 
+            team: teamKey, 
+            teamData: {
+              ...team,
+              // Create a fresh team with no players
+              players: []
+            }
+          }));
+        }
+      }
+    };
+    
+    // Debounce these checks for performance
+    const timeoutId = setTimeout(() => {
+      resetTeamPlayers('teamA', teamA.teamName);
+      resetTeamPlayers('teamB', teamB.teamName);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [teamA.teamName, teamB.teamName]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -200,10 +283,10 @@ export default function NewMatchScreen() {
             <View style={styles.section}>
               <View>
                 <Text style={commonStyles.label}>Team A</Text>
-                <View style={commonStyles.inputWrapper}>
+                <View style={styles.inputWrapper}>
                   <TextInput
                     ref={teamAInputRef}
-                    style={commonStyles.textInput}
+                    style={[commonStyles.textInput, styles.inputType]}
                     placeholder="Enter team name"
                     placeholderTextColor={colors.bitDarkGrey}
                     value={teamA.teamName}
@@ -241,10 +324,10 @@ export default function NewMatchScreen() {
                 </View>
 
                 <Text style={commonStyles.label}>Team B</Text>
-                <View style={commonStyles.inputWrapper}>
+                <View style={styles.inputWrapper}>
                   <TextInput
                     ref={teamBInputRef}
-                    style={commonStyles.textInput}
+                    style={[commonStyles.textInput, styles.inputType]}
                     placeholder="Enter team name"
                     placeholderTextColor={colors.bitDarkGrey}
                     value={teamB.teamName}
@@ -408,8 +491,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.brandLight,
     maxHeight: 150,
-    zIndex: 10,
+    zIndex: 1000, // Increase the z-index significantly
+    elevation: 5, // For Android
+    overflow: 'visible',
+    marginTop: 2, // Add a small margin to separate from input
     ...shadows.card
+  },
+  
+  // Update the inputWrapper style to ensure proper z-index handling
+  inputWrapper: {
+    position: 'relative',
+    marginBottom: spacing.lg + 10,
+  },
+  inputType: {
+    position: 'relative',
+    zIndex:1,
   },
   suggestionItem: {
     padding: spacing.xs,
