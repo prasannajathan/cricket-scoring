@@ -19,7 +19,7 @@ export default function OverRowDisplay() {
     <View style={sStyles.sectionHeaderRow}>
       <Text style={commonStyles.sectionTitle}>This Over</Text>
       <View style={styles.overBallsRow}>
-        {formattedBalls.length > 0 ? (
+        {formattedBalls.length > 0 && (
           formattedBalls.map((ball, index) => (
             <View key={index} style={[
               styles.ballCircle,
@@ -28,8 +28,6 @@ export default function OverRowDisplay() {
               <Text style={styles.ballText}>{ball}</Text>
             </View>
           ))
-        ) : (
-          <Text>New over</Text>
         )}
       </View>
     </View>

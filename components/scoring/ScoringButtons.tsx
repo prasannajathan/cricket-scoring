@@ -13,7 +13,8 @@ export default function ScoringButtons({
     canScore,
     disabled 
 }: ScoringButtonsProps) {
-    const runButtons = [0, 1, 2, 3, 4, 6];
+    // Add 5 to the runButtons array
+    const runButtons = [0, 1, 2, 3, 4, 5, 6];
 
     return (
         <View style={styles.container}>
@@ -27,6 +28,7 @@ export default function ScoringButtons({
                             disabled ? styles.disabledButton : null,
                             runs === 0 ? styles.dotButton : null,
                             runs === 4 ? styles.fourButton : null,
+                            runs === 5 ? styles.fiveButton : null,
                             runs === 6 ? styles.sixButton : null,
                             // !canScore ? styles.disabledButton : null
                         ]}
@@ -37,11 +39,11 @@ export default function ScoringButtons({
                         disabled={disabled}
                     >
                         {runs === 0 ? (
-                            <Text style={styles.dotCircle}>0</Text>
+                            <Text style={[styles.runText, styles.dotCircle]}>0</Text>
                         ) : (
                             <Text style={[
                                 styles.runText,
-                                runs === 4 || runs === 6 ? styles.boundaryText : null,
+                                runs === 4 || runs === 5 || runs === 6 ? styles.boundaryText : null,
                                 !canScore ? styles.disabledText : null
                             ]}>
                                 {runs}
@@ -70,7 +72,7 @@ const styles = StyleSheet.create({
     },
     runButton: {
         flex: 1,
-        marginHorizontal: spacing.xs,
+        marginHorizontal: 2, // Reduced horizontal margin to fit all 7 buttons
         height: 60,
         borderRadius: radius.md,
         alignItems: 'center',
@@ -86,14 +88,17 @@ const styles = StyleSheet.create({
         backgroundColor: colors.brandCharcoal,
     },
     dotCircle: {
-        width: 16,
-        height: 16,
-        borderRadius: 100,
-        backgroundColor: colors.white,
-        color: colors.white
+        // width: 16,
+        // height: 16,
+        // borderRadius: 100,
+        // backgroundColor: colors.white,
+        // color: colors.white
     },
     fourButton: {
         backgroundColor: colors.brandGreen,
+    },
+    fiveButton: {
+        backgroundColor: colors.brandTeal, // Use teal for 5 runs
     },
     sixButton: {
         backgroundColor: colors.brandRed,

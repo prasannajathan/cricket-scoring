@@ -45,7 +45,7 @@ export default function AdvancedScoringModal({
                 <View style={styles.modalContent}>
                     <View style={styles.header}>
                         <FontAwesome name="sliders" size={20} color={colors.brandBlue} style={styles.titleIcon} />
-                        <Text style={styles.title}>Advanced Scoring</Text>
+                        <Text style={styles.title}>Penalty runs</Text>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                             <FontAwesome name="times" size={20} color={colors.ccc} />
                         </TouchableOpacity>
@@ -54,7 +54,7 @@ export default function AdvancedScoringModal({
                     <View style={styles.helpTextContainer}>
                         <FontAwesome name="info-circle" size={16} color={colors.brandBlue} style={styles.helpIcon} />
                         <Text style={styles.helpText}>
-                            Enter custom runs value if needed (5 or more runs)
+                            This will add penalty runs to the batting team.
                         </Text>
                     </View>
                     
@@ -71,24 +71,6 @@ export default function AdvancedScoringModal({
                             onSubmitEditing={isValidInput ? handleSubmit : undefined}
                             autoFocus={true}
                         />
-                    </View>
-
-                    <View style={styles.quickButtonsContainer}>
-                        <Text style={styles.quickButtonsLabel}>Quick Selection:</Text>
-                        <View style={styles.quickButtonsRow}>
-                            {[5, 7, 8, 10].map((value) => (
-                                <TouchableOpacity 
-                                    key={value} 
-                                    style={styles.quickButton}
-                                    onPress={() => {
-                                        setRuns(value.toString());
-                                    }}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.quickButtonText}>{value}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
                     </View>
 
                     <View style={styles.buttonRow}>
@@ -192,33 +174,7 @@ const styles = StyleSheet.create({
         color: colors.brandDark,
         fontWeight: '600',
     },
-    quickButtonsContainer: {
-        marginHorizontal: spacing.md,
-        marginBottom: spacing.md,
-    },
-    quickButtonsLabel: {
-        fontSize: 14,
-        color: colors.brandDark + '80', // 80% opacity
-        marginBottom: spacing.xs,
-    },
-    quickButtonsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-    },
-    quickButton: {
-        backgroundColor: colors.brandLight,
-        borderRadius: radius.md,
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: 45,
-    },
-    quickButtonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.brandDark,
-    },
+    
     buttonRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
