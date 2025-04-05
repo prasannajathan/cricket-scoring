@@ -139,9 +139,6 @@ export default function NextBowlerModal({
                                                 ]}>
                                                     {player.name}
                                                 </Text>
-                                            </View>
-                                            
-                                            <View style={styles.statusContainer}>
                                                 {player.id === lastOverBowlerId && (
                                                     <View style={styles.statusBadge}>
                                                         <FontAwesome name="history" size={12} color={colors.white} style={styles.statusIcon} />
@@ -167,6 +164,16 @@ export default function NextBowlerModal({
                                                                 !isCanBowl && styles.disabledText
                                                             ]}>
                                                                 {player.overs}.{player.ballsThisOver}
+                                                            </Text>
+                                                        </View>
+
+                                                        <View style={styles.statItem}>
+                                                            <Text style={styles.statLabel}>M</Text>
+                                                            <Text style={[
+                                                                styles.statValue,
+                                                                !isCanBowl && styles.disabledText
+                                                            ]}>
+                                                                {player.maidens}
                                                             </Text>
                                                         </View>
                                                         
@@ -316,7 +323,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: spacing.md,
-        paddingVertical: spacing.md,
+        paddingVertical: spacing.sm,
         borderBottomWidth: 1,
         borderBottomColor: colors.brandLight,
     },
@@ -341,7 +348,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
     },
     bowlerName: {
-        fontSize: 16,
+        fontSize: typography.sizeMD,
         fontWeight: '600',
         color: colors.brandDark,
     },
@@ -365,7 +372,8 @@ const styles = StyleSheet.create({
         paddingVertical: spacing.xs / 2,
         borderRadius: radius.xl,
         marginRight: spacing.xs,
-        marginBottom: spacing.xs,
+        marginLeft: spacing.xs,
+        // marginBottom: spacing.xs,
     },
     quotaBadge: {
         backgroundColor: colors.brandRed + '90', // 90% opacity

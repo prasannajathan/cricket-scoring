@@ -132,26 +132,6 @@ export default function ExtrasModal({ visible, onClose, onAddExtras }: ExtrasMod
                                     />
                                 </View>
                                 
-                                <View style={styles.addExtraSection}>
-                                    <View style={styles.sectionTitleRow}>
-                                        <FontAwesome name="plus-square" size={16} color={colors.brandBlue} style={styles.sectionIcon} />
-                                        <Text style={styles.addExtraTitle}>Add Extra Runs</Text>
-                                    </View>
-                                    
-                                    <View style={styles.inputContainer}>
-                                        <FontAwesome name="hashtag" size={16} color={colors.ccc} style={styles.inputIcon} />
-                                        <TextInput
-                                            style={styles.input}
-                                            value={extraRuns}
-                                            onChangeText={setExtraRuns}
-                                            keyboardType="number-pad"
-                                            placeholder="Enter runs"
-                                            placeholderTextColor={colors.bitDarkGrey}
-                                            returnKeyType="done"
-                                            onSubmitEditing={() => extraRuns.trim() ? handleSubmit() : null}
-                                        />
-                                    </View>
-                                </View>
                             </View>
                         </ScrollView>
 
@@ -163,20 +143,6 @@ export default function ExtrasModal({ visible, onClose, onAddExtras }: ExtrasMod
                             >
                                 <FontAwesome name="times" size={16} color={colors.brandDark} style={styles.buttonIcon} />
                                 <Text style={styles.cancelText}>Close</Text>
-                            </TouchableOpacity>
-                            
-                            <TouchableOpacity 
-                                style={[
-                                    styles.button, 
-                                    styles.addButton,
-                                    !extraRuns.trim() && styles.disabledButton
-                                ]} 
-                                onPress={handleSubmit}
-                                disabled={!extraRuns.trim()}
-                                activeOpacity={0.7}
-                            >
-                                <FontAwesome name="plus" size={16} color={colors.white} style={styles.buttonIcon} />
-                                <Text style={styles.addText}>Add Extras</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -314,44 +280,11 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: colors.brandBlue,
     },
-    addExtraSection: {
-        backgroundColor: colors.white,
-        borderRadius: radius.md,
-        padding: spacing.md,
-        ...shadows.subtle,
-    },
-    sectionTitleRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: spacing.sm,
-    },
+
     sectionIcon: {
         marginRight: spacing.xs,
     },
-    addExtraTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: colors.brandDark,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: colors.brandLight,
-        borderRadius: radius.md,
-        backgroundColor: colors.white,
-        paddingHorizontal: spacing.md,
-        ...shadows.subtle,
-    },
-    inputIcon: {
-        marginRight: spacing.sm,
-    },
-    input: {
-        flex: 1,
-        padding: spacing.md,
-        fontSize: 16,
-        color: colors.brandDark,
-    },
+
     buttonRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -377,14 +310,6 @@ const styles = StyleSheet.create({
         backgroundColor: colors.white,
         borderWidth: 1,
         borderColor: colors.brandLight,
-    },
-    addButton: {
-        backgroundColor: colors.orange,
-    },
-    disabledButton: {
-        backgroundColor: colors.brandLight,
-        shadowOpacity: 0,
-        elevation: 0,
     },
     cancelText: {
         color: colors.brandDark,
